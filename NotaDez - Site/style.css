@@ -107,24 +107,3 @@ th, td {
     margin-top: 10px;
     font-weight: bold;
 }
-@media (max-width: 600px) {
-    .header-container h1 {
-        font-size: 1.4rem;
-    }
-    nav a {
-        display: block;
-        margin: 5px 0;
-    }
-    footer {
-        font-size: 0.8rem;
-    }
-    .container {
-        padding: 15px;
-    }
-    input, select, button, textarea {
-        font-size: 0.95rem;
-    }
-    table, th, td {
-        font-size: 0.85rem;
-    }
-}
