@@ -6,56 +6,69 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<header>NotaDez</header>
+  <header>NotaDez</header>
 
-<div class="container">
-  <h2>Criar conta</h2>
+  <div class="container">
+    <h2>Criar conta</h2>
 
-  <label>Nome</label>
-  <input id="nome" />
+    <label>Nome completo</label>
+    <input id="nome" placeholder="Ex: Lucas Xavier" />
 
-  <label>Telefone</label>
-  <input id="tel" />
+    <label>Telefone</label>
+    <input id="tel" type="tel" placeholder="(11) 99999-9999" />
 
-  <label>Email</label>
-  <input id="email" type="email" />
+    <label>Email</label>
+    <input id="email" type="email" placeholder="exemplo@teste.com" />
 
-  <label>Senha</label>
-  <input id="senha" type="password" />
+    <label>Senha</label>
+    <input id="senha" type="password" placeholder="Digite sua senha" />
 
-  <button id="btnRegistrar">Registrar</button>
+    <button id="btnRegistrar">Registrar</button>
 
-  <p>Já tem conta?
-    <a href="login.html">Entrar</a>
-  </p>
-</div>
+    <p>Já tem conta?
+      <a href="login.html">Entrar</a>
+    </p>
+  </div>
 
-<script>
-  const btnRegistrar = document.getElementById("btnRegistrar");
+  <script>
+    const btnRegistrar = document.getElementById("btnRegistrar");
 
-  btnRegistrar.onclick = async () => {
-    const payload = {
-      nome: document.getElementById("nome").value,
-      telefone: document.getElementById("tel").value,
-      email: document.getElementById("email").value,
-      senha: document.getElementById("senha").value
+    btnRegistrar.onclick = async () => {
+      const nome = document.getElementById("nome").value.trim();
+      const telefone = document.getElementById("tel").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const senha = document.getElementById("senha").value.trim();
+
+      if (!nome || !email || !senha) {
+        alert("Por favor, preencha os campos obrigatórios (Nome, Email e Senha).");
+        return;
+      }
+
+      try {
+        const res = await fetch("http://localhost:3000/registrar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nome, telefone, email, senha })
+        });
+
+        const data = await res.json();
+
+        if (res.status === 409) {
+          alert("E-mail já cadastrado. Tente outro.");
+          return;
+        }
+
+        if (data.sucesso) {
+          alert("Conta criada com sucesso! Faça login.");
+          window.location.href = "login.html";
+        } else {
+          alert(data.erro || "Erro ao criar conta. Tente novamente.");
+        }
+      } catch (erro) {
+        console.error("Erro de conexão:", erro);
+        alert("Erro de conexão com o servidor. Verifique se o backend está rodando em http://localhost:3000");
+      }
     };
-
-    const res = await fetch("http://localhost:3000/registrar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    const data = await res.json();
-
-    if (data.ok) {
-      alert("Conta criada! Faça login.");
-      window.location.href = "login.html";
-    } else {
-      alert("Erro ao criar conta.");
-    }
-  };
-</script>
+  </script>
 </body>
 </html>

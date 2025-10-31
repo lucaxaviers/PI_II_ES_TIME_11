@@ -12,10 +12,10 @@
     <h2>Login</h2>
 
     <label for="email">Email</label>
-    <input id="email" type="email" required />
+    <input id="email" type="email" placeholder="exemplo@teste.com" required />
 
     <label for="senha">Senha</label>
-    <input id="senha" type="password" required />
+    <input id="senha" type="password" placeholder="Digite sua senha" required />
 
     <button id="btnLogin">Entrar</button>
 
@@ -32,32 +32,37 @@
       const senha = document.getElementById("senha").value.trim();
 
       if (!email || !senha) {
-        alert("Por favor, preencha todos os campos!");
+        alert("Por favor, preencha todos os campos obrigatórios!");
         return;
       }
 
       try {
-        const resposta = await fetch("/api/login", {
+        const res = await fetch("http://localhost:3000/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, senha })
         });
 
-        const dados = await resposta.json();
+        const data = await res.json();
 
-        if (resposta.ok && dados.sucesso) {
-          // salva os dados do docente logado
-          localStorage.setItem("id_docente", dados.id_docente || "1");
-          localStorage.setItem("nome_docente", dados.nome || email);
+        if (res.status === 401) {
+          alert("Email ou senha incorretos. Tente novamente.");
+          return;
+        }
 
-          alert(dados.mensagem || "Login realizado com sucesso!");
+        if (data.sucesso) {
+          // Salva o docente logado no navegador
+          localStorage.setItem("id_docente", data.id_docente);
+          localStorage.setItem("nome_docente", data.nome);
+
+          alert(data.mensagem || "Login realizado com sucesso!");
           window.location.href = "dashboard.html";
         } else {
-          alert(dados.erro || "Credenciais inválidas. Tente novamente.");
+          alert(data.erro || "Erro no login. Tente novamente.");
         }
       } catch (erro) {
         console.error("Erro ao conectar:", erro);
-        alert("Erro de conexão com o servidor. Verifique se o backend está rodando.");
+        alert("Erro de conexão com o servidor. Verifique se o backend está rodando em http://localhost:3000");
       }
     };
   </script>
