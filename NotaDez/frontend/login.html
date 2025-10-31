@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Login - NotaDez</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>NotaDez</header>
+
+  <div class="container">
+    <h2>Login</h2>
+
+    <label for="email">Email</label>
+    <input id="email" type="email" required />
+
+    <label for="senha">Senha</label>
+    <input id="senha" type="password" required />
+
+    <button id="btnLogin">Entrar</button>
+
+    <p>Não tem conta?
+      <a href="cadastro.html">Criar conta</a>
+    </p>
+  </div>
+
+  <script>
+    const btnLogin = document.getElementById("btnLogin");
+
+    btnLogin.onclick = async () => {
+      const email = document.getElementById("email").value.trim();
+      const senha = document.getElementById("senha").value.trim();
+
+      if (!email || !senha) {
+        alert("Por favor, preencha todos os campos!");
+        return;
+      }
+
+      try {
+        const resposta = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, senha })
+        });
+
+        const dados = await resposta.json();
+
+        if (resposta.ok && dados.sucesso) {
+          // salva os dados do docente logado
+          localStorage.setItem("id_docente", dados.id_docente || "1");
+          localStorage.setItem("nome_docente", dados.nome || email);
+
+          alert(dados.mensagem || "Login realizado com sucesso!");
+          window.location.href = "dashboard.html";
+        } else {
+          alert(dados.erro || "Credenciais inválidas. Tente novamente.");
+        }
+      } catch (erro) {
+        console.error("Erro ao conectar:", erro);
+        alert("Erro de conexão com o servidor. Verifique se o backend está rodando.");
+      }
+    };
+  </script>
+</body>
+</html>

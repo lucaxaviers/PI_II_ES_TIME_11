@@ -1,0 +1,30 @@
+{
+  "name": "backend-oracle",
+  "version": "1.0.0",
+  "description": "Exemplo de Conexao com BD Oracle usando node e typescrip(puro)",
+  "main": "index.js",
+  "scripts": {
+    "verificarTS": "ts-node src/teste.ts",
+    "build": "tsc"
+  },
+  "keywords": [
+    "Oracle"
+  ],
+  "author": "Lucas Xavier",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "oracledb": "^6.10.0"
+  },
+  "devDependencies": {
+    "@types/body-parser": "^1.19.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.5",
+    "@types/node": "^24.9.2",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.3"
+  }
+}

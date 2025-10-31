@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Criar conta - NotaDez</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>NotaDez</header>
+
+<div class="container">
+  <h2>Criar conta</h2>
+
+  <label>Nome</label>
+  <input id="nome" />
+
+  <label>Telefone</label>
+  <input id="tel" />
+
+  <label>Email</label>
+  <input id="email" type="email" />
+
+  <label>Senha</label>
+  <input id="senha" type="password" />
+
+  <button id="btnRegistrar">Registrar</button>
+
+  <p>Já tem conta?
+    <a href="login.html">Entrar</a>
+  </p>
+</div>
+
+<script>
+  const btnRegistrar = document.getElementById("btnRegistrar");
+
+  btnRegistrar.onclick = async () => {
+    const payload = {
+      nome: document.getElementById("nome").value,
+      telefone: document.getElementById("tel").value,
+      email: document.getElementById("email").value,
+      senha: document.getElementById("senha").value
+    };
+
+    const res = await fetch("http://localhost:3000/registrar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (data.ok) {
+      alert("Conta criada! Faça login.");
+      window.location.href = "login.html";
+    } else {
+      alert("Erro ao criar conta.");
+    }
+  };
+</script>
+</body>
+</html>

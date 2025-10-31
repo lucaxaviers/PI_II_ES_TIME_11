@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    /* ===== Configurações básicas ===== */
+    "target": "ES2020",
+    "module": "CommonJS",
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "strict": true,
+
+    /* ===== Resolução de módulos ===== */
+    "baseUrl": "./src",
+    "moduleResolution": "node",
+
+    /* ===== Outros ajustes ===== */
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* ===== Suporte a tipos personalizados ===== */
+    "typeRoots": ["./src/types", "./node_modules/@types"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

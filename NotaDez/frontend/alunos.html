@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Alunos - NotaDez</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>NotaDez</header>
+
+<div class="container">
+
+  <div class="row-gap">
+    <h2>Importar Alunos via CSV</h2>
+
+    <label>ID da turma</label>
+    <input id="idTurma" />
+
+    <label>CSV (matricula,nome)</label>
+    <textarea id="csv" rows="5"
+      placeholder="matricula,nome&#10;11111,João Silva&#10;11112,Maria Souza"></textarea>
+
+    <button id="btnImportar">Importar CSV</button>
+  </div>
+
+  <div class="row-gap">
+    <h2>Alunos da turma</h2>
+
+    <label>ID da turma</label>
+    <input id="idTurmaListar" />
+
+    <button id="btnListar">Listar alunos</button>
+
+    <table class="table-like">
+      <thead>
+      <tr><th>ID</th><th>Matrícula</th><th>Nome</th></tr>
+      </thead>
+      <tbody id="listaAlunos"></tbody>
+    </table>
+  </div>
+
+  <button onclick="location.href='dashboard.html'">Voltar</button>
+</div>
+
+<script>
+  document.getElementById("btnImportar").onclick = async () => {
+    const id_turma = document.getElementById("idTurma").value;
+    const csv = document.getElementById("csv").value;
+
+    const res = await fetch("http://localhost:3000/aluno/importar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id_turma, csv })
+    });
+
+    const data = await res.json();
+    if (data.ok) {
+      alert("Importado com sucesso!");
+    } else {
+      alert("Erro ao importar alunos.");
+    }
+  };
+
+  document.getElementById("btnListar").onclick = async () => {
+    const idTurmaListar = document.getElementById("idTurmaListar").value;
+
+    const res = await fetch("http://localhost:3000/aluno/listar?id_turma=" + idTurmaListar);
+    const data = await res.json();
+
+    const tbody = document.getElementById("listaAlunos");
+    tbody.innerHTML = "";
+    data.forEach((a) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${a.ID || a.id}</td><td>${a.MATRICULA || a.matricula}</td><td>${a.NOME || a.nome}</td>`;
+      tbody.appendChild(tr);
+    });
+  };
+</script>
+</body>
+</html>

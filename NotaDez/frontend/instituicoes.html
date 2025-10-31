@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Instituições - NotaDez</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>NotaDez</header>
+
+<div class="container">
+
+  <div class="row-gap">
+    <h2>Adicionar Instituição</h2>
+
+    <label>Nome da instituição</label>
+    <input id="nomeInst" />
+
+    <button id="btnCriar">Adicionar</button>
+  </div>
+
+  <div class="row-gap">
+    <h2>Minhas instituições</h2>
+
+    <table class="table-like">
+      <thead>
+      <tr><th>ID</th><th>Nome</th></tr>
+      </thead>
+      <tbody id="listaInst"></tbody>
+    </table>
+  </div>
+
+  <button onclick="location.href='dashboard.html'">Voltar</button>
+</div>
+
+<script>
+  const id_docente = localStorage.getItem("id_docente");
+
+  async function carregarInstituicoes() {
+    const res = await fetch("http://localhost:3000/instituicao/listar?id_docente=" + id_docente);
+    const data = await res.json();
+
+    const tbody = document.getElementById("listaInst");
+    tbody.innerHTML = "";
+    data.forEach((inst) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${inst.ID || inst.id}</td><td>${inst.NOME || inst.nome}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  document.getElementById("btnCriar").onclick = async () => {
+    const nomeInst = document.getElementById("nomeInst").value;
+
+    await fetch("http://localhost:3000/instituicao/criar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome: nomeInst, id_docente })
+    });
+
+    document.getElementById("nomeInst").value = "";
+    carregarInstituicoes();
+  };
+
+  carregarInstituicoes();
+</script>
+</body>
+</html>

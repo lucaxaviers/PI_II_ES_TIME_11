@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Notas - NotaDez</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>NotaDez</header>
+
+<div class="container">
+
+  <div class="row-gap">
+    <h2>Lançar / Atualizar Nota</h2>
+
+    <label>ID da Turma</label>
+    <input id="idTurma" />
+
+    <label>ID do Aluno</label>
+    <input id="idAluno" />
+
+    <label>ID do componente (P1, P2...)</label>
+    <input id="idComp" />
+
+    <label>Nota (0 a 10)</label>
+    <input id="valorNota" />
+
+    <button id="btnSalvarNota">Salvar nota</button>
+  </div>
+
+  <div class="row-gap">
+    <h2>Notas da turma + média</h2>
+
+    <label>ID da Turma</label>
+    <input id="idTurmaVer" />
+
+    <button id="btnVerNotas">Carregar notas</button>
+
+    <table class="table-like">
+      <thead id="theadNotas"></thead>
+      <tbody id="tbodyNotas"></tbody>
+    </table>
+  </div>
+
+  <button onclick="location.href='dashboard.html'">Voltar</button>
+</div>
+
+<script>
+  document.getElementById("btnSalvarNota").onclick = async () => {
+    const payload = {
+      id_aluno: document.getElementById("idAluno").value,
+      id_componente: document.getElementById("idComp").value,
+      valor: document.getElementById("valorNota").value
+    };
+
+    const res = await fetch("http://localhost:3000/nota/salvar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (data.ok) {
+      alert("Nota salva!");
+    } else {
+      alert("Erro ao salvar nota.");
+    }
+  };
+
+  document.getElementById("btnVerNotas").onclick = async () => {
+    const idTurma = document.getElementById("idTurmaVer").value;
+
+    const res = await fetch("http://localhost:3000/nota/ver?id_turma=" + idTurma);
+    const tabela = await res.json();
+
+    const thead = document.getElementById("theadNotas");
+    const tbody = document.getElementById("tbodyNotas");
+    thead.innerHTML = "";
+    tbody.innerHTML = "";
+
+    if (!Array.isArray(tabela) || tabela.length === 0) {
+      tbody.innerHTML = "<tr><td>Sem dados</td></tr>";
+      return;
+    }
+
+    // gera colunas dinamicamente com base no primeiro registro
+    const colunas = Object.keys(tabela[0]); // exemplo: ["matricula","nome","P1","P2","mediaFinal"]
+
+    const trHead = document.createElement("tr");
+    colunas.forEach(col => {
+      const th = document.createElement("th");
+      th.innerText = col;
+      trHead.appendChild(th);
+    });
+    thead.appendChild(trHead);
+
+    tabela.forEach((linha) => {
+      const tr = document.createElement("tr");
+      colunas.forEach(col => {
+        const td = document.createElement("td");
+        const valor = linha[col];
+        td.innerText = (valor === null || valor === undefined || valor === "") ? "-" : valor;
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+  };
+</script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Turmas - NotaDez</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>NotaDez</header>
+
+<div class="container">
+
+  <div class="row-gap">
+    <h2>Criar Turma</h2>
+
+    <label>ID da disciplina</label>
+    <input id="idDisc" />
+
+    <label>Nome da turma</label>
+    <input id="nomeTurma" placeholder="ex: Turma 101" />
+
+    <label>Código da turma</label>
+    <input id="codTurma" placeholder="ex: PI2-101" />
+
+    <button id="btnCriar">Criar turma</button>
+  </div>
+
+  <div class="row-gap">
+    <h2>Listar Turmas de uma Disciplina</h2>
+
+    <label>ID da disciplina</label>
+    <input id="idDiscListar" />
+
+    <button id="btnListar">Listar</button>
+
+    <table class="table-like">
+      <thead>
+      <tr><th>ID</th><th>Nome</th><th>Código</th></tr>
+      </thead>
+      <tbody id="listaTurma"></tbody>
+    </table>
+  </div>
+
+  <button onclick="location.href='dashboard.html'">Voltar</button>
+</div>
+
+<script>
+  document.getElementById("btnCriar").onclick = async () => {
+    const payload = {
+      id_disciplina: document.getElementById("idDisc").value,
+      nome: document.getElementById("nomeTurma").value,
+      codigo: document.getElementById("codTurma").value
+    };
+
+    await fetch("http://localhost:3000/turma/criar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    alert("Turma criada!");
+  };
+
+  document.getElementById("btnListar").onclick = async () => {
+    const idDisc = document.getElementById("idDiscListar").value;
+
+    const res = await fetch("http://localhost:3000/turma/listar?id_disciplina=" + idDisc);
+    const data = await res.json();
+
+    const tbody = document.getElementById("listaTurma");
+    tbody.innerHTML = "";
+    data.forEach((t) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${t.ID || t.id}</td><td>${t.NOME || t.nome}</td><td>${t.CODIGO || t.codigo || ""}</td>`;
+      tbody.appendChild(tr);
+    });
+  };
+</script>
+</body>
+</html>
