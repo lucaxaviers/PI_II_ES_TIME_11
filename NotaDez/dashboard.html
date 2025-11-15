@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Docente - NotaDez</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header da Dashboard -->
+    <div class="dashboard-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="dashboard-title mb-0">
+                    <i class="bi bi-speedometer2"></i> Painel do Docente
+                </h1>
+                <button class="btn-add-instituicao" id="btnAddInstituicao" onclick="mostrarCadastroInstituicao()" style="display: none;">
+                    <i class="bi bi-plus-circle"></i> Adicionar Instituição
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Seção Principal - Lista de Instituições -->
+        <div id="dashboardSection">
+            <div id="institutionsContainer">
+                <div class="institutions-grid" id="institutionsGrid">
+                    <!-- Os cards de instituições serão inseridos aqui via JavaScript -->
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Seção de Cadastro de Instituição -->
+        <div id="cadastroSection" style="display: none;">
+            <div class="cadastro-instituicao-section">
+                <h2 class="cadastro-instituicao-title">
+                    <i class="bi bi-building"></i> Cadastro de Instituição
+                </h2>
+                <p class="text-center text-muted mb-4" id="cadastroInstituicaoMessage">
+                    Cadastre uma nova instituição.
+                </p>
+                <form id="cadastroInstituicaoForm">
+                    <div class="mb-3">
+                        <label for="instituicaoNome" class="form-label">Nome da Instituição <span class="text-danger">*</span></label>
+                        <input 
+                            type="text" 
+                            class="form-control form-control-lg" 
+                            id="instituicaoNome" 
+                            name="nome"
+                            placeholder="Ex: Universidade Federal de São Paulo"
+                            required
+                        >
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="instituicaoCidade" class="form-label">Cidade</label>
+                        <input 
+                            type="text" 
+                            class="form-control form-control-lg" 
+                            id="instituicaoCidade" 
+                            name="cidade"
+                            placeholder="Ex: São Paulo"
+                        >
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="instituicaoEstado" class="form-label">Estado (UF)</label>
+                        <select 
+                            class="form-select form-select-lg" 
+                            id="instituicaoEstado" 
+                            name="uf"
+                        >
+                            <option value="">Selecione o estado</option>
+                            <option value="AC">Acre (AC)</option>
+                            <option value="AL">Alagoas (AL)</option>
+                            <option value="AP">Amapá (AP)</option>
+                            <option value="AM">Amazonas (AM)</option>
+                            <option value="BA">Bahia (BA)</option>
+                            <option value="CE">Ceará (CE)</option>
+                            <option value="DF">Distrito Federal (DF)</option>
+                            <option value="ES">Espírito Santo (ES)</option>
+                            <option value="GO">Goiás (GO)</option>
+                            <option value="MA">Maranhão (MA)</option>
+                            <option value="MT">Mato Grosso (MT)</option>
+                            <option value="MS">Mato Grosso do Sul (MS)</option>
+                            <option value="MG">Minas Gerais (MG)</option>
+                            <option value="PA">Pará (PA)</option>
+                            <option value="PB">Paraíba (PB)</option>
+                            <option value="PR">Paraná (PR)</option>
+                            <option value="PE">Pernambuco (PE)</option>
+                            <option value="PI">Piauí (PI)</option>
+                            <option value="RJ">Rio de Janeiro (RJ)</option>
+                            <option value="RN">Rio Grande do Norte (RN)</option>
+                            <option value="RS">Rio Grande do Sul (RS)</option>
+                            <option value="RO">Rondônia (RO)</option>
+                            <option value="RR">Roraima (RR)</option>
+                            <option value="SC">Santa Catarina (SC)</option>
+                            <option value="SP">São Paulo (SP)</option>
+                            <option value="SE">Sergipe (SE)</option>
+                            <option value="TO">Tocantins (TO)</option>
+                        </select>
+                    </div>
+
+                    <button type="button" class="btn btn-secondary btn-lg w-100 mb-2" id="btnVoltarDashboard" onclick="voltarDashboard()" style="display: none;">
+                        <i class="bi bi-arrow-left"></i> Voltar para Dashboard
+                    </button>
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        <i class="bi bi-check-circle"></i> Cadastrar Instituição
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Edição -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel">
+                        <i class="bi bi-pencil-square"></i> Editar Instituição
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editInstituicaoForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="editInstituicaoId">
+                        <div class="mb-3">
+                            <label for="editInstituicaoNome" class="form-label">Nome da Instituição <span class="text-danger">*</span></label>
+                            <input 
+                                type="text" 
+                                class="form-control form-control-lg" 
+                                id="editInstituicaoNome"
+                                required
+                            >
+                        </div>
+                        <div class="mb-3">
+                            <label for="editInstituicaoCidade" class="form-label">Cidade</label>
+                            <input 
+                                type="text" 
+                                class="form-control form-control-lg" 
+                                id="editInstituicaoCidade"
+                            >
+                        </div>
+                        <div class="mb-3">
+                            <label for="editInstituicaoEstado" class="form-label">Estado (UF)</label>
+                            <select 
+                                class="form-select form-select-lg" 
+                                id="editInstituicaoEstado"
+                            >
+                                <option value="">Selecione o estado</option>
+                                <option value="AC">Acre (AC)</option>
+                                <option value="AL">Alagoas (AL)</option>
+                                <option value="AP">Amapá (AP)</option>
+                                <option value="AM">Amazonas (AM)</option>
+                                <option value="BA">Bahia (BA)</option>
+                                <option value="CE">Ceará (CE)</option>
+                                <option value="DF">Distrito Federal (DF)</option>
+                                <option value="ES">Espírito Santo (ES)</option>
+                                <option value="GO">Goiás (GO)</option>
+                                <option value="MA">Maranhão (MA)</option>
+                                <option value="MT">Mato Grosso (MT)</option>
+                                <option value="MS">Mato Grosso do Sul (MS)</option>
+                                <option value="MG">Minas Gerais (MG)</option>
+                                <option value="PA">Pará (PA)</option>
+                                <option value="PB">Paraíba (PB)</option>
+                                <option value="PR">Paraná (PR)</option>
+                                <option value="PE">Pernambuco (PE)</option>
+                                <option value="PI">Piauí (PI)</option>
+                                <option value="RJ">Rio de Janeiro (RJ)</option>
+                                <option value="RN">Rio Grande do Norte (RN)</option>
+                                <option value="RS">Rio Grande do Sul (RS)</option>
+                                <option value="RO">Rondônia (RO)</option>
+                                <option value="RR">Roraima (RR)</option>
+                                <option value="SC">Santa Catarina (SC)</option>
+                                <option value="SP">São Paulo (SP)</option>
+                                <option value="SE">Sergipe (SE)</option>
+                                <option value="TO">Tocantins (TO)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary-modal" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Salvar Alterações
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Exclusão de Instituição -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">
+                        <i class="bi bi-exclamation-triangle text-danger"></i> Confirmar Exclusão
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja excluir esta instituição?</p>
+                    <p class="text-muted small">Esta ação não pode ser desfeita.</p>
+                    <input type="hidden" id="deleteInstituicaoId">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary-modal" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                        <i class="bi bi-trash"></i> Confirmar Exclusão
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ============================================
+        // CONFIGURAÇÃO DA API
+        // ============================================
+        
+        const API_URL = 'http://localhost:3000';
+
+        // Função para obter o token de autenticação
+        function getAuthToken() {
+            return localStorage.getItem('token');
+        }
+
+        // Função para verificar se o usuário está autenticado
+        function checkAuth() {
+            const token = getAuthToken();
+            if (!token) {
+                alert('Você precisa estar logado para acessar esta página.');
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        // Função para fazer requisições autenticadas
+        async function apiRequest(url, options = {}) {
+            const token = getAuthToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Erro na requisição');
+            }
+
+            return data;
+        }
+
+        // Função para exibir mensagens
+        function showMessage(message, type = 'success') {
+            // Criar elemento de alerta
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // ============================================
+        // FUNÇÕES DE GERENCIAMENTO DE INSTITUIÇÕES
+        // ============================================
+
+        // Carregar instituições do backend
+        async function loadInstituicoes() {
+            try {
+                const response = await apiRequest(`${API_URL}/instituicoes`);
+                const instituicoes = response.data || [];
+
+                renderInstituicoes(instituicoes);
+            } catch (error) {
+                console.error('Erro ao carregar instituições:', error);
+                showMessage(error.message || 'Erro ao carregar instituições', 'error');
+            }
+        }
+
+        // Renderizar cards de instituições
+        function renderInstituicoes(instituicoes) {
+            const grid = document.getElementById('institutionsGrid');
+            const btnAddInstituicao = document.getElementById('btnAddInstituicao');
+
+            if (instituicoes.length === 0) {
+                // Não há instituições, mostrar tela de cadastro
+                document.getElementById('dashboardSection').style.display = 'none';
+                document.getElementById('cadastroSection').style.display = 'block';
+                btnAddInstituicao.style.display = 'none';
+                document.getElementById('btnVoltarDashboard').style.display = 'none';
+                document.getElementById('cadastroInstituicaoMessage').textContent = 'Bem-vindo! Para começar, cadastre sua primeira instituição.';
+                return;
+            }
+
+            // Há instituições, mostrar dashboard
+            document.getElementById('cadastroSection').style.display = 'none';
+            document.getElementById('dashboardSection').style.display = 'block';
+            btnAddInstituicao.style.display = 'inline-flex';
+
+            // Limpar grid
+            grid.innerHTML = '';
+
+            // Renderizar cada instituição
+            instituicoes.forEach(instituicao => {
+                const card = document.createElement('div');
+                card.className = 'institution-card';
+                card.innerHTML = `
+                    <div class="institution-name">
+                        <i class="bi bi-building"></i> ${instituicao.nome}
+                    </div>
+                    <div class="institution-city">
+                        <i class="bi bi-geo-alt"></i> ${instituicao.cidade || 'Não informado'}${instituicao.uf ? ` - ${instituicao.uf}` : ''}
+                    </div>
+                    <div class="institution-actions">
+                        <button class="action-btn btn-view" onclick="verCursos(${instituicao.id}, '${instituicao.nome.replace(/'/g, "\\'")}')">
+                            <i class="bi bi-eye"></i> Ver Cursos
+                        </button>
+                        <button class="action-btn btn-edit" onclick="editarInstituicao(${instituicao.id}, '${instituicao.nome.replace(/'/g, "\\'")}', '${(instituicao.cidade || '').replace(/'/g, "\\'")}', '${(instituicao.uf || '').replace(/'/g, "\\'")}')">
+                            <i class="bi bi-pencil"></i> Editar
+                        </button>
+                        <button class="action-btn btn-delete" onclick="excluirInstituicao(${instituicao.id})">
+                            <i class="bi bi-trash"></i> Excluir
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // ============================================
+        // FUNÇÕES DE NAVEGAÇÃO
+        // ============================================
+
+        // Mostrar formulário de cadastro
+        function mostrarCadastroInstituicao() {
+            document.getElementById('dashboardSection').style.display = 'none';
+            document.getElementById('cadastroSection').style.display = 'block';
+            document.getElementById('btnAddInstituicao').style.display = 'none';
+            document.getElementById('btnVoltarDashboard').style.display = 'block';
+            document.getElementById('cadastroInstituicaoMessage').textContent = 'Cadastre uma nova instituição.';
+            document.getElementById('cadastroInstituicaoForm').reset();
+            document.getElementById('cadastroSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // Voltar para dashboard
+        function voltarDashboard() {
+            document.getElementById('cadastroSection').style.display = 'none';
+            document.getElementById('dashboardSection').style.display = 'block';
+            document.getElementById('btnAddInstituicao').style.display = 'inline-flex';
+        }
+
+        // Ver cursos - redireciona para página de cursos
+        function verCursos(instituicaoId, instituicaoNome) {
+            // Salvar dados da instituição selecionada no localStorage
+            localStorage.setItem('selectedInstituicao', JSON.stringify({
+                id: instituicaoId,
+                nome: instituicaoNome
+            }));
+            
+            // Redirecionar para página de cursos
+            window.location.href = 'cursos.html';
+        }
+
+        // ============================================
+        // FUNÇÕES CRUD DE INSTITUIÇÕES
+        // ============================================
+
+        // Criar instituição
+        document.getElementById('cadastroInstituicaoForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const nome = document.getElementById('instituicaoNome').value.trim();
+            const cidade = document.getElementById('instituicaoCidade').value.trim();
+            const uf = document.getElementById('instituicaoEstado').value.trim();
+
+            if (!nome) {
+                showMessage('Nome da instituição é obrigatório', 'error');
+                return;
+            }
+
+            try {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Cadastrando...';
+
+                await apiRequest(`${API_URL}/instituicoes`, {
+                    method: 'POST',
+                    body: JSON.stringify({ nome, cidade, uf })
+                });
+
+                showMessage('Instituição cadastrada com sucesso!', 'success');
+                this.reset();
+                await loadInstituicoes();
+                document.getElementById('cursosSection').classList.remove('show');
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Cadastrar Instituição';
+            } catch (error) {
+                console.error('Erro ao cadastrar instituição:', error);
+                showMessage(error.message || 'Erro ao cadastrar instituição', 'error');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Cadastrar Instituição';
+            }
+        });
+
+        // Editar instituição - abrir modal
+        function editarInstituicao(id, nome, cidade, uf) {
+            document.getElementById('editInstituicaoId').value = id;
+            document.getElementById('editInstituicaoNome').value = nome;
+            document.getElementById('editInstituicaoCidade').value = cidade || '';
+            document.getElementById('editInstituicaoEstado').value = uf || '';
+
+            const editModal = new bootstrap.Modal(document.getElementById('editModal'));
+            editModal.show();
+        }
+
+        // Salvar edição
+        document.getElementById('editInstituicaoForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const id = document.getElementById('editInstituicaoId').value;
+            const nome = document.getElementById('editInstituicaoNome').value.trim();
+            const cidade = document.getElementById('editInstituicaoCidade').value.trim();
+            const uf = document.getElementById('editInstituicaoEstado').value.trim();
+
+            if (!nome) {
+                showMessage('Nome da instituição é obrigatório', 'error');
+                return;
+            }
+
+            try {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Salvando...';
+
+                await apiRequest(`${API_URL}/instituicoes/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ nome, cidade, uf })
+                });
+
+                showMessage('Instituição atualizada com sucesso!', 'success');
+                
+                const editModal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
+                editModal.hide();
+
+                await loadInstituicoes();
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Salvar Alterações';
+            } catch (error) {
+                console.error('Erro ao atualizar instituição:', error);
+                showMessage(error.message || 'Erro ao atualizar instituição', 'error');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Salvar Alterações';
+            }
+        });
+
+        // Excluir instituição - abrir modal
+        function excluirInstituicao(id) {
+            document.getElementById('deleteInstituicaoId').value = id;
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModal.show();
+        }
+
+        // Confirmar exclusão
+        document.getElementById('confirmDeleteBtn').addEventListener('click', async function() {
+            const id = document.getElementById('deleteInstituicaoId').value;
+
+            try {
+                this.disabled = true;
+                this.innerHTML = '<i class="bi bi-hourglass-split"></i> Excluindo...';
+
+                await apiRequest(`${API_URL}/instituicoes/${id}`, {
+                    method: 'DELETE'
+                });
+
+                showMessage('Instituição excluída com sucesso!', 'success');
+
+                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+                deleteModal.hide();
+
+                document.getElementById('cursosSection').classList.remove('show');
+                await loadInstituicoes();
+
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-trash"></i> Confirmar Exclusão';
+            } catch (error) {
+                console.error('Erro ao excluir instituição:', error);
+                showMessage(error.message || 'Erro ao excluir instituição', 'error');
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-trash"></i> Confirmar Exclusão';
+            }
+        });
+
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+
+        // Quando a página carregar
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Verificar autenticação
+            if (!checkAuth()) {
+                return;
+            }
+
+            // Carregar instituições
+            await loadInstituicoes();
+        });
+    </script>
+</body>
+</html>
