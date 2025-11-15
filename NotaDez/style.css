@@ -1,0 +1,549 @@
+/* ============================================
+   ESTILOS GLOBAIS - NOTADEZ
+   ============================================ */
+
+   :root {
+    --primary-blue: #1D4ED8;
+    --white: #FFFFFF;
+    --light-gray: #F8F9FA;
+    --text-gray: #6C757D;
+    --border-gray: #DEE2E6;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--white);
+    min-height: 100vh;
+}
+
+/* ============================================
+   CONTAINERS
+   ============================================ */
+
+.login-container,
+.cadastro-container {
+    width: 100%;
+    max-width: 450px;
+    padding: 20px;
+}
+
+.card {
+    border-radius: 15px;
+    overflow: hidden;
+    background: var(--white);
+}
+
+.card-body {
+    background: var(--white);
+}
+
+/* ============================================
+   TIPOGRAFIA
+   ============================================ */
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-blue);
+    letter-spacing: -0.5px;
+}
+
+.text-primary {
+    color: var(--primary-blue) !important;
+}
+
+.text-muted {
+    color: var(--text-gray);
+}
+
+/* ============================================
+   FORMULÁRIOS
+   ============================================ */
+
+.form-label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+.form-control {
+    border: 2px solid var(--border-gray);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background-color: var(--white);
+}
+
+.form-control:focus {
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 0.2rem rgba(29, 78, 216, 0.15);
+    outline: none;
+}
+
+.form-control::placeholder {
+    color: #ADB5BD;
+    font-size: 0.95rem;
+}
+
+.form-control-lg {
+    padding: 14px 18px;
+    font-size: 1.05rem;
+}
+
+/* ============================================
+   BOTÕES
+   ============================================ */
+
+.btn-primary {
+    background-color: var(--primary-blue);
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 14px;
+    font-size: 1.05rem;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-primary:hover {
+    background-color: #1e40af;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.4);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(29, 78, 216, 0.3);
+}
+
+.btn-primary:focus {
+    box-shadow: 0 0 0 0.2rem rgba(29, 78, 216, 0.25);
+}
+
+.btn-lg {
+    padding: 16px;
+    font-size: 1.1rem;
+}
+
+.btn-secondary {
+    background-color: var(--text-gray);
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 14px;
+    font-size: 1.05rem;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--white);
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+    color: var(--white);
+}
+
+.btn-secondary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(108, 117, 125, 0.3);
+}
+
+/* ============================================
+   LINKS
+   ============================================ */
+
+a {
+    transition: all 0.2s ease;
+}
+
+.forgot-link:hover {
+    color: #1e40af !important;
+    text-decoration: underline !important;
+}
+
+a.text-primary:hover {
+    color: #1e40af !important;
+    text-decoration: underline !important;
+}
+
+/* ============================================
+   ANIMAÇÕES
+   ============================================ */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card {
+    animation: fadeIn 0.5s ease-out;
+}
+
+.form-control:focus {
+    animation: pulse 0.3s ease;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.01);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* ============================================
+   RESPONSIVIDADE
+   ============================================ */
+
+@media (max-width: 576px) {
+    .login-container,
+    .cadastro-container {
+        max-width: 100%;
+        padding: 15px;
+    }
+
+    .card-body {
+        padding: 2rem !important;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    .form-control-lg {
+        padding: 12px 16px;
+        font-size: 1rem;
+    }
+
+    .btn-lg {
+        padding: 14px;
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .card-body {
+        padding: 1.5rem !important;
+    }
+
+    h1 {
+        font-size: 1.75rem;
+    }
+}
+
+/* ============================================
+   MELHORIAS DE ACESSIBILIDADE
+   ============================================ */
+
+.form-control:focus-visible {
+    outline: 2px solid var(--primary-blue);
+    outline-offset: 2px;
+}
+
+.btn-primary:focus-visible {
+    outline: 2px solid var(--white);
+    outline-offset: 2px;
+}
+
+/* ============================================
+   EFEITOS EXTRAS
+   ============================================ */
+
+.shadow-lg {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+}
+
+.bg-light {
+    background: var(--white) !important;
+}
+
+/* ============================================
+   ESTILOS ESPECÍFICOS DA DASHBOARD
+   ============================================ */
+
+body {
+    background: var(--light-gray);
+    min-height: 100vh;
+}
+
+.dashboard-header {
+    background: var(--white);
+    border-bottom: 2px solid var(--border-gray);
+    padding: 1.5rem 0;
+    margin-bottom: 2rem;
+}
+
+.dashboard-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-blue);
+    margin: 0;
+}
+
+.btn-add-instituicao {
+    background-color: var(--primary-blue);
+    color: var(--white);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.btn-add-instituicao:hover {
+    background-color: #1e40af;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.3);
+}
+
+.btn-add-instituicao:active {
+    transform: translateY(0);
+}
+
+.institution-card {
+    background: var(--white);
+    border: 2px solid var(--border-gray);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.institution-card:hover {
+    border-color: var(--primary-blue);
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.15);
+    transform: translateY(-2px);
+}
+
+.institution-name {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary-blue);
+    margin-bottom: 0.5rem;
+}
+
+.institution-city {
+    font-size: 1rem;
+    color: var(--text-gray);
+    margin-bottom: 1rem;
+}
+
+.institution-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.btn-view {
+    background-color: var(--primary-blue);
+    color: var(--white);
+}
+
+.btn-view:hover {
+    background-color: #1e40af;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(29, 78, 216, 0.3);
+}
+
+.btn-edit {
+    background-color: #10b981;
+    color: var(--white);
+}
+
+.btn-edit:hover {
+    background-color: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.btn-delete {
+    background-color: #ef4444;
+    color: var(--white);
+}
+
+.btn-delete:hover {
+    background-color: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+/* Tela de Cadastro de Instituição */
+.cadastro-instituicao-section {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 600px;
+    margin: 0 auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.cadastro-instituicao-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--primary-blue);
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+/* Seção de Cursos */
+.cursos-section {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-top: 2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    display: none;
+}
+
+.cursos-section.show {
+    display: block;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.cursos-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary-blue);
+    margin-bottom: 1.5rem;
+}
+
+.btn-add-curso {
+    background-color: var(--primary-blue);
+    color: var(--white);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-add-curso:hover {
+    background-color: #1e40af;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.3);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-gray);
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    color: var(--border-gray);
+    margin-bottom: 1rem;
+}
+
+/* Cards Grid */
+.institutions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .institutions-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-header .d-flex {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start !important;
+    }
+
+    .dashboard-title {
+        font-size: 1.5rem;
+    }
+
+    .btn-add-instituicao {
+        width: 100%;
+        justify-content: center;
+        padding: 0.75rem 1rem;
+    }
+}
+
+/* Modais customizados */
+.modal-content {
+    border-radius: 12px;
+    border: none;
+}
+
+.modal-header {
+    border-bottom: 2px solid var(--border-gray);
+    padding: 1.5rem;
+}
+
+.modal-title {
+    font-weight: 600;
+    color: var(--primary-blue);
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 2px solid var(--border-gray);
+    padding: 1rem 1.5rem;
+}
+
+.btn-secondary-modal {
+    background-color: var(--text-gray);
+    color: var(--white);
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary-modal:hover {
+    background-color: #5a6268;
+}
