@@ -16,9 +16,14 @@
                 <h1 class="dashboard-title mb-0">
                     <i class="bi bi-speedometer2"></i> Painel do Docente
                 </h1>
-                <button class="btn-add-instituicao" id="btnAddInstituicao" onclick="mostrarCadastroInstituicao()" style="display: none;">
-                    <i class="bi bi-plus-circle"></i> Adicionar Instituição
-                </button>
+                <div class="d-flex gap-2">
+                    <button class="btn-add-instituicao" id="btnAddInstituicao" onclick="mostrarCadastroInstituicao()" style="display: none;">
+                        <i class="bi bi-plus-circle"></i> Adicionar Instituição
+                    </button>
+                    <button class="btn btn-outline-danger" onclick="sair()">
+                        <i class="bi bi-box-arrow-right"></i> Sair
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -26,6 +31,9 @@
     <div class="container">
         <!-- Seção Principal - Lista de Instituições -->
         <div id="dashboardSection">
+            <h2 class="mb-4 mt-4" style="color: #0066cc; font-weight: 600;">
+                <i class="bi bi-building"></i> Suas instituições
+            </h2>
             <div id="institutionsContainer">
                 <div class="institutions-grid" id="institutionsGrid">
                     <!-- Os cards de instituições serão inseridos aqui via JavaScript -->
@@ -299,7 +307,6 @@
 
                 renderInstituicoes(instituicoes);
             } catch (error) {
-                console.error('Erro ao carregar instituições:', error);
                 showMessage(error.message || 'Erro ao carregar instituições', 'error');
             }
         }
@@ -357,6 +364,15 @@
         // ============================================
         // FUNÇÕES DE NAVEGAÇÃO
         // ============================================
+
+        // Função para sair (logout)
+        function sair() {
+            if (confirm('Tem certeza que deseja sair?')) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = 'login.html';
+            }
+        }
 
         // Mostrar formulário de cadastro
         function mostrarCadastroInstituicao() {
@@ -423,7 +439,6 @@
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Cadastrar Instituição';
             } catch (error) {
-                console.error('Erro ao cadastrar instituição:', error);
                 showMessage(error.message || 'Erro ao cadastrar instituição', 'error');
                 const submitBtn = this.querySelector('button[type="submit"]');
                 submitBtn.disabled = false;
@@ -476,7 +491,6 @@
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Salvar Alterações';
             } catch (error) {
-                console.error('Erro ao atualizar instituição:', error);
                 showMessage(error.message || 'Erro ao atualizar instituição', 'error');
                 const submitBtn = this.querySelector('button[type="submit"]');
                 submitBtn.disabled = false;
@@ -514,7 +528,6 @@
                 this.disabled = false;
                 this.innerHTML = '<i class="bi bi-trash"></i> Confirmar Exclusão';
             } catch (error) {
-                console.error('Erro ao excluir instituição:', error);
                 showMessage(error.message || 'Erro ao excluir instituição', 'error');
                 this.disabled = false;
                 this.innerHTML = '<i class="bi bi-trash"></i> Confirmar Exclusão';

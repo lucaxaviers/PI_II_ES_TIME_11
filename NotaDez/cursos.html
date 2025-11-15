@@ -57,29 +57,30 @@
                             </div>
 
                             <div class="col-md-6 mb-3">
-                                <label for="cursoArea" class="form-label">Área do Curso <span class="text-danger">*</span></label>
+                                <label for="cursoArea" class="form-label">Área do Curso</label>
                                 <input 
                                     type="text" 
                                     class="form-control form-control-lg" 
                                     id="cursoArea" 
                                     name="area"
                                     placeholder="Ex: Tecnologia da Informação"
-                                    required
                                 >
                             </div>
                         </div>
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="cursoDuracao" class="form-label">Duração <span class="text-danger">*</span></label>
+                                <label for="cursoDuracao" class="form-label">Período Total <span class="text-danger">*</span></label>
                                 <input 
-                                    type="text" 
+                                    type="number" 
                                     class="form-control form-control-lg" 
                                     id="cursoDuracao" 
-                                    name="duracao"
-                                    placeholder="Ex: 4 anos, 8 semestres"
+                                    name="periodoTotal"
+                                    placeholder="Ex: 8 (semestres)"
+                                    min="1"
                                     required
                                 >
+                                <small class="form-text text-muted">Número total de períodos (ex: 8 semestres = 8)</small>
                             </div>
 
                             <div class="col-md-6 mb-3">
@@ -142,22 +143,23 @@
                             >
                         </div>
                         <div class="mb-3">
-                            <label for="editCursoArea" class="form-label">Área do Curso <span class="text-danger">*</span></label>
+                            <label for="editCursoArea" class="form-label">Área do Curso</label>
                             <input 
                                 type="text" 
                                 class="form-control form-control-lg" 
                                 id="editCursoArea"
-                                required
                             >
                         </div>
                         <div class="mb-3">
-                            <label for="editCursoDuracao" class="form-label">Duração <span class="text-danger">*</span></label>
+                            <label for="editCursoDuracao" class="form-label">Período Total <span class="text-danger">*</span></label>
                             <input 
-                                type="text" 
+                                type="number" 
                                 class="form-control form-control-lg" 
                                 id="editCursoDuracao"
+                                min="1"
                                 required
                             >
+                            <small class="form-text text-muted">Número total de períodos (ex: 8 semestres = 8)</small>
                         </div>
                         <div class="mb-3">
                             <label for="editCursoModalidade" class="form-label">Modalidade <span class="text-danger">*</span></label>
@@ -212,8 +214,56 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // ============================================
-        // CONFIGURAÇÃO (FRONT-END ONLY)
+        // CONFIGURAÇÃO DA API
         // ============================================
+        
+        const API_URL = 'http://localhost:3000';
+
+        // Função para obter o token de autenticação
+        function getAuthToken() {
+            return localStorage.getItem('token');
+        }
+
+        // Função para verificar se o usuário está autenticado
+        function checkAuth() {
+            const token = getAuthToken();
+            if (!token) {
+                alert('Você precisa estar logado para acessar esta página.');
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        // Função para fazer requisições autenticadas
+        async function apiRequest(url, options = {}) {
+            const token = getAuthToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                const errorMsg = data.message || 'Erro na requisição';
+                if (data.debug) {
+                    throw new Error(`${errorMsg} (${data.debug.method} ${data.debug.urlPath})`);
+                }
+                throw new Error(errorMsg);
+            }
+
+            return data;
+        }
 
         // Função para exibir mensagens
         function showMessage(message, type = 'success') {
@@ -237,33 +287,12 @@
         }
 
         // ============================================
-        // GERENCIAMENTO DE CURSOS (FRONT-END ONLY)
+        // GERENCIAMENTO DE CURSOS
         // ============================================
 
         // Variáveis globais
-        let cursosData = [];
         let currentInstituicaoId = null;
         let currentInstituicaoNome = null;
-
-        // Função para obter cursos do localStorage
-        function getCursosFromStorage() {
-            try {
-                const stored = localStorage.getItem('notadez_cursos');
-                return stored ? JSON.parse(stored) : [];
-            } catch (error) {
-                console.error('Erro ao ler cursos do localStorage:', error);
-                return [];
-            }
-        }
-
-        // Função para salvar cursos no localStorage
-        function saveCursosToStorage(cursos) {
-            try {
-                localStorage.setItem('notadez_cursos', JSON.stringify(cursos));
-            } catch (error) {
-                console.error('Erro ao salvar cursos no localStorage:', error);
-            }
-        }
 
         // Carregar dados da instituição selecionada
         function loadInstituicaoData() {
@@ -286,17 +315,26 @@
                 
                 return true;
             } catch (error) {
-                console.error('Erro ao carregar dados da instituição:', error);
                 showMessage('Erro ao carregar dados da instituição', 'error');
                 return false;
             }
         }
 
-        // Carregar cursos de uma instituição
-        function loadCursos(instituicaoId) {
-            cursosData = getCursosFromStorage();
-            const cursosInstituicao = cursosData.filter(curso => curso.instituicaoId === instituicaoId);
-            renderCursos(cursosInstituicao);
+        // Carregar cursos de uma instituição do backend
+        async function loadCursos(instituicaoId) {
+            if (!instituicaoId) {
+                showMessage('ID da instituição não fornecido', 'error');
+                return;
+            }
+            
+            try {
+                const url = `${API_URL}/cursos?instituicaoId=${instituicaoId}`;
+                const response = await apiRequest(url);
+                const cursos = response.data || [];
+                renderCursos(cursos);
+            } catch (error) {
+                showMessage(error.message || 'Erro ao carregar cursos', 'error');
+            }
         }
 
         // Renderizar lista de cursos
@@ -330,17 +368,17 @@
                             <div class="curso-info-item">
                                 <i class="bi bi-tag"></i>
                                 <span class="curso-label">Área:</span>
-                                <span class="curso-value">${escapeHtml(curso.area)}</span>
+                                <span class="curso-value">${curso.area ? escapeHtml(curso.area) : 'Não informado'}</span>
                             </div>
                             <div class="curso-info-item">
                                 <i class="bi bi-clock"></i>
-                                <span class="curso-label">Duração:</span>
-                                <span class="curso-value">${escapeHtml(curso.duracao)}</span>
+                                <span class="curso-label">Período Total:</span>
+                                <span class="curso-value">${curso.periodoTotal ? curso.periodoTotal + ' períodos' : 'Não informado'}</span>
                             </div>
                             <div class="curso-info-item">
                                 <i class="bi bi-laptop"></i>
                                 <span class="curso-label">Modalidade:</span>
-                                <span class="curso-value">${escapeHtml(curso.modalidade)}</span>
+                                <span class="curso-value">${curso.modalidade ? escapeHtml(curso.modalidade) : 'Não informado'}</span>
                             </div>
                             <div class="curso-info-item">
                                 <i class="bi bi-building"></i>
@@ -394,102 +432,122 @@
         }
 
         // Cadastrar novo curso
-        document.getElementById('cadastroCursoForm').addEventListener('submit', function(e) {
+        document.getElementById('cadastroCursoForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const nome = document.getElementById('cursoNome').value.trim();
             const area = document.getElementById('cursoArea').value.trim();
-            const duracao = document.getElementById('cursoDuracao').value.trim();
+            const periodoTotal = document.getElementById('cursoDuracao').value;
             const modalidade = document.getElementById('cursoModalidade').value;
             const instituicaoId = document.getElementById('cursoInstituicaoId').value;
-            const instituicaoNome = document.getElementById('cursoInstituicaoNome').value;
             
-            if (!nome || !area || !duracao || !modalidade) {
-                showMessage('Todos os campos são obrigatórios', 'error');
+            if (!nome || !periodoTotal || !modalidade) {
+                showMessage('Nome, Período Total e Modalidade são obrigatórios', 'error');
                 return;
             }
             
-            // Criar novo curso
-            const novoCurso = {
-                id: Date.now(), // ID único baseado em timestamp
-                nome,
-                area,
-                duracao,
-                modalidade,
-                instituicaoId: parseInt(instituicaoId),
-                instituicaoNome
-            };
-            
-            // Adicionar ao array
-            cursosData = getCursosFromStorage();
-            cursosData.push(novoCurso);
-            saveCursosToStorage(cursosData);
-            
-            showMessage('Curso cadastrado com sucesso!', 'success');
-            this.reset();
-            ocultarFormularioCurso();
-            loadCursos(parseInt(instituicaoId));
+            try {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Cadastrando...';
+                
+                await apiRequest(`${API_URL}/cursos`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        nome,
+                        area: area || null,
+                        modalidade,
+                        periodoTotal: parseInt(periodoTotal),
+                        instituicaoId: parseInt(instituicaoId)
+                    })
+                });
+                
+                showMessage('Curso cadastrado com sucesso!', 'success');
+                this.reset();
+                ocultarFormularioCurso();
+                await loadCursos(parseInt(instituicaoId));
+                
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Adicionar Curso';
+            } catch (error) {
+                showMessage(error.message || 'Erro ao cadastrar curso', 'error');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Adicionar Curso';
+            }
         });
 
-        // Editar curso - abrir modal
-        function editarCurso(cursoId) {
-            cursosData = getCursosFromStorage();
-            const curso = cursosData.find(c => c.id === cursoId);
-            
-            if (!curso) {
-                showMessage('Curso não encontrado', 'error');
-                return;
+        // Editar curso - abrir modal (busca do backend)
+        async function editarCurso(cursoId) {
+            try {
+                // Buscar curso do backend para garantir dados atualizados
+                const response = await apiRequest(`${API_URL}/cursos?instituicaoId=${currentInstituicaoId}`);
+                const cursos = response.data || [];
+                const curso = cursos.find(c => c.id === cursoId);
+                
+                if (!curso) {
+                    showMessage('Curso não encontrado', 'error');
+                    return;
+                }
+                
+                document.getElementById('editCursoId').value = curso.id;
+                document.getElementById('editCursoNome').value = curso.nome;
+                document.getElementById('editCursoArea').value = curso.area || '';
+                document.getElementById('editCursoDuracao').value = curso.periodoTotal || '';
+                document.getElementById('editCursoModalidade').value = curso.modalidade || '';
+                
+                const editModal = new bootstrap.Modal(document.getElementById('editCursoModal'));
+                editModal.show();
+            } catch (error) {
+                showMessage('Erro ao carregar dados do curso', 'error');
             }
-            
-            document.getElementById('editCursoId').value = curso.id;
-            document.getElementById('editCursoNome').value = curso.nome;
-            document.getElementById('editCursoArea').value = curso.area;
-            document.getElementById('editCursoDuracao').value = curso.duracao;
-            document.getElementById('editCursoModalidade').value = curso.modalidade;
-            
-            const editModal = new bootstrap.Modal(document.getElementById('editCursoModal'));
-            editModal.show();
         }
 
         // Salvar edição de curso
-        document.getElementById('editCursoForm').addEventListener('submit', function(e) {
+        document.getElementById('editCursoForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const cursoId = parseInt(document.getElementById('editCursoId').value);
             const nome = document.getElementById('editCursoNome').value.trim();
             const area = document.getElementById('editCursoArea').value.trim();
-            const duracao = document.getElementById('editCursoDuracao').value.trim();
+            const periodoTotal = document.getElementById('editCursoDuracao').value;
             const modalidade = document.getElementById('editCursoModalidade').value;
             
-            if (!nome || !area || !duracao || !modalidade) {
-                showMessage('Todos os campos são obrigatórios', 'error');
+            if (!nome || !periodoTotal || !modalidade) {
+                showMessage('Nome, Período Total e Modalidade são obrigatórios', 'error');
                 return;
             }
             
-            // Atualizar curso no array
-            cursosData = getCursosFromStorage();
-            const cursoIndex = cursosData.findIndex(c => c.id === cursoId);
-            
-            if (cursoIndex === -1) {
-                showMessage('Curso não encontrado', 'error');
-                return;
+            try {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Salvando...';
+                
+                await apiRequest(`${API_URL}/cursos/${cursoId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        nome,
+                        area: area || null,
+                        modalidade,
+                        periodoTotal: parseInt(periodoTotal)
+                    })
+                });
+                
+                showMessage('Curso atualizado com sucesso!', 'success');
+                
+                const editModal = bootstrap.Modal.getInstance(document.getElementById('editCursoModal'));
+                editModal.hide();
+                
+                await loadCursos(currentInstituicaoId);
+                
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Salvar Alterações';
+            } catch (error) {
+                showMessage(error.message || 'Erro ao atualizar curso', 'error');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Salvar Alterações';
             }
-            
-            cursosData[cursoIndex] = {
-                ...cursosData[cursoIndex],
-                nome,
-                area,
-                duracao,
-                modalidade
-            };
-            
-            saveCursosToStorage(cursosData);
-            showMessage('Curso atualizado com sucesso!', 'success');
-            
-            const editModal = bootstrap.Modal.getInstance(document.getElementById('editCursoModal'));
-            editModal.hide();
-            
-            loadCursos(currentInstituicaoId);
         });
 
         // Excluir curso - abrir modal
@@ -500,20 +558,31 @@
         }
 
         // Confirmar exclusão de curso
-        document.getElementById('confirmDeleteCursoBtn').addEventListener('click', function() {
+        document.getElementById('confirmDeleteCursoBtn').addEventListener('click', async function() {
             const cursoId = parseInt(document.getElementById('deleteCursoId').value);
             
-            // Remover curso do array
-            cursosData = getCursosFromStorage();
-            cursosData = cursosData.filter(c => c.id !== cursoId);
-            saveCursosToStorage(cursosData);
-            
-            showMessage('Curso excluído com sucesso!', 'success');
-            
-            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteCursoModal'));
-            deleteModal.hide();
-            
-            loadCursos(currentInstituicaoId);
+            try {
+                this.disabled = true;
+                this.innerHTML = '<i class="bi bi-hourglass-split"></i> Excluindo...';
+                
+                await apiRequest(`${API_URL}/cursos/${cursoId}`, {
+                    method: 'DELETE'
+                });
+                
+                showMessage('Curso excluído com sucesso!', 'success');
+                
+                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteCursoModal'));
+                deleteModal.hide();
+                
+                await loadCursos(currentInstituicaoId);
+                
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-trash"></i> Confirmar Exclusão';
+            } catch (error) {
+                showMessage(error.message || 'Erro ao excluir curso', 'error');
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-trash"></i> Confirmar Exclusão';
+            }
         });
 
         // Ver disciplinas (placeholder)
@@ -527,11 +596,16 @@
         // ============================================
 
         // Quando a página carregar
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Verificar autenticação
+            if (!checkAuth()) {
+                return;
+            }
+
             // Carregar dados da instituição
             if (loadInstituicaoData()) {
                 // Carregar cursos da instituição
-                loadCursos(currentInstituicaoId);
+                await loadCursos(currentInstituicaoId);
             }
         });
     </script>
