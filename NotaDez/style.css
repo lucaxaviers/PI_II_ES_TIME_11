@@ -1,0 +1,164 @@
+/* ============================================
+   ESTILOS GLOBAIS - NOTADEZ
+   ============================================ */
+
+:root {
+    --primary-blue: #1D4ED8;
+    --white: #FFFFFF;
+    --text-gray: #6C757D;
+    --border-gray: #DEE2E6;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--white);
+    min-height: 100vh;
+}
+
+/* ============================================
+   CONTAINERS
+   ============================================ */
+
+.login-container,
+.cadastro-container {
+    width: 100%;
+    max-width: 450px;
+    padding: 20px;
+}
+
+.card {
+    border: 1px solid var(--border-gray);
+    border-radius: 8px;
+    background: var(--white);
+}
+
+.card-body {
+    background: var(--white);
+}
+
+/* ============================================
+   TIPOGRAFIA
+   ============================================ */
+
+h1 {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--primary-blue);
+}
+
+.text-primary {
+    color: var(--primary-blue) !important;
+}
+
+.text-muted {
+    color: var(--text-gray);
+}
+
+/* ============================================
+   FORMULÁRIOS
+   ============================================ */
+
+.form-label {
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+}
+
+.form-control {
+    border: 1px solid var(--border-gray);
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-size: 1rem;
+    background-color: var(--white);
+}
+
+.form-control:focus {
+    border-color: var(--primary-blue);
+    outline: none;
+}
+
+.form-control::placeholder {
+    color: #ADB5BD;
+    font-size: 0.95rem;
+}
+
+.form-control-lg {
+    padding: 12px 14px;
+    font-size: 1rem;
+}
+
+/* ============================================
+   BOTÕES
+   ============================================ */
+
+.btn-primary {
+    background-color: var(--primary-blue);
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    padding: 12px;
+    font-size: 1rem;
+}
+
+.btn-primary:hover {
+    background-color: #1E3A8A;
+}
+
+.btn-primary:focus {
+    outline: 2px solid var(--primary-blue);
+    outline-offset: 2px;
+}
+
+.btn-lg {
+    padding: 14px;
+    font-size: 1rem;
+}
+
+/* ============================================
+   LINKS
+   ============================================ */
+
+a.text-primary:hover {
+    text-decoration: underline;
+}
+
+.forgot-link:hover {
+    text-decoration: underline;
+}
+
+/* ============================================
+   RESPONSIVIDADE
+   ============================================ */
+
+@media (max-width: 576px) {
+    .login-container,
+    .cadastro-container {
+        max-width: 100%;
+        padding: 15px;
+    }
+
+    .card-body {
+        padding: 2rem !important;
+    }
+
+    h1 {
+        font-size: 1.75rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .card-body {
+        padding: 1.5rem !important;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+    }
+}
