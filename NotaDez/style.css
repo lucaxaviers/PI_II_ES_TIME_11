@@ -547,3 +547,174 @@ body {
 .btn-secondary-modal:hover {
     background-color: #5a6268;
 }
+
+/* ============================================
+   ESTILOS DA SEÇÃO DE CURSOS
+   ============================================ */
+
+.curso-form-container {
+    margin-bottom: 2rem;
+}
+
+.curso-form-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary-blue);
+    margin-bottom: 1.5rem;
+}
+
+/* Grid de Cursos */
+.cursos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .cursos-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Card de Curso */
+.curso-card {
+    background: var(--white);
+    border: 2px solid var(--border-gray);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.curso-card:hover {
+    border-color: var(--primary-blue);
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.15);
+    transform: translateY(-2px);
+}
+
+.curso-card-header {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-gray);
+}
+
+.curso-nome {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--primary-blue);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.curso-card-body {
+    flex: 1;
+    margin-bottom: 1rem;
+}
+
+.curso-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.curso-info-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    color: var(--text-gray);
+}
+
+.curso-info-item i {
+    color: var(--primary-blue);
+    width: 20px;
+    text-align: center;
+}
+
+.curso-label {
+    font-weight: 600;
+    color: #333;
+    min-width: 80px;
+}
+
+.curso-value {
+    color: var(--text-gray);
+}
+
+.curso-card-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding-top: 1rem;
+    border-top: 2px solid var(--border-gray);
+}
+
+.btn-view-curso {
+    background-color: var(--primary-blue);
+    color: var(--white);
+}
+
+.btn-view-curso:hover {
+    background-color: #1e40af;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(29, 78, 216, 0.3);
+}
+
+.btn-edit-curso {
+    background-color: #10b981;
+    color: var(--white);
+}
+
+.btn-edit-curso:hover {
+    background-color: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.btn-delete-curso {
+    background-color: #ef4444;
+    color: var(--white);
+}
+
+.btn-delete-curso:hover {
+    background-color: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+/* Responsividade para seção de cursos */
+@media (max-width: 576px) {
+    .cursos-section {
+        padding: 1.5rem;
+    }
+
+    .cursos-title {
+        font-size: 1.25rem;
+    }
+
+    .curso-card {
+        padding: 1rem;
+    }
+
+    .curso-nome {
+        font-size: 1.1rem;
+    }
+
+    .curso-card-actions {
+        flex-direction: column;
+    }
+
+    .curso-card-actions .action-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .curso-form-title {
+        font-size: 1.25rem;
+    }
+}

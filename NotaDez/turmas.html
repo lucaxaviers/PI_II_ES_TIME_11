@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turmas - NotaDez</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header da Página de Turmas -->
+    <div class="dashboard-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="dashboard-title mb-0">
+                        <i class="bi bi-people"></i> Turmas
+                    </h1>
+                    <p class="text-muted mb-0 mt-2" id="disciplinaInfo">Carregando...</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-secondary" onclick="voltarDisciplinas()">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </button>
+                    <button class="btn-add-curso" id="btnAddTurma" onclick="mostrarFormularioTurma()">
+                        <i class="bi bi-plus-circle"></i> Adicionar Turma
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Formulário de Cadastro de Turma (oculto inicialmente) -->
+        <div class="curso-form-container" id="turmaFormContainer" style="display: none;">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="curso-form-title mb-4">
+                        <i class="bi bi-people"></i> Cadastrar Nova Turma
+                    </h3>
+                    <form id="cadastroTurmaForm">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="turmaNome" class="form-label">Nome da Turma <span class="text-danger">*</span></label>
+                                <input 
+                                    type="text" 
+                                    class="form-control form-control-lg" 
+                                    id="turmaNome" 
+                                    name="nome"
+                                    placeholder="Ex: Turma A - Manhã"
+                                    required
+                                >
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="turmaSigla" class="form-label">Sigla <span class="text-danger">*</span></label>
+                                <input 
+                                    type="text" 
+                                    class="form-control form-control-lg" 
+                                    id="turmaSigla" 
+                                    name="sigla"
+                                    placeholder="Ex: T1, T2, A, B"
+                                    required
+                                    maxlength="10"
+                                >
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="turmaCodigo" class="form-label">Código <span class="text-danger">*</span></label>
+                                <input 
+                                    type="text" 
+                                    class="form-control form-control-lg" 
+                                    id="turmaCodigo" 
+                                    name="codigo"
+                                    placeholder="Ex: TURMA-001"
+                                    required
+                                >
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-secondary btn-lg" onclick="ocultarFormularioTurma()">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-check-circle"></i> Adicionar Turma
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Turmas -->
+        <div id="turmasContent">
+            <h2 class="mb-4 mt-4" style="color: #1D4ED8; font-weight: 600;">
+                <i class="bi bi-list-ul"></i> <span id="turmasTitle">Turmas Cadastradas</span>
+            </h2>
+            <div class="cursos-grid" id="turmasGrid">
+                <!-- Os cards de turmas serão inseridos aqui via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Edição de Turma -->
+    <div class="modal fade" id="editTurmaModal" tabindex="-1" aria-labelledby="editTurmaModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editTurmaModalLabel">
+                        <i class="bi bi-pencil-square"></i> Editar Turma
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editTurmaForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="editTurmaId">
+                        <div class="mb-3">
+                            <label for="editTurmaNome" class="form-label">Nome da Turma <span class="text-danger">*</span></label>
+                            <input 
+                                type="text" 
+                                class="form-control form-control-lg" 
+                                id="editTurmaNome"
+                                required
+                            >
+                        </div>
+                        <div class="mb-3">
+                            <label for="editTurmaSigla" class="form-label">Sigla <span class="text-danger">*</span></label>
+                            <input 
+                                type="text" 
+                                class="form-control form-control-lg" 
+                                id="editTurmaSigla"
+                                required
+                                maxlength="10"
+                            >
+                        </div>
+                        <div class="mb-3">
+                            <label for="editTurmaCodigo" class="form-label">Código <span class="text-danger">*</span></label>
+                            <input 
+                                type="text" 
+                                class="form-control form-control-lg" 
+                                id="editTurmaCodigo"
+                                required
+                            >
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary-modal" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Salvar Alterações
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Exclusão de Turma -->
+    <div class="modal fade" id="deleteTurmaModal" tabindex="-1" aria-labelledby="deleteTurmaModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteTurmaModalLabel">
+                        <i class="bi bi-exclamation-triangle text-danger"></i> Confirmar Exclusão
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja excluir esta turma? Esta operação é irreversível.</p>
+                    <p class="text-muted small">Esta ação não pode ser desfeita.</p>
+                    <input type="hidden" id="deleteTurmaId">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary-modal" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteTurmaBtn">
+                        <i class="bi bi-trash"></i> Confirmar Exclusão
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ============================================
+        // CONFIGURAÇÃO DA API
+        // ============================================
+        
+        const API_URL = 'http://localhost:3000';
+
+        // Função para obter o token de autenticação
+        function getAuthToken() {
+            return localStorage.getItem('token');
+        }
+
+        // Função para verificar se o usuário está autenticado
+        function checkAuth() {
+            const token = getAuthToken();
+            if (!token) {
+                alert('Você precisa estar logado para acessar esta página.');
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        // Função para fazer requisições autenticadas
+        async function apiRequest(url, options = {}) {
+            const token = getAuthToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                const errorMsg = data.message || 'Erro na requisição';
+                if (data.debug) {
+                    throw new Error(`${errorMsg} (${data.debug.method} ${data.debug.urlPath})`);
+                }
+                throw new Error(errorMsg);
+            }
+
+            return data;
+        }
+
+        // ============================================
+        // VARIÁVEIS GLOBAIS
+        // ============================================
+        
+        let currentDisciplinaId = null;
+        let currentDisciplinaNome = null;
+        let currentDisciplinaCodigo = null;
+
+        // ============================================
+        // FUNÇÕES AUXILIARES
+        // ============================================
+
+        // Função para escapar HTML (prevenir XSS)
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Função para exibir mensagens
+        function showMessage(message, type = 'success') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Função para extrair sigla e código do nome completo
+        function parseTurmaNome(nomeCompleto) {
+            let nome = nomeCompleto;
+            let sigla = '';
+            let codigo = '';
+
+            // Extrair sigla: Nome (SIGLA)
+            const siglaMatch = nomeCompleto.match(/^(.+?)\s*\(([^)]+)\)/);
+            if (siglaMatch) {
+                nome = siglaMatch[1].trim();
+                sigla = siglaMatch[2].trim();
+            }
+
+            // Extrair código: Nome [CODIGO] ou Nome (SIGLA) [CODIGO]
+            const codigoMatch = nomeCompleto.match(/\[([^\]]+)\]/);
+            if (codigoMatch) {
+                codigo = codigoMatch[1].trim();
+            }
+
+            return { nome, sigla, codigo };
+        }
+
+        // ============================================
+        // FUNÇÕES DE NAVEGAÇÃO
+        // ============================================
+
+        // Voltar para disciplinas
+        function voltarDisciplinas() {
+            window.location.href = 'disciplinas.html';
+        }
+
+        // Mostrar formulário de cadastro
+        function mostrarFormularioTurma() {
+            document.getElementById('turmaFormContainer').style.display = 'block';
+            document.getElementById('btnAddTurma').style.display = 'none';
+            document.getElementById('turmaFormContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // Ocultar formulário de cadastro
+        function ocultarFormularioTurma() {
+            document.getElementById('turmaFormContainer').style.display = 'none';
+            document.getElementById('btnAddTurma').style.display = 'inline-flex';
+            document.getElementById('cadastroTurmaForm').reset();
+        }
+
+        // ============================================
+        // FUNÇÕES DE CARREGAMENTO
+        // ============================================
+
+        // Carregar dados da disciplina selecionada
+        function loadDisciplinaData() {
+            try {
+                const disciplinaData = localStorage.getItem('selectedDisciplina');
+                if (!disciplinaData) {
+                    showMessage('Nenhuma disciplina selecionada. Redirecionando...', 'error');
+                    setTimeout(() => {
+                        window.location.href = 'disciplinas.html';
+                    }, 2000);
+                    return false;
+                }
+
+                const disciplina = JSON.parse(disciplinaData);
+                currentDisciplinaId = disciplina.id;
+                currentDisciplinaNome = disciplina.nome;
+                currentDisciplinaCodigo = disciplina.codigo || '';
+
+                // Atualizar interface
+                const disciplinaInfo = currentDisciplinaCodigo 
+                    ? `Disciplina: ${disciplina.nome} (${currentDisciplinaCodigo})`
+                    : `Disciplina: ${disciplina.nome}`;
+                document.getElementById('disciplinaInfo').textContent = disciplinaInfo;
+                
+                // Atualizar título das turmas
+                const titulo = currentDisciplinaCodigo
+                    ? `Turmas da Disciplina: ${disciplina.nome} (${currentDisciplinaCodigo})`
+                    : `Turmas da Disciplina: ${disciplina.nome}`;
+                document.getElementById('turmasTitle').textContent = titulo;
+                
+                return true;
+            } catch (error) {
+                showMessage('Erro ao carregar dados da disciplina', 'error');
+                return false;
+            }
+        }
+
+        // Carregar turmas do backend
+        async function loadTurmas() {
+            if (!currentDisciplinaId) {
+                return;
+            }
+            
+            try {
+                const response = await apiRequest(`${API_URL}/turmas?disciplinaId=${currentDisciplinaId}`);
+                const turmas = response.data || [];
+                renderTurmas(turmas);
+            } catch (error) {
+                showMessage(error.message || 'Erro ao carregar turmas', 'error');
+                renderTurmas([]);
+            }
+        }
+
+        // ============================================
+        // FUNÇÕES DE RENDERIZAÇÃO
+        // ============================================
+
+        // Renderizar lista de turmas
+        function renderTurmas(turmas) {
+            const grid = document.getElementById('turmasGrid');
+            
+            if (!turmas || turmas.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state w-100">
+                        <i class="bi bi-people empty-state-icon"></i>
+                        <p>Nenhuma turma cadastrada ainda.</p>
+                        <p class="text-muted small">Clique em "Adicionar Turma" para começar.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = '';
+            
+            turmas.forEach(turma => {
+                // Extrair sigla e código do nome completo
+                const parsed = parseTurmaNome(turma.nome);
+                
+                const card = document.createElement('div');
+                card.className = 'curso-card';
+                card.innerHTML = `
+                    <div class="curso-card-header">
+                        <h4 class="curso-nome">
+                            <i class="bi bi-people"></i> ${escapeHtml(parsed.nome)}
+                        </h4>
+                    </div>
+                    <div class="curso-card-body">
+                        <div class="curso-info">
+                            <div class="curso-info-item">
+                                <i class="bi bi-tag"></i>
+                                <span class="curso-label">Sigla:</span>
+                                <span class="curso-value">${parsed.sigla ? escapeHtml(parsed.sigla) : 'Não informado'}</span>
+                            </div>
+                            <div class="curso-info-item">
+                                <i class="bi bi-hash"></i>
+                                <span class="curso-label">Código:</span>
+                                <span class="curso-value">${parsed.codigo ? escapeHtml(parsed.codigo) : 'Não informado'}</span>
+                            </div>
+                            <div class="curso-info-item">
+                                <i class="bi bi-people"></i>
+                                <span class="curso-label">Alunos:</span>
+                                <span class="curso-value">${turma.qtdAlunos || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="curso-card-actions">
+                        <button class="action-btn btn-view-curso" onclick="gerenciarAlunos(${turma.id}, '${parsed.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">
+                            <i class="bi bi-person-lines-fill"></i> Gerenciar Alunos
+                        </button>
+                        <button class="action-btn btn-edit-curso" onclick="editarTurma(${turma.id}, '${turma.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">
+                            <i class="bi bi-pencil"></i> Editar
+                        </button>
+                        <button class="action-btn btn-delete-curso" onclick="excluirTurma(${turma.id})">
+                            <i class="bi bi-trash"></i> Excluir
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // ============================================
+        // FUNÇÕES CRUD
+        // ============================================
+
+        // Cadastrar turma
+        document.getElementById('cadastroTurmaForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const nome = document.getElementById('turmaNome').value.trim();
+            const sigla = document.getElementById('turmaSigla').value.trim().toUpperCase();
+            const codigo = document.getElementById('turmaCodigo').value.trim();
+
+            if (!nome || !sigla || !codigo) {
+                showMessage('Todos os campos são obrigatórios', 'error');
+                return;
+            }
+
+            try {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Cadastrando...';
+
+                await apiRequest(`${API_URL}/turmas`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        nome,
+                        sigla,
+                        codigo,
+                        disciplinaId: currentDisciplinaId
+                    })
+                });
+
+                showMessage('Turma cadastrada com sucesso!', 'success');
+                this.reset();
+                ocultarFormularioTurma();
+                await loadTurmas();
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Adicionar Turma';
+            } catch (error) {
+                showMessage(error.message || 'Erro ao cadastrar turma', 'error');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Adicionar Turma';
+            }
+        });
+
+        // Editar turma - abrir modal
+        async function editarTurma(id, nomeCompleto) {
+            try {
+                // Extrair sigla e código do nome completo
+                const parsed = parseTurmaNome(nomeCompleto);
+
+                document.getElementById('editTurmaId').value = id;
+                document.getElementById('editTurmaNome').value = parsed.nome;
+                document.getElementById('editTurmaSigla').value = parsed.sigla;
+                document.getElementById('editTurmaCodigo').value = parsed.codigo;
+
+                const editModal = new bootstrap.Modal(document.getElementById('editTurmaModal'));
+                editModal.show();
+            } catch (error) {
+                showMessage('Erro ao carregar dados da turma', 'error');
+            }
+        }
+
+        // Salvar edição
+        document.getElementById('editTurmaForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const id = parseInt(document.getElementById('editTurmaId').value);
+            const nome = document.getElementById('editTurmaNome').value.trim();
+            const sigla = document.getElementById('editTurmaSigla').value.trim().toUpperCase();
+            const codigo = document.getElementById('editTurmaCodigo').value.trim();
+
+            if (!nome || !sigla || !codigo) {
+                showMessage('Todos os campos são obrigatórios', 'error');
+                return;
+            }
+
+            try {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Salvando...';
+
+                await apiRequest(`${API_URL}/turmas/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        nome,
+                        sigla,
+                        codigo
+                    })
+                });
+
+                showMessage('Turma atualizada com sucesso!', 'success');
+                
+                const editModal = bootstrap.Modal.getInstance(document.getElementById('editTurmaModal'));
+                editModal.hide();
+
+                await loadTurmas();
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Salvar Alterações';
+            } catch (error) {
+                showMessage(error.message || 'Erro ao atualizar turma', 'error');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Salvar Alterações';
+            }
+        });
+
+        // Excluir turma
+        function excluirTurma(id) {
+            document.getElementById('deleteTurmaId').value = id;
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteTurmaModal'));
+            deleteModal.show();
+        }
+
+        // Confirmar exclusão
+        document.getElementById('confirmDeleteTurmaBtn').addEventListener('click', async function() {
+            const id = parseInt(document.getElementById('deleteTurmaId').value);
+
+            try {
+                this.disabled = true;
+                this.innerHTML = '<i class="bi bi-hourglass-split"></i> Excluindo...';
+
+                await apiRequest(`${API_URL}/turmas/${id}`, {
+                    method: 'DELETE'
+                });
+
+                showMessage('Turma excluída com sucesso!', 'success');
+
+                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteTurmaModal'));
+                deleteModal.hide();
+
+                await loadTurmas();
+
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-trash"></i> Confirmar Exclusão';
+            } catch (error) {
+                showMessage(error.message || 'Erro ao excluir turma', 'error');
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-trash"></i> Confirmar Exclusão';
+            }
+        });
+
+        // Gerenciar alunos (placeholder)
+        function gerenciarAlunos(turmaId, turmaNome) {
+            // Salvar dados da turma selecionada no localStorage
+            localStorage.setItem('selectedTurma', JSON.stringify({
+                id: turmaId,
+                nome: turmaNome
+            }));
+            
+            // Redirecionar para alunos.html
+            window.location.href = 'alunos.html';
+        }
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Verificar autenticação
+            if (!checkAuth()) {
+                return;
+            }
+
+            // Carregar dados da disciplina
+            if (loadDisciplinaData()) {
+                // Carregar turmas
+                await loadTurmas();
+            }
+        });
+    </script>
+</body>
+</html>
+

@@ -171,13 +171,3 @@ BEGIN
 END$$
 
 DELIMITER ;
-
--- ============================================================================
--- MENSAGEM FINAL
--- ============================================================================
-
-SELECT '========================================' AS '';
-SELECT 'Banco de dados criado com sucesso!' AS '';
-SELECT 'Todas as tabelas e triggers foram criadas.' AS '';
-SELECT 'Sistema NotaDez - PI2' AS '';
-SELECT '========================================' AS '';

@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disciplinas - NotaDez</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header da Página de Disciplinas -->
+    <div class="dashboard-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="dashboard-title mb-0">
+                        <i class="bi bi-book"></i> Disciplinas
+                    </h1>
+                    <p class="text-muted mb-0 mt-2" id="cursoInfo">Carregando...</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-secondary" onclick="voltarCursos()">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </button>
+                    <button class="btn-add-curso" id="btnAddDisciplina" onclick="mostrarFormularioDisciplina()">
+                        <i class="bi bi-plus-circle"></i> Adicionar Disciplina
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Formulário de Cadastro de Disciplina (oculto inicialmente) -->
+        <div class="curso-form-container" id="disciplinaFormContainer" style="display: none;">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="curso-form-title mb-4">
+                        <i class="bi bi-book"></i> Cadastrar Nova Disciplina
+                    </h3>
+                    <form id="cadastroDisciplinaForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="disciplinaNome" class="form-label">Nome da Disciplina <span class="text-danger">*</span></label>
+                                <input 
+                                    type="text" 
+                                    class="form-control form-control-lg" 
+                                    id="disciplinaNome" 
+                                    name="nome"
+                                    placeholder="Ex: Programação II"
+                                    required
+                                >
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="disciplinaSigla" class="form-label">Sigla <span class="text-danger">*</span></label>
+                                <input 
+                                    type="text" 
+                                    class="form-control form-control-lg" 
+                                    id="disciplinaSigla" 
+                                    name="sigla"
+                                    placeholder="Ex: PI2"
+                                    required
+                                    maxlength="10"
+                                >
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="disciplinaCodigo" class="form-label">Código <span class="text-danger">*</span></label>
+                                <input 
+                                    type="text" 
+                                    class="form-control form-control-lg" 
+                                    id="disciplinaCodigo" 
+                                    name="codigo"
+                                    placeholder="Ex: PI2-001"
+                                    required
+                                >
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="disciplinaPeriodo" class="form-label">Período do Curso <span class="text-danger">*</span></label>
+                                <select 
+                                    class="form-select form-select-lg" 
+                                    id="disciplinaPeriodo" 
+                                    name="periodo"
+                                    required
+                                >
+                                    <option value="">Selecione o período</option>
+                                    <option value="1">1º Período</option>
+                                    <option value="2">2º Período</option>
+                                    <option value="3">3º Período</option>
+                                    <option value="4">4º Período</option>
+                                    <option value="5">5º Período</option>
+                                    <option value="6">6º Período</option>
+                                    <option value="7">7º Período</option>
+                                    <option value="8">8º Período</option>
+                                    <option value="9">9º Período</option>
+                                    <option value="10">10º Período</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-secondary btn-lg" onclick="ocultarFormularioDisciplina()">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-check-circle"></i> Adicionar Disciplina
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Disciplinas -->
+        <div id="disciplinasContent">
+            <h2 class="mb-4 mt-4" style="color: #1D4ED8; font-weight: 600;">
+                <i class="bi bi-list-ul"></i> <span id="disciplinasTitle">Disciplinas Cadastradas</span>
+            </h2>
+            <div class="cursos-grid" id="disciplinasGrid">
+                <!-- Os cards de disciplinas serão inseridos aqui via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Edição de Disciplina -->
+    <div class="modal fade" id="editDisciplinaModal" tabindex="-1" aria-labelledby="editDisciplinaModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editDisciplinaModalLabel">
+                        <i class="bi bi-pencil-square"></i> Editar Disciplina
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editDisciplinaForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="editDisciplinaId">
+                        <div class="mb-3">
+                            <label for="editDisciplinaNome" class="form-label">Nome da Disciplina <span class="text-danger">*</span></label>
+                            <input 
+                                type="text" 
+                                class="form-control form-control-lg" 
+                                id="editDisciplinaNome"
+                                required
+                            >
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDisciplinaSigla" class="form-label">Sigla <span class="text-danger">*</span></label>
+                            <input 
+                                type="text" 
+                                class="form-control form-control-lg" 
+                                id="editDisciplinaSigla"
+                                required
+                                maxlength="10"
+                            >
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDisciplinaCodigo" class="form-label">Código <span class="text-danger">*</span></label>
+                            <input 
+                                type="text" 
+                                class="form-control form-control-lg" 
+                                id="editDisciplinaCodigo"
+                                required
+                            >
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDisciplinaPeriodo" class="form-label">Período do Curso <span class="text-danger">*</span></label>
+                            <select 
+                                class="form-select form-select-lg" 
+                                id="editDisciplinaPeriodo"
+                                required
+                            >
+                                <option value="">Selecione o período</option>
+                                <option value="1">1º Período</option>
+                                <option value="2">2º Período</option>
+                                <option value="3">3º Período</option>
+                                <option value="4">4º Período</option>
+                                <option value="5">5º Período</option>
+                                <option value="6">6º Período</option>
+                                <option value="7">7º Período</option>
+                                <option value="8">8º Período</option>
+                                <option value="9">9º Período</option>
+                                <option value="10">10º Período</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary-modal" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Salvar Alterações
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Exclusão de Disciplina -->
+    <div class="modal fade" id="deleteDisciplinaModal" tabindex="-1" aria-labelledby="deleteDisciplinaModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteDisciplinaModalLabel">
+                        <i class="bi bi-exclamation-triangle text-danger"></i> Confirmar Exclusão
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja excluir esta disciplina?</p>
+                    <p class="text-muted small">Esta ação não pode ser desfeita.</p>
+                    <input type="hidden" id="deleteDisciplinaId">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary-modal" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteDisciplinaBtn">
+                        <i class="bi bi-trash"></i> Confirmar Exclusão
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ============================================
+        // CONFIGURAÇÃO DA API
+        // ============================================
+        
+        const API_URL = 'http://localhost:3000';
+
+        // Função para obter o token de autenticação
+        function getAuthToken() {
+            return localStorage.getItem('token');
+        }
+
+        // Função para verificar se o usuário está autenticado
+        function checkAuth() {
+            const token = getAuthToken();
+            if (!token) {
+                alert('Você precisa estar logado para acessar esta página.');
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        // Função para fazer requisições autenticadas
+        async function apiRequest(url, options = {}) {
+            const token = getAuthToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                const errorMsg = data.message || 'Erro na requisição';
+                if (data.debug) {
+                    throw new Error(`${errorMsg} (${data.debug.method} ${data.debug.urlPath})`);
+                }
+                throw new Error(errorMsg);
+            }
+
+            return data;
+        }
+
+        // ============================================
+        // VARIÁVEIS GLOBAIS
+        // ============================================
+        
+        let currentCursoId = null;
+        let currentCursoNome = null;
+        let currentInstituicaoNome = null;
+
+        // ============================================
+        // FUNÇÕES AUXILIARES
+        // ============================================
+
+        // Função para escapar HTML (prevenir XSS)
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Função para exibir mensagens
+        function showMessage(message, type = 'success') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // ============================================
+        // FUNÇÕES DE NAVEGAÇÃO
+        // ============================================
+
+        // Voltar para cursos
+        function voltarCursos() {
+            window.location.href = 'cursos.html';
+        }
+
+        // Mostrar formulário de cadastro
+        function mostrarFormularioDisciplina() {
+            document.getElementById('disciplinaFormContainer').style.display = 'block';
+            document.getElementById('btnAddDisciplina').style.display = 'none';
+            document.getElementById('disciplinaFormContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // Ocultar formulário de cadastro
+        function ocultarFormularioDisciplina() {
+            document.getElementById('disciplinaFormContainer').style.display = 'none';
+            document.getElementById('btnAddDisciplina').style.display = 'inline-flex';
+            document.getElementById('cadastroDisciplinaForm').reset();
+        }
+
+        // ============================================
+        // FUNÇÕES DE CARREGAMENTO
+        // ============================================
+
+        // Carregar dados do curso selecionado
+        function loadCursoData() {
+            try {
+                const cursoData = localStorage.getItem('selectedCurso');
+                if (!cursoData) {
+                    showMessage('Nenhum curso selecionado. Redirecionando...', 'error');
+                    setTimeout(() => {
+                        window.location.href = 'cursos.html';
+                    }, 2000);
+                    return false;
+                }
+
+                const curso = JSON.parse(cursoData);
+                currentCursoId = curso.id;
+                currentCursoNome = curso.nome;
+
+                // Carregar nome da instituição
+                const instituicaoData = localStorage.getItem('selectedInstituicao');
+                if (instituicaoData) {
+                    const instituicao = JSON.parse(instituicaoData);
+                    currentInstituicaoNome = instituicao.nome;
+                }
+
+                // Atualizar interface
+                document.getElementById('cursoInfo').textContent = `Curso: ${curso.nome}`;
+                
+                // Atualizar título das disciplinas
+                const titulo = currentInstituicaoNome 
+                    ? `Disciplinas de ${curso.nome} - ${currentInstituicaoNome}`
+                    : `Disciplinas de ${curso.nome}`;
+                document.getElementById('disciplinasTitle').textContent = titulo;
+                
+                return true;
+            } catch (error) {
+                showMessage('Erro ao carregar dados do curso', 'error');
+                return false;
+            }
+        }
+
+        // Carregar disciplinas do backend
+        async function loadDisciplinas() {
+            if (!currentCursoId) {
+                return;
+            }
+            
+            try {
+                const response = await apiRequest(`${API_URL}/disciplinas?cursoId=${currentCursoId}`);
+                const disciplinas = response.data || [];
+                renderDisciplinas(disciplinas);
+            } catch (error) {
+                showMessage(error.message || 'Erro ao carregar disciplinas', 'error');
+                renderDisciplinas([]);
+            }
+        }
+
+        // ============================================
+        // FUNÇÕES DE RENDERIZAÇÃO
+        // ============================================
+
+        // Renderizar lista de disciplinas
+        function renderDisciplinas(disciplinas) {
+            const grid = document.getElementById('disciplinasGrid');
+            
+            if (!disciplinas || disciplinas.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state w-100">
+                        <i class="bi bi-book empty-state-icon"></i>
+                        <p>Nenhuma disciplina cadastrada ainda.</p>
+                        <p class="text-muted small">Clique em "Adicionar Disciplina" para começar.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = '';
+            
+            disciplinas.forEach(disciplina => {
+                const card = document.createElement('div');
+                card.className = 'curso-card';
+                card.innerHTML = `
+                    <div class="curso-card-header">
+                        <h4 class="curso-nome">
+                            <i class="bi bi-book"></i> ${escapeHtml(disciplina.nome)}
+                        </h4>
+                    </div>
+                    <div class="curso-card-body">
+                        <div class="curso-info">
+                            <div class="curso-info-item">
+                                <i class="bi bi-tag"></i>
+                                <span class="curso-label">Sigla:</span>
+                                <span class="curso-value">${escapeHtml(disciplina.sigla)}</span>
+                            </div>
+                            <div class="curso-info-item">
+                                <i class="bi bi-hash"></i>
+                                <span class="curso-label">Código:</span>
+                                <span class="curso-value">${disciplina.codigo ? escapeHtml(disciplina.codigo) : 'Não informado'}</span>
+                            </div>
+                            <div class="curso-info-item">
+                                <i class="bi bi-calendar"></i>
+                                <span class="curso-label">Período:</span>
+                                <span class="curso-value">${disciplina.periodo ? disciplina.periodo + 'º Período' : 'Não informado'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="curso-card-actions">
+                        <button class="action-btn btn-view-curso" onclick="verTurmas(${disciplina.id}, '${disciplina.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', '${(disciplina.codigo || '').replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">
+                            <i class="bi bi-people"></i> Ver Turmas
+                        </button>
+                        <button class="action-btn btn-edit-curso" onclick="editarDisciplina(${disciplina.id})">
+                            <i class="bi bi-pencil"></i> Editar
+                        </button>
+                        <button class="action-btn btn-delete-curso" onclick="excluirDisciplina(${disciplina.id})">
+                            <i class="bi bi-trash"></i> Excluir
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // ============================================
+        // FUNÇÕES CRUD
+        // ============================================
+
+        // Cadastrar disciplina
+        document.getElementById('cadastroDisciplinaForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const nome = document.getElementById('disciplinaNome').value.trim();
+            const sigla = document.getElementById('disciplinaSigla').value.trim().toUpperCase();
+            const codigo = document.getElementById('disciplinaCodigo').value.trim();
+            const periodo = document.getElementById('disciplinaPeriodo').value;
+
+            if (!nome || !sigla || !codigo || !periodo) {
+                showMessage('Todos os campos são obrigatórios', 'error');
+                return;
+            }
+
+            try {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Cadastrando...';
+
+                await apiRequest(`${API_URL}/disciplinas`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        nome,
+                        sigla,
+                        codigo,
+                        periodo,
+                        cursoId: currentCursoId
+                    })
+                });
+
+                showMessage('Disciplina cadastrada com sucesso!', 'success');
+                this.reset();
+                ocultarFormularioDisciplina();
+                await loadDisciplinas();
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Adicionar Disciplina';
+            } catch (error) {
+                showMessage(error.message || 'Erro ao cadastrar disciplina', 'error');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Adicionar Disciplina';
+            }
+        });
+
+        // Editar disciplina - abrir modal
+        async function editarDisciplina(id) {
+            try {
+                // Buscar disciplina atual do backend
+                const response = await apiRequest(`${API_URL}/disciplinas?cursoId=${currentCursoId}`);
+                const disciplinas = response.data || [];
+                const disciplina = disciplinas.find(d => d.id === id);
+
+                if (!disciplina) {
+                    showMessage('Disciplina não encontrada', 'error');
+                    return;
+                }
+
+                document.getElementById('editDisciplinaId').value = id;
+                document.getElementById('editDisciplinaNome').value = disciplina.nome;
+                document.getElementById('editDisciplinaSigla').value = disciplina.sigla;
+                document.getElementById('editDisciplinaCodigo').value = disciplina.codigo || '';
+                document.getElementById('editDisciplinaPeriodo').value = disciplina.periodo || '';
+
+                const editModal = new bootstrap.Modal(document.getElementById('editDisciplinaModal'));
+                editModal.show();
+            } catch (error) {
+                showMessage(error.message || 'Erro ao carregar dados da disciplina', 'error');
+            }
+        }
+
+        // Salvar edição
+        document.getElementById('editDisciplinaForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const id = parseInt(document.getElementById('editDisciplinaId').value);
+            const nome = document.getElementById('editDisciplinaNome').value.trim();
+            const sigla = document.getElementById('editDisciplinaSigla').value.trim().toUpperCase();
+            const codigo = document.getElementById('editDisciplinaCodigo').value.trim();
+            const periodo = document.getElementById('editDisciplinaPeriodo').value;
+
+            if (!nome || !sigla || !codigo || !periodo) {
+                showMessage('Todos os campos são obrigatórios', 'error');
+                return;
+            }
+
+            try {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Salvando...';
+
+                await apiRequest(`${API_URL}/disciplinas/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        nome,
+                        sigla,
+                        codigo,
+                        periodo
+                    })
+                });
+
+                showMessage('Disciplina atualizada com sucesso!', 'success');
+                
+                const editModal = bootstrap.Modal.getInstance(document.getElementById('editDisciplinaModal'));
+                editModal.hide();
+
+                await loadDisciplinas();
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Salvar Alterações';
+            } catch (error) {
+                showMessage(error.message || 'Erro ao atualizar disciplina', 'error');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Salvar Alterações';
+            }
+        });
+
+        // Excluir disciplina
+        function excluirDisciplina(id) {
+            document.getElementById('deleteDisciplinaId').value = id;
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteDisciplinaModal'));
+            deleteModal.show();
+        }
+
+        // Confirmar exclusão
+        document.getElementById('confirmDeleteDisciplinaBtn').addEventListener('click', async function() {
+            const id = parseInt(document.getElementById('deleteDisciplinaId').value);
+
+            try {
+                this.disabled = true;
+                this.innerHTML = '<i class="bi bi-hourglass-split"></i> Excluindo...';
+
+                await apiRequest(`${API_URL}/disciplinas/${id}`, {
+                    method: 'DELETE'
+                });
+
+                showMessage('Disciplina excluída com sucesso!', 'success');
+
+                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteDisciplinaModal'));
+                deleteModal.hide();
+
+                await loadDisciplinas();
+
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-trash"></i> Confirmar Exclusão';
+            } catch (error) {
+                showMessage(error.message || 'Erro ao excluir disciplina', 'error');
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-trash"></i> Confirmar Exclusão';
+            }
+        });
+
+        // Ver turmas - redireciona para página de turmas
+        function verTurmas(disciplinaId, disciplinaNome, disciplinaCodigo) {
+            // Salvar dados da disciplina selecionada no localStorage
+            localStorage.setItem('selectedDisciplina', JSON.stringify({
+                id: disciplinaId,
+                nome: disciplinaNome,
+                codigo: disciplinaCodigo || null
+            }));
+            
+            // Redirecionar para página de turmas
+            window.location.href = 'turmas.html';
+        }
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Verificar autenticação
+            if (!checkAuth()) {
+                return;
+            }
+
+            // Carregar dados do curso
+            if (loadCursoData()) {
+                // Carregar disciplinas
+                await loadDisciplinas();
+            }
+        });
+    </script>
+</body>
+</html>
