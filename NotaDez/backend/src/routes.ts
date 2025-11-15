@@ -7,6 +7,25 @@ import { query } from './db';
 const JWT_SECRET = process.env.JWT_SECRET || 'secret_default_change_in_production';
 
 /**
+ * Middleware de autenticação JWT
+ */
+export async function authenticateToken(req: IncomingMessage): Promise<any> {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+    if (!token) {
+        return null;
+    }
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        return decoded;
+    } catch (error) {
+        return null;
+    }
+}
+
+/**
  * Lê o corpo da requisição e retorna como JSON
  */
 async function readBody(req: IncomingMessage): Promise<any> {
@@ -214,6 +233,207 @@ export async function handleForgotPassword(req: IncomingMessage, res: ServerResp
 
     } catch (error: any) {
         console.error('Erro no forgot-password:', error);
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+/**
+ * GET /instituicoes - Lista todas as instituições do docente autenticado
+ */
+export async function handleGetInstituicoes(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        // Busca instituições do docente
+        const instituicoes = await query(
+            'SELECT ID_INSTITUICAO, NOME_INSTITUICAO, CIDADE, UF FROM INSTITUICAO WHERE ID_DOCENTE = ? ORDER BY NOME_INSTITUICAO',
+            [user.id]
+        ) as any[];
+
+        sendJSON(res, 200, {
+            success: true,
+            data: instituicoes.map(inst => ({
+                id: inst.ID_INSTITUICAO,
+                nome: inst.NOME_INSTITUICAO,
+                cidade: inst.CIDADE,
+                uf: inst.UF
+            }))
+        });
+
+    } catch (error: any) {
+        console.error('Erro ao listar instituições:', error);
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+/**
+ * POST /instituicoes - Cria uma nova instituição
+ */
+export async function handleCreateInstituicao(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { nome, cidade, uf } = body;
+
+        // Validação de campos obrigatórios
+        if (!nome) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome da instituição é obrigatório'
+            });
+        }
+
+        // Insere a instituição no banco
+        const result = await query(
+            'INSERT INTO INSTITUICAO (NOME_INSTITUICAO, CIDADE, UF, ID_DOCENTE) VALUES (?, ?, ?, ?)',
+            [nome, cidade || null, uf || null, user.id]
+        ) as any;
+
+        sendJSON(res, 201, {
+            success: true,
+            message: 'Instituição cadastrada com sucesso',
+            data: {
+                id: result.insertId,
+                nome,
+                cidade: cidade || null,
+                uf: uf || null
+            }
+        });
+
+    } catch (error: any) {
+        console.error('Erro ao criar instituição:', error);
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+/**
+ * PUT /instituicoes/:id - Atualiza uma instituição
+ */
+export async function handleUpdateInstituicao(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { nome, cidade, uf } = body;
+
+        // Validação de campos obrigatórios
+        if (!nome) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome da instituição é obrigatório'
+            });
+        }
+
+        // Verifica se a instituição pertence ao docente
+        const instituicoes = await query(
+            'SELECT ID_INSTITUICAO FROM INSTITUICAO WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
+            [id, user.id]
+        ) as any[];
+
+        if (instituicoes.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Instituição não encontrada ou você não tem permissão para editá-la'
+            });
+        }
+
+        // Atualiza a instituição
+        await query(
+            'UPDATE INSTITUICAO SET NOME_INSTITUICAO = ?, CIDADE = ?, UF = ? WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
+            [nome, cidade || null, uf || null, id, user.id]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Instituição atualizada com sucesso',
+            data: {
+                id,
+                nome,
+                cidade: cidade || null,
+                uf: uf || null
+            }
+        });
+
+    } catch (error: any) {
+        console.error('Erro ao atualizar instituição:', error);
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+/**
+ * DELETE /instituicoes/:id - Exclui uma instituição
+ */
+export async function handleDeleteInstituicao(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        // Verifica se a instituição pertence ao docente
+        const instituicoes = await query(
+            'SELECT ID_INSTITUICAO FROM INSTITUICAO WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
+            [id, user.id]
+        ) as any[];
+
+        if (instituicoes.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Instituição não encontrada ou você não tem permissão para excluí-la'
+            });
+        }
+
+        // Exclui a instituição (o ON DELETE CASCADE vai cuidar dos relacionamentos)
+        await query(
+            'DELETE FROM INSTITUICAO WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
+            [id, user.id]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Instituição excluída com sucesso'
+        });
+
+    } catch (error: any) {
+        console.error('Erro ao excluir instituição:', error);
         sendJSON(res, 500, {
             success: false,
             message: 'Erro interno do servidor'
