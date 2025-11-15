@@ -16,9 +16,14 @@
                 <h1 class="dashboard-title mb-0">
                     <i class="bi bi-speedometer2"></i> Painel do Docente
                 </h1>
-                <button class="btn-add-instituicao" id="btnAddInstituicao" onclick="mostrarCadastroInstituicao()" style="display: none;">
-                    <i class="bi bi-plus-circle"></i> Adicionar Instituição
-                </button>
+                <div class="d-flex gap-2">
+                    <button class="btn-add-instituicao" id="btnAddInstituicao" onclick="mostrarCadastroInstituicao()" style="display: none;">
+                        <i class="bi bi-plus-circle"></i> Adicionar Instituição
+                    </button>
+                    <button class="btn btn-outline-danger" onclick="sair()">
+                        <i class="bi bi-box-arrow-right"></i> Sair
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -26,25 +31,15 @@
     <div class="container">
         <!-- Seção Principal - Lista de Instituições -->
         <div id="dashboardSection">
+            <h2 class="mb-4 mt-4" style="color: #0066cc; font-weight: 600;">
+                <i class="bi bi-building"></i> Suas instituições
+            </h2>
             <div id="institutionsContainer">
                 <div class="institutions-grid" id="institutionsGrid">
                     <!-- Os cards de instituições serão inseridos aqui via JavaScript -->
                 </div>
             </div>
 
-            <!-- Seção de Cursos (oculta inicialmente) -->
-            <div class="cursos-section" id="cursosSection">
-                <h2 class="cursos-title" id="cursosTitle">Cursos da Instituição</h2>
-                <div id="cursosContent">
-                    <div class="empty-state">
-                        <i class="bi bi-book empty-state-icon"></i>
-                        <p>Nenhum curso cadastrado ainda.</p>
-                        <button class="btn-add-curso" onclick="alert('Funcionalidade de cadastro de curso será implementada em breve.')">
-                            <i class="bi bi-plus-circle"></i> Adicionar Curso
-                        </button>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- Seção de Cadastro de Instituição -->
@@ -207,7 +202,7 @@
         </div>
     </div>
 
-    <!-- Modal de Exclusão -->
+    <!-- Modal de Exclusão de Instituição -->
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -231,6 +226,7 @@
             </div>
         </div>
     </div>
+
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -311,7 +307,6 @@
 
                 renderInstituicoes(instituicoes);
             } catch (error) {
-                console.error('Erro ao carregar instituições:', error);
                 showMessage(error.message || 'Erro ao carregar instituições', 'error');
             }
         }
@@ -370,6 +365,15 @@
         // FUNÇÕES DE NAVEGAÇÃO
         // ============================================
 
+        // Função para sair (logout)
+        function sair() {
+            if (confirm('Tem certeza que deseja sair?')) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = 'login.html';
+            }
+        }
+
         // Mostrar formulário de cadastro
         function mostrarCadastroInstituicao() {
             document.getElementById('dashboardSection').style.display = 'none';
@@ -386,17 +390,18 @@
             document.getElementById('cadastroSection').style.display = 'none';
             document.getElementById('dashboardSection').style.display = 'block';
             document.getElementById('btnAddInstituicao').style.display = 'inline-flex';
-            document.getElementById('cursosSection').classList.remove('show');
         }
 
-        // Ver cursos
+        // Ver cursos - redireciona para página de cursos
         function verCursos(instituicaoId, instituicaoNome) {
-            const cursosSection = document.getElementById('cursosSection');
-            const cursosTitle = document.getElementById('cursosTitle');
+            // Salvar dados da instituição selecionada no localStorage
+            localStorage.setItem('selectedInstituicao', JSON.stringify({
+                id: instituicaoId,
+                nome: instituicaoNome
+            }));
             
-            cursosTitle.textContent = `Cursos da Instituição: ${instituicaoNome}`;
-            cursosSection.classList.add('show');
-            cursosSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Redirecionar para página de cursos
+            window.location.href = 'cursos.html';
         }
 
         // ============================================
@@ -434,7 +439,6 @@
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Cadastrar Instituição';
             } catch (error) {
-                console.error('Erro ao cadastrar instituição:', error);
                 showMessage(error.message || 'Erro ao cadastrar instituição', 'error');
                 const submitBtn = this.querySelector('button[type="submit"]');
                 submitBtn.disabled = false;
@@ -487,7 +491,6 @@
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Salvar Alterações';
             } catch (error) {
-                console.error('Erro ao atualizar instituição:', error);
                 showMessage(error.message || 'Erro ao atualizar instituição', 'error');
                 const submitBtn = this.querySelector('button[type="submit"]');
                 submitBtn.disabled = false;
@@ -525,12 +528,12 @@
                 this.disabled = false;
                 this.innerHTML = '<i class="bi bi-trash"></i> Confirmar Exclusão';
             } catch (error) {
-                console.error('Erro ao excluir instituição:', error);
                 showMessage(error.message || 'Erro ao excluir instituição', 'error');
                 this.disabled = false;
                 this.innerHTML = '<i class="bi bi-trash"></i> Confirmar Exclusão';
             }
         });
+
 
         // ============================================
         // INICIALIZAÇÃO
