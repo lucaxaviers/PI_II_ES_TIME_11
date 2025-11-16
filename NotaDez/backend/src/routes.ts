@@ -688,3 +688,264 @@ export async function handleDeleteCurso(req: IncomingMessage, res: ServerRespons
     }
 }
 
+/**
+ * GET /disciplinas?cursoId=X - Lista disciplinas de um curso
+ */
+export async function handleGetDisciplinas(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        // Obtém o ID do curso da query string
+        const url = req.url || '';
+        const urlParts = url.split('?');
+        const queryString = urlParts.length > 1 ? urlParts[1] : '';
+        const params = new URLSearchParams(queryString);
+        const cursoId = params.get('cursoId');
+
+        if (!cursoId) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'ID do curso é obrigatório'
+            });
+        }
+
+        // Verifica se o curso pertence a uma instituição do docente
+        const cursos = await query(
+            `SELECT C.ID_CURSO, C.NOME_CURSO
+             FROM CURSO C
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE C.ID_CURSO = ? AND I.ID_DOCENTE = ?`,
+            [parseInt(cursoId), user.id]
+        ) as any[];
+
+        if (cursos.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Curso não encontrado ou você não tem permissão para acessá-lo'
+            });
+        }
+
+        // Busca disciplinas do curso
+        const disciplinas = await query(
+            `SELECT D.ID_DISCIPLINA, D.NOME_DISCIPLINA, D.SIGLA, D.CODIGO, D.PERIODO, C.NOME_CURSO
+             FROM DISCIPLINA D
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             WHERE D.ID_CURSO = ?
+             ORDER BY D.PERIODO, D.NOME_DISCIPLINA`,
+            [parseInt(cursoId)]
+        ) as any[];
+
+        sendJSON(res, 200, {
+            success: true,
+            data: disciplinas.map(disciplina => ({
+                id: disciplina.ID_DISCIPLINA,
+                nome: disciplina.NOME_DISCIPLINA,
+                sigla: disciplina.SIGLA,
+                codigo: disciplina.CODIGO,
+                periodo: disciplina.PERIODO,
+                cursoNome: disciplina.NOME_CURSO
+            }))
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+/**
+ * POST /disciplinas - Cria uma nova disciplina
+ */
+export async function handleCreateDisciplina(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { nome, sigla, codigo, periodo, cursoId } = body;
+
+        // Validação de campos obrigatórios
+        if (!nome || !sigla || !cursoId) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome da disciplina, sigla e ID do curso são obrigatórios'
+            });
+        }
+
+        // Verifica se o curso pertence a uma instituição do docente
+        const cursos = await query(
+            `SELECT C.ID_CURSO, C.NOME_CURSO
+             FROM CURSO C
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE C.ID_CURSO = ? AND I.ID_DOCENTE = ?`,
+            [parseInt(cursoId), user.id]
+        ) as any[];
+
+        if (cursos.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Curso não encontrado ou você não tem permissão para criar disciplinas nele'
+            });
+        }
+
+        // Insere a disciplina no banco
+        const result = await query(
+            'INSERT INTO DISCIPLINA (NOME_DISCIPLINA, SIGLA, CODIGO, PERIODO, ID_CURSO) VALUES (?, ?, ?, ?, ?)',
+            [nome, sigla, codigo || null, periodo || null, parseInt(cursoId)]
+        ) as any;
+
+        sendJSON(res, 201, {
+            success: true,
+            message: 'Disciplina cadastrada com sucesso',
+            data: {
+                id: result.insertId,
+                nome,
+                sigla,
+                codigo: codigo || null,
+                periodo: periodo || null,
+                cursoId: parseInt(cursoId),
+                cursoNome: cursos[0].NOME_CURSO
+            }
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+/**
+ * PUT /disciplinas/:id - Atualiza uma disciplina
+ */
+export async function handleUpdateDisciplina(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { nome, sigla, codigo, periodo } = body;
+
+        // Validação de campos obrigatórios
+        if (!nome || !sigla) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome da disciplina e sigla são obrigatórios'
+            });
+        }
+
+        // Verifica se a disciplina existe e pertence a um curso do docente
+        const disciplinas = await query(
+            `SELECT D.ID_DISCIPLINA, D.ID_CURSO
+             FROM DISCIPLINA D
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE D.ID_DISCIPLINA = ? AND I.ID_DOCENTE = ?`,
+            [id, user.id]
+        ) as any[];
+
+        if (disciplinas.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Disciplina não encontrada ou você não tem permissão para editá-la'
+            });
+        }
+
+        // Atualiza a disciplina
+        await query(
+            'UPDATE DISCIPLINA SET NOME_DISCIPLINA = ?, SIGLA = ?, CODIGO = ?, PERIODO = ? WHERE ID_DISCIPLINA = ?',
+            [nome, sigla, codigo || null, periodo || null, id]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Disciplina atualizada com sucesso',
+            data: {
+                id,
+                nome,
+                sigla,
+                codigo: codigo || null,
+                periodo: periodo || null
+            }
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+/**
+ * DELETE /disciplinas/:id - Exclui uma disciplina
+ */
+export async function handleDeleteDisciplina(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        // Verifica se a disciplina existe e pertence a um curso do docente
+        const disciplinas = await query(
+            `SELECT D.ID_DISCIPLINA
+             FROM DISCIPLINA D
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE D.ID_DISCIPLINA = ? AND I.ID_DOCENTE = ?`,
+            [id, user.id]
+        ) as any[];
+
+        if (disciplinas.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Disciplina não encontrada ou você não tem permissão para excluí-la'
+            });
+        }
+
+        // Exclui a disciplina (o ON DELETE CASCADE vai cuidar dos relacionamentos)
+        await query(
+            'DELETE FROM DISCIPLINA WHERE ID_DISCIPLINA = ?',
+            [id]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Disciplina excluída com sucesso'
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+

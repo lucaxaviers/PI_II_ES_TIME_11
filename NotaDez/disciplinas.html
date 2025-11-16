@@ -224,10 +224,61 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // ============================================
+        // CONFIGURAÇÃO DA API
+        // ============================================
+        
+        const API_URL = 'http://localhost:3000';
+
+        // Função para obter o token de autenticação
+        function getAuthToken() {
+            return localStorage.getItem('token');
+        }
+
+        // Função para verificar se o usuário está autenticado
+        function checkAuth() {
+            const token = getAuthToken();
+            if (!token) {
+                alert('Você precisa estar logado para acessar esta página.');
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        // Função para fazer requisições autenticadas
+        async function apiRequest(url, options = {}) {
+            const token = getAuthToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                const errorMsg = data.message || 'Erro na requisição';
+                if (data.debug) {
+                    throw new Error(`${errorMsg} (${data.debug.method} ${data.debug.urlPath})`);
+                }
+                throw new Error(errorMsg);
+            }
+
+            return data;
+        }
+
+        // ============================================
         // VARIÁVEIS GLOBAIS
         // ============================================
         
-        let disciplinasData = [];
         let currentCursoId = null;
         let currentCursoNome = null;
         let currentInstituicaoNome = null;
@@ -325,31 +376,19 @@
             }
         }
 
-        // Carregar disciplinas do localStorage
-        function loadDisciplinas() {
-            try {
-                const key = `disciplinas_${currentCursoId}`;
-                const stored = localStorage.getItem(key);
-                if (stored) {
-                    disciplinasData = JSON.parse(stored);
-                } else {
-                    disciplinasData = [];
-                }
-                renderDisciplinas();
-            } catch (error) {
-                showMessage('Erro ao carregar disciplinas', 'error');
-                disciplinasData = [];
-                renderDisciplinas();
+        // Carregar disciplinas do backend
+        async function loadDisciplinas() {
+            if (!currentCursoId) {
+                return;
             }
-        }
-
-        // Salvar disciplinas no localStorage
-        function saveDisciplinas() {
+            
             try {
-                const key = `disciplinas_${currentCursoId}`;
-                localStorage.setItem(key, JSON.stringify(disciplinasData));
+                const response = await apiRequest(`${API_URL}/disciplinas?cursoId=${currentCursoId}`);
+                const disciplinas = response.data || [];
+                renderDisciplinas(disciplinas);
             } catch (error) {
-                showMessage('Erro ao salvar disciplinas', 'error');
+                showMessage(error.message || 'Erro ao carregar disciplinas', 'error');
+                renderDisciplinas([]);
             }
         }
 
@@ -358,10 +397,10 @@
         // ============================================
 
         // Renderizar lista de disciplinas
-        function renderDisciplinas() {
+        function renderDisciplinas(disciplinas) {
             const grid = document.getElementById('disciplinasGrid');
             
-            if (disciplinasData.length === 0) {
+            if (!disciplinas || disciplinas.length === 0) {
                 grid.innerHTML = `
                     <div class="empty-state w-100">
                         <i class="bi bi-book empty-state-icon"></i>
@@ -374,7 +413,7 @@
 
             grid.innerHTML = '';
             
-            disciplinasData.forEach(disciplina => {
+            disciplinas.forEach(disciplina => {
                 const card = document.createElement('div');
                 card.className = 'curso-card';
                 card.innerHTML = `
@@ -393,12 +432,12 @@
                             <div class="curso-info-item">
                                 <i class="bi bi-hash"></i>
                                 <span class="curso-label">Código:</span>
-                                <span class="curso-value">${escapeHtml(disciplina.codigo)}</span>
+                                <span class="curso-value">${disciplina.codigo ? escapeHtml(disciplina.codigo) : 'Não informado'}</span>
                             </div>
                             <div class="curso-info-item">
                                 <i class="bi bi-calendar"></i>
                                 <span class="curso-label">Período:</span>
-                                <span class="curso-value">${disciplina.periodo}º Período</span>
+                                <span class="curso-value">${disciplina.periodo ? disciplina.periodo + 'º Período' : 'Não informado'}</span>
                             </div>
                         </div>
                     </div>
@@ -423,7 +462,7 @@
         // ============================================
 
         // Cadastrar disciplina
-        document.getElementById('cadastroDisciplinaForm').addEventListener('submit', function(e) {
+        document.getElementById('cadastroDisciplinaForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
             const nome = document.getElementById('disciplinaNome').value.trim();
@@ -436,53 +475,65 @@
                 return;
             }
 
-            // Verificar se o código já existe
-            const codigoExiste = disciplinasData.some(d => d.codigo === codigo);
-            if (codigoExiste) {
-                showMessage('Já existe uma disciplina com este código', 'error');
-                return;
+            try {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Cadastrando...';
+
+                await apiRequest(`${API_URL}/disciplinas`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        nome,
+                        sigla,
+                        codigo,
+                        periodo,
+                        cursoId: currentCursoId
+                    })
+                });
+
+                showMessage('Disciplina cadastrada com sucesso!', 'success');
+                this.reset();
+                ocultarFormularioDisciplina();
+                await loadDisciplinas();
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Adicionar Disciplina';
+            } catch (error) {
+                showMessage(error.message || 'Erro ao cadastrar disciplina', 'error');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Adicionar Disciplina';
             }
-
-            // Criar nova disciplina
-            const novaDisciplina = {
-                id: Date.now(),
-                nome: nome,
-                sigla: sigla,
-                codigo: codigo,
-                periodo: periodo
-            };
-
-            disciplinasData.push(novaDisciplina);
-            saveDisciplinas();
-            renderDisciplinas();
-
-            // Limpar formulário e ocultar
-            this.reset();
-            ocultarFormularioDisciplina();
-
-            showMessage('Disciplina cadastrada com sucesso!', 'success');
         });
 
-        // Editar disciplina
-        function editarDisciplina(id) {
-            const disciplina = disciplinasData.find(d => d.id === id);
-            if (!disciplina) {
-                showMessage('Disciplina não encontrada', 'error');
-                return;
+        // Editar disciplina - abrir modal
+        async function editarDisciplina(id) {
+            try {
+                // Buscar disciplina atual do backend
+                const response = await apiRequest(`${API_URL}/disciplinas?cursoId=${currentCursoId}`);
+                const disciplinas = response.data || [];
+                const disciplina = disciplinas.find(d => d.id === id);
+
+                if (!disciplina) {
+                    showMessage('Disciplina não encontrada', 'error');
+                    return;
+                }
+
+                document.getElementById('editDisciplinaId').value = id;
+                document.getElementById('editDisciplinaNome').value = disciplina.nome;
+                document.getElementById('editDisciplinaSigla').value = disciplina.sigla;
+                document.getElementById('editDisciplinaCodigo').value = disciplina.codigo || '';
+                document.getElementById('editDisciplinaPeriodo').value = disciplina.periodo || '';
+
+                const editModal = new bootstrap.Modal(document.getElementById('editDisciplinaModal'));
+                editModal.show();
+            } catch (error) {
+                showMessage(error.message || 'Erro ao carregar dados da disciplina', 'error');
             }
-
-            document.getElementById('editDisciplinaId').value = id;
-            document.getElementById('editDisciplinaNome').value = disciplina.nome;
-            document.getElementById('editDisciplinaSigla').value = disciplina.sigla;
-            document.getElementById('editDisciplinaCodigo').value = disciplina.codigo;
-            document.getElementById('editDisciplinaPeriodo').value = disciplina.periodo;
-
-            const editModal = new bootstrap.Modal(document.getElementById('editDisciplinaModal'));
-            editModal.show();
         }
 
         // Salvar edição
-        document.getElementById('editDisciplinaForm').addEventListener('submit', function(e) {
+        document.getElementById('editDisciplinaForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
             const id = parseInt(document.getElementById('editDisciplinaId').value);
@@ -496,35 +547,36 @@
                 return;
             }
 
-            const index = disciplinasData.findIndex(d => d.id === id);
-            if (index === -1) {
-                showMessage('Disciplina não encontrada', 'error');
-                return;
+            try {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Salvando...';
+
+                await apiRequest(`${API_URL}/disciplinas/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        nome,
+                        sigla,
+                        codigo,
+                        periodo
+                    })
+                });
+
+                showMessage('Disciplina atualizada com sucesso!', 'success');
+                
+                const editModal = bootstrap.Modal.getInstance(document.getElementById('editDisciplinaModal'));
+                editModal.hide();
+
+                await loadDisciplinas();
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Salvar Alterações';
+            } catch (error) {
+                showMessage(error.message || 'Erro ao atualizar disciplina', 'error');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Salvar Alterações';
             }
-
-            // Verificar se o código já existe em outra disciplina
-            const codigoExiste = disciplinasData.some(d => d.codigo === codigo && d.id !== id);
-            if (codigoExiste) {
-                showMessage('Já existe outra disciplina com este código', 'error');
-                return;
-            }
-
-            // Atualizar disciplina
-            disciplinasData[index] = {
-                id: id,
-                nome: nome,
-                sigla: sigla,
-                codigo: codigo,
-                periodo: periodo
-            };
-
-            saveDisciplinas();
-            renderDisciplinas();
-
-            const editModal = bootstrap.Modal.getInstance(document.getElementById('editDisciplinaModal'));
-            editModal.hide();
-
-            showMessage('Disciplina atualizada com sucesso!', 'success');
         });
 
         // Excluir disciplina
@@ -535,23 +587,31 @@
         }
 
         // Confirmar exclusão
-        document.getElementById('confirmDeleteDisciplinaBtn').addEventListener('click', function() {
+        document.getElementById('confirmDeleteDisciplinaBtn').addEventListener('click', async function() {
             const id = parseInt(document.getElementById('deleteDisciplinaId').value);
 
-            const index = disciplinasData.findIndex(d => d.id === id);
-            if (index === -1) {
-                showMessage('Disciplina não encontrada', 'error');
-                return;
+            try {
+                this.disabled = true;
+                this.innerHTML = '<i class="bi bi-hourglass-split"></i> Excluindo...';
+
+                await apiRequest(`${API_URL}/disciplinas/${id}`, {
+                    method: 'DELETE'
+                });
+
+                showMessage('Disciplina excluída com sucesso!', 'success');
+
+                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteDisciplinaModal'));
+                deleteModal.hide();
+
+                await loadDisciplinas();
+
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-trash"></i> Confirmar Exclusão';
+            } catch (error) {
+                showMessage(error.message || 'Erro ao excluir disciplina', 'error');
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-trash"></i> Confirmar Exclusão';
             }
-
-            disciplinasData.splice(index, 1);
-            saveDisciplinas();
-            renderDisciplinas();
-
-            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteDisciplinaModal'));
-            deleteModal.hide();
-
-            showMessage('Disciplina excluída com sucesso!', 'success');
         });
 
         // Ver turmas (placeholder)
@@ -573,11 +633,16 @@
         // INICIALIZAÇÃO
         // ============================================
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Verificar autenticação
+            if (!checkAuth()) {
+                return;
+            }
+
             // Carregar dados do curso
             if (loadCursoData()) {
                 // Carregar disciplinas
-                loadDisciplinas();
+                await loadDisciplinas();
             }
         });
     </script>

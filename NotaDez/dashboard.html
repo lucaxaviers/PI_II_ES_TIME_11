@@ -434,7 +434,6 @@
                 showMessage('Instituição cadastrada com sucesso!', 'success');
                 this.reset();
                 await loadInstituicoes();
-                document.getElementById('cursosSection').classList.remove('show');
 
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Cadastrar Instituição';
@@ -522,7 +521,6 @@
                 const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
                 deleteModal.hide();
 
-                document.getElementById('cursosSection').classList.remove('show');
                 await loadInstituicoes();
 
                 this.disabled = false;

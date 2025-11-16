@@ -10,7 +10,11 @@ import {
     handleGetCursos,
     handleCreateCurso,
     handleUpdateCurso,
-    handleDeleteCurso
+    handleDeleteCurso,
+    handleGetDisciplinas,
+    handleCreateDisciplina,
+    handleUpdateDisciplina,
+    handleDeleteDisciplina
 } from './routes';
 import { testConnection } from './db';
 import dotenv from 'dotenv';
@@ -129,6 +133,43 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
     } else if (method === 'POST' && urlPath === '/cursos') {
         console.log('  → Rota: POST /cursos');
         await handleCreateCurso(req, res);
+    }
+    // Rotas de disciplinas - verificar rotas com ID primeiro
+    else if (method === 'PUT' && urlPath.startsWith('/disciplinas/')) {
+        const urlParts = urlPath.split('/');
+        const id = parseInt(urlParts[2]);
+        if (isNaN(id)) {
+            console.log(`  → Erro: ID inválido em PUT /disciplinas/${urlParts[2]}`);
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({
+                success: false,
+                message: 'ID inválido'
+            }));
+        } else {
+            console.log(`  → Rota: PUT /disciplinas/${id}`);
+            await handleUpdateDisciplina(req, res, id);
+        }
+    } else if (method === 'DELETE' && urlPath.startsWith('/disciplinas/')) {
+        const urlParts = urlPath.split('/');
+        const id = parseInt(urlParts[2]);
+        if (isNaN(id)) {
+            console.log(`  → Erro: ID inválido em DELETE /disciplinas/${urlParts[2]}`);
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({
+                success: false,
+                message: 'ID inválido'
+            }));
+        } else {
+            console.log(`  → Rota: DELETE /disciplinas/${id}`);
+            await handleDeleteDisciplina(req, res, id);
+        }
+    } else if (method === 'GET' && urlPath === '/disciplinas') {
+        // GET /disciplinas?cursoId=X
+        console.log('  → Rota: GET /disciplinas');
+        await handleGetDisciplinas(req, res);
+    } else if (method === 'POST' && urlPath === '/disciplinas') {
+        console.log('  → Rota: POST /disciplinas');
+        await handleCreateDisciplina(req, res);
     } else {
         // Rota não encontrada
         console.log(`  → [404] Rota não encontrada: ${method} ${urlPath}`);
@@ -172,6 +213,11 @@ async function startServer() {
             console.log('     POST   http://localhost:' + PORT + '/cursos');
             console.log('     PUT    http://localhost:' + PORT + '/cursos/:id');
             console.log('     DELETE http://localhost:' + PORT + '/cursos/:id');
+            console.log('\n   Disciplinas:');
+            console.log('     GET    http://localhost:' + PORT + '/disciplinas?cursoId=X');
+            console.log('     POST   http://localhost:' + PORT + '/disciplinas');
+            console.log('     PUT    http://localhost:' + PORT + '/disciplinas/:id');
+            console.log('     DELETE http://localhost:' + PORT + '/disciplinas/:id');
             console.log('');
         });
     } catch (error: any) {
