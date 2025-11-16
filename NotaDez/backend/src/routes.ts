@@ -7,6 +7,25 @@ import { query } from './db';
 const JWT_SECRET = process.env.JWT_SECRET || 'secret_default_change_in_production';
 
 /**
+ * Middleware de autenticação JWT
+ */
+export async function authenticateToken(req: IncomingMessage): Promise<any> {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+    if (!token) {
+        return null;
+    }
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        return decoded;
+    } catch (error) {
+        return null;
+    }
+}
+
+/**
  * Lê o corpo da requisição e retorna como JSON
  */
 async function readBody(req: IncomingMessage): Promise<any> {
@@ -108,7 +127,6 @@ export async function handleRegister(req: IncomingMessage, res: ServerResponse):
         });
 
     } catch (error: any) {
-        console.error('Erro no registro:', error);
         sendJSON(res, 500, {
             success: false,
             message: 'Erro interno do servidor'
@@ -182,7 +200,6 @@ export async function handleLogin(req: IncomingMessage, res: ServerResponse): Pr
         });
 
     } catch (error: any) {
-        console.error('Erro no login:', error);
         sendJSON(res, 500, {
             success: false,
             message: 'Erro interno do servidor'
@@ -213,7 +230,457 @@ export async function handleForgotPassword(req: IncomingMessage, res: ServerResp
         });
 
     } catch (error: any) {
-        console.error('Erro no forgot-password:', error);
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+/**
+ * GET /instituicoes - Lista todas as instituições do docente autenticado
+ */
+export async function handleGetInstituicoes(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        // Busca instituições do docente
+        const instituicoes = await query(
+            'SELECT ID_INSTITUICAO, NOME_INSTITUICAO, CIDADE, UF FROM INSTITUICAO WHERE ID_DOCENTE = ? ORDER BY NOME_INSTITUICAO',
+            [user.id]
+        ) as any[];
+
+        sendJSON(res, 200, {
+            success: true,
+            data: instituicoes.map(inst => ({
+                id: inst.ID_INSTITUICAO,
+                nome: inst.NOME_INSTITUICAO,
+                cidade: inst.CIDADE,
+                uf: inst.UF
+            }))
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+/**
+ * POST /instituicoes - Cria uma nova instituição
+ */
+export async function handleCreateInstituicao(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { nome, cidade, uf } = body;
+
+        // Validação de campos obrigatórios
+        if (!nome) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome da instituição é obrigatório'
+            });
+        }
+
+        // Insere a instituição no banco
+        const result = await query(
+            'INSERT INTO INSTITUICAO (NOME_INSTITUICAO, CIDADE, UF, ID_DOCENTE) VALUES (?, ?, ?, ?)',
+            [nome, cidade || null, uf || null, user.id]
+        ) as any;
+
+        sendJSON(res, 201, {
+            success: true,
+            message: 'Instituição cadastrada com sucesso',
+            data: {
+                id: result.insertId,
+                nome,
+                cidade: cidade || null,
+                uf: uf || null
+            }
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+/**
+ * PUT /instituicoes/:id - Atualiza uma instituição
+ */
+export async function handleUpdateInstituicao(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { nome, cidade, uf } = body;
+
+        // Validação de campos obrigatórios
+        if (!nome) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome da instituição é obrigatório'
+            });
+        }
+
+        // Verifica se a instituição pertence ao docente
+        const instituicoes = await query(
+            'SELECT ID_INSTITUICAO FROM INSTITUICAO WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
+            [id, user.id]
+        ) as any[];
+
+        if (instituicoes.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Instituição não encontrada ou você não tem permissão para editá-la'
+            });
+        }
+
+        // Atualiza a instituição
+        await query(
+            'UPDATE INSTITUICAO SET NOME_INSTITUICAO = ?, CIDADE = ?, UF = ? WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
+            [nome, cidade || null, uf || null, id, user.id]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Instituição atualizada com sucesso',
+            data: {
+                id,
+                nome,
+                cidade: cidade || null,
+                uf: uf || null
+            }
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+/**
+ * DELETE /instituicoes/:id - Exclui uma instituição
+ */
+export async function handleDeleteInstituicao(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        // Verifica se a instituição pertence ao docente
+        const instituicoes = await query(
+            'SELECT ID_INSTITUICAO FROM INSTITUICAO WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
+            [id, user.id]
+        ) as any[];
+
+        if (instituicoes.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Instituição não encontrada ou você não tem permissão para excluí-la'
+            });
+        }
+
+        // Exclui a instituição (o ON DELETE CASCADE vai cuidar dos relacionamentos)
+        await query(
+            'DELETE FROM INSTITUICAO WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
+            [id, user.id]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Instituição excluída com sucesso'
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+/**
+ * GET /cursos?instituicaoId=X - Lista cursos de uma instituição
+ */
+export async function handleGetCursos(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        // Obtém o ID da instituição da query string
+        const url = req.url || '';
+        const urlParts = url.split('?');
+        const queryString = urlParts.length > 1 ? urlParts[1] : '';
+        const params = new URLSearchParams(queryString);
+        const instituicaoId = params.get('instituicaoId');
+
+        if (!instituicaoId) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'ID da instituição é obrigatório'
+            });
+        }
+
+        // Verifica se a instituição pertence ao docente
+        const instituicoes = await query(
+            'SELECT ID_INSTITUICAO FROM INSTITUICAO WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
+            [parseInt(instituicaoId), user.id]
+        ) as any[];
+
+        if (instituicoes.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Instituição não encontrada ou você não tem permissão para acessá-la'
+            });
+        }
+
+        // Busca cursos da instituição
+        const cursos = await query(
+            `SELECT C.ID_CURSO, C.NOME_CURSO, C.MODALIDADE, C.AREA, C.PERIODO_TOTAL, I.NOME_INSTITUICAO
+             FROM CURSO C
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE C.ID_INSTITUICAO = ?
+             ORDER BY C.NOME_CURSO`,
+            [parseInt(instituicaoId)]
+        ) as any[];
+
+        sendJSON(res, 200, {
+            success: true,
+            data: cursos.map(curso => ({
+                id: curso.ID_CURSO,
+                nome: curso.NOME_CURSO,
+                modalidade: curso.MODALIDADE,
+                area: curso.AREA,
+                periodoTotal: curso.PERIODO_TOTAL,
+                duracao: curso.PERIODO_TOTAL ? `${curso.PERIODO_TOTAL} períodos` : null,
+                instituicaoNome: curso.NOME_INSTITUICAO
+            }))
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+/**
+ * POST /cursos - Cria um novo curso
+ */
+export async function handleCreateCurso(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { nome, area, modalidade, periodoTotal, instituicaoId } = body;
+
+        // Validação de campos obrigatórios
+        if (!nome || !instituicaoId) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome do curso e ID da instituição são obrigatórios'
+            });
+        }
+
+        // Verifica se a instituição pertence ao docente
+        const instituicoes = await query(
+            'SELECT ID_INSTITUICAO, NOME_INSTITUICAO FROM INSTITUICAO WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
+            [parseInt(instituicaoId), user.id]
+        ) as any[];
+
+        if (instituicoes.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Instituição não encontrada ou você não tem permissão para criar cursos nela'
+            });
+        }
+
+        // Insere o curso no banco
+        const result = await query(
+            'INSERT INTO CURSO (NOME_CURSO, MODALIDADE, AREA, PERIODO_TOTAL, ID_INSTITUICAO) VALUES (?, ?, ?, ?, ?)',
+            [nome, modalidade || null, area || null, periodoTotal ? parseInt(periodoTotal) : null, parseInt(instituicaoId)]
+        ) as any;
+
+        sendJSON(res, 201, {
+            success: true,
+            message: 'Curso cadastrado com sucesso',
+            data: {
+                id: result.insertId,
+                nome,
+                area: area || null,
+                modalidade: modalidade || null,
+                periodoTotal: periodoTotal ? parseInt(periodoTotal) : null,
+                instituicaoId: parseInt(instituicaoId),
+                instituicaoNome: instituicoes[0].NOME_INSTITUICAO
+            }
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+/**
+ * PUT /cursos/:id - Atualiza um curso
+ */
+export async function handleUpdateCurso(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { nome, area, modalidade, periodoTotal } = body;
+
+        // Validação de campos obrigatórios
+        if (!nome) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome do curso é obrigatório'
+            });
+        }
+
+        // Verifica se o curso existe e pertence a uma instituição do docente
+        const cursos = await query(
+            `SELECT C.ID_CURSO, C.ID_INSTITUICAO 
+             FROM CURSO C
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE C.ID_CURSO = ? AND I.ID_DOCENTE = ?`,
+            [id, user.id]
+        ) as any[];
+
+        if (cursos.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Curso não encontrado ou você não tem permissão para editá-lo'
+            });
+        }
+
+        // Atualiza o curso
+        await query(
+            'UPDATE CURSO SET NOME_CURSO = ?, MODALIDADE = ?, AREA = ?, PERIODO_TOTAL = ? WHERE ID_CURSO = ?',
+            [nome, modalidade || null, area || null, periodoTotal ? parseInt(periodoTotal) : null, id]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Curso atualizado com sucesso',
+            data: {
+                id,
+                nome,
+                area: area || null,
+                modalidade: modalidade || null,
+                periodoTotal: periodoTotal ? parseInt(periodoTotal) : null
+            }
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+/**
+ * DELETE /cursos/:id - Exclui um curso
+ */
+export async function handleDeleteCurso(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        // Verifica se o curso existe e pertence a uma instituição do docente
+        const cursos = await query(
+            `SELECT C.ID_CURSO 
+             FROM CURSO C
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE C.ID_CURSO = ? AND I.ID_DOCENTE = ?`,
+            [id, user.id]
+        ) as any[];
+
+        if (cursos.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Curso não encontrado ou você não tem permissão para excluí-lo'
+            });
+        }
+
+        // Exclui o curso (o ON DELETE CASCADE vai cuidar dos relacionamentos)
+        await query(
+            'DELETE FROM CURSO WHERE ID_CURSO = ?',
+            [id]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Curso excluído com sucesso'
+        });
+
+    } catch (error: any) {
         sendJSON(res, 500, {
             success: false,
             message: 'Erro interno do servidor'

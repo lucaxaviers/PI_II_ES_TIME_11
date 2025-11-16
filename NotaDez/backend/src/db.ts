@@ -40,10 +40,10 @@ export const pool = mysql.createPool(dbConfig);
 export async function testConnection(): Promise<void> {
     try {
         const connection = await pool.getConnection();
-        console.log('✅ Conexão com MySQL estabelecida com sucesso!');
+        console.log('✅ Teste de conexão com MySQL: OK');
         connection.release();
-    } catch (error) {
-        console.error('❌ Erro ao conectar com MySQL:', error);
+    } catch (error: any) {
+        console.error('❌ Erro ao conectar com MySQL:', error.message);
         throw error;
     }
 }
@@ -58,8 +58,12 @@ export async function query(sql: string, params?: any[]): Promise<any> {
     try {
         const [results] = await pool.execute(sql, params);
         return results;
-    } catch (error) {
-        console.error('Erro ao executar query:', error);
+    } catch (error: any) {
+        console.error('❌ Erro ao executar query SQL:', error.message);
+        console.error('   SQL:', sql);
+        if (params && params.length > 0) {
+            console.error('   Parâmetros:', params);
+        }
         throw error;
     }
 }

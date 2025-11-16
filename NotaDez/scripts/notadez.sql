@@ -1,0 +1,183 @@
+-- ============================================================================
+-- AUTOR: Sistema NotaDez - PI2
+-- DESCRIÇÃO: Script SQL FINAL - Criação completa do banco de dados
+-- EXECUTAR: Copie e cole tudo no MySQL Workbench e execute
+-- ============================================================================
+
+-- Criar banco de dados
+CREATE DATABASE IF NOT EXISTS notadez CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+USE notadez;
+
+-- ============================================================================
+-- REMOVER TABELAS EXISTENTES (se houver)
+-- ============================================================================
+SET FOREIGN_KEY_CHECKS = 0;
+
+DROP TABLE IF EXISTS AUDITORIA_NOTA;
+DROP TABLE IF EXISTS NOTA;
+DROP TABLE IF EXISTS COMPONENTE_NOTA;
+DROP TABLE IF EXISTS ALUNO;
+DROP TABLE IF EXISTS TURMA;
+DROP TABLE IF EXISTS DISCIPLINA;
+DROP TABLE IF EXISTS CURSO;
+DROP TABLE IF EXISTS INSTITUICAO;
+DROP TABLE IF EXISTS DOCENTE;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- ============================================================================
+-- TABELAS PRINCIPAIS
+-- ============================================================================
+
+-- Tabela de Docentes
+CREATE TABLE DOCENTE (
+    ID_DOCENTE INT AUTO_INCREMENT PRIMARY KEY,
+    NOME VARCHAR(255) NOT NULL,
+    EMAIL VARCHAR(255) NOT NULL UNIQUE,
+    TELEFONE VARCHAR(20),
+    SENHA VARCHAR(255) NOT NULL,
+    DATA_CADASTRO TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Tabela de Instituições
+CREATE TABLE INSTITUICAO (
+    ID_INSTITUICAO INT AUTO_INCREMENT PRIMARY KEY,
+    NOME_INSTITUICAO VARCHAR(255) NOT NULL,
+    CIDADE VARCHAR(100),
+    UF VARCHAR(2),
+    ID_DOCENTE INT NOT NULL,
+    FOREIGN KEY (ID_DOCENTE) REFERENCES DOCENTE(ID_DOCENTE) ON DELETE CASCADE,
+    INDEX idx_docente (ID_DOCENTE)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Tabela de Cursos
+CREATE TABLE CURSO (
+    ID_CURSO INT AUTO_INCREMENT PRIMARY KEY,
+    NOME_CURSO VARCHAR(255) NOT NULL,
+    MODALIDADE VARCHAR(50),
+    AREA VARCHAR(100),
+    PERIODO_TOTAL INT,
+    ID_INSTITUICAO INT NOT NULL,
+    FOREIGN KEY (ID_INSTITUICAO) REFERENCES INSTITUICAO(ID_INSTITUICAO) ON DELETE CASCADE,
+    INDEX idx_instituicao (ID_INSTITUICAO)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Tabela de Disciplinas
+CREATE TABLE DISCIPLINA (
+    ID_DISCIPLINA INT AUTO_INCREMENT PRIMARY KEY,
+    NOME_DISCIPLINA VARCHAR(255) NOT NULL,
+    SIGLA VARCHAR(20) NOT NULL,
+    CODIGO VARCHAR(50),
+    PERIODO VARCHAR(50),
+    ID_CURSO INT NOT NULL,
+    FOREIGN KEY (ID_CURSO) REFERENCES CURSO(ID_CURSO) ON DELETE CASCADE,
+    INDEX idx_curso (ID_CURSO)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Tabela de Turmas
+CREATE TABLE TURMA (
+    ID_TURMA INT AUTO_INCREMENT PRIMARY KEY,
+    NOME_TURMA VARCHAR(255) NOT NULL,
+    QTD_ALUNOS INT DEFAULT 0,
+    ID_DISCIPLINA INT NOT NULL,
+    FOREIGN KEY (ID_DISCIPLINA) REFERENCES DISCIPLINA(ID_DISCIPLINA) ON DELETE CASCADE,
+    INDEX idx_disciplina (ID_DISCIPLINA)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Tabela de Alunos
+CREATE TABLE ALUNO (
+    ID_ALUNO INT AUTO_INCREMENT PRIMARY KEY,
+    RA VARCHAR(50) NOT NULL,
+    NOME VARCHAR(255) NOT NULL,
+    ID_TURMA INT NOT NULL,
+    FOREIGN KEY (ID_TURMA) REFERENCES TURMA(ID_TURMA) ON DELETE CASCADE,
+    UNIQUE KEY uk_ra_turma (RA, ID_TURMA),
+    INDEX idx_turma (ID_TURMA)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Tabela de Componentes de Nota
+CREATE TABLE COMPONENTE_NOTA (
+    ID_COMPONENTE INT AUTO_INCREMENT PRIMARY KEY,
+    NOME_COMPONENTE VARCHAR(255) NOT NULL,
+    SIGLA VARCHAR(20) NOT NULL,
+    DESCRICAO TEXT,
+    ID_DISCIPLINA INT NOT NULL,
+    FOREIGN KEY (ID_DISCIPLINA) REFERENCES DISCIPLINA(ID_DISCIPLINA) ON DELETE CASCADE,
+    UNIQUE KEY uk_sigla_disciplina (SIGLA, ID_DISCIPLINA),
+    INDEX idx_disciplina (ID_DISCIPLINA)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Tabela de Notas
+CREATE TABLE NOTA (
+    ID_NOTA INT AUTO_INCREMENT PRIMARY KEY,
+    ID_ALUNO INT NOT NULL,
+    ID_COMPONENTE INT NOT NULL,
+    VALOR DECIMAL(5,2) NOT NULL CHECK (VALOR >= 0 AND VALOR <= 10),
+    DATA_LANCAMENTO TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (ID_ALUNO) REFERENCES ALUNO(ID_ALUNO) ON DELETE CASCADE,
+    FOREIGN KEY (ID_COMPONENTE) REFERENCES COMPONENTE_NOTA(ID_COMPONENTE) ON DELETE CASCADE,
+    UNIQUE KEY uk_aluno_componente (ID_ALUNO, ID_COMPONENTE),
+    INDEX idx_aluno (ID_ALUNO),
+    INDEX idx_componente (ID_COMPONENTE)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TABELA DE AUDITORIA
+-- ============================================================================
+
+-- Tabela de Auditoria de Notas
+CREATE TABLE AUDITORIA_NOTA (
+    ID_AUDITORIA INT AUTO_INCREMENT PRIMARY KEY,
+    DATA_HORA DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ID_ALUNO INT NOT NULL,
+    ID_COMPONENTE INT NOT NULL,
+    VALOR_ANTERIOR DECIMAL(5,2) NULL,
+    VALOR_NOVO DECIMAL(5,2) NOT NULL,
+    FOREIGN KEY (ID_ALUNO) REFERENCES ALUNO(ID_ALUNO) ON DELETE CASCADE,
+    FOREIGN KEY (ID_COMPONENTE) REFERENCES COMPONENTE_NOTA(ID_COMPONENTE) ON DELETE CASCADE,
+    INDEX idx_data_hora (DATA_HORA),
+    INDEX idx_aluno (ID_ALUNO)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================================
+-- TRIGGERS DE AUDITORIA
+-- ============================================================================
+
+-- Remove triggers se já existirem
+DROP TRIGGER IF EXISTS trg_auditoria_nota;
+DROP TRIGGER IF EXISTS trg_auditoria_nota_update;
+
+DELIMITER $$
+
+-- Trigger para INSERT (primeira vez que a nota é lançada)
+CREATE TRIGGER trg_auditoria_nota
+AFTER INSERT ON NOTA
+FOR EACH ROW
+BEGIN
+    INSERT INTO AUDITORIA_NOTA (ID_ALUNO, ID_COMPONENTE, VALOR_ANTERIOR, VALOR_NOVO)
+    VALUES (NEW.ID_ALUNO, NEW.ID_COMPONENTE, NULL, NEW.VALOR);
+END$$
+
+-- Trigger para UPDATE (mudança de valor)
+CREATE TRIGGER trg_auditoria_nota_update
+AFTER UPDATE ON NOTA
+FOR EACH ROW
+BEGIN
+    IF OLD.VALOR != NEW.VALOR THEN
+        INSERT INTO AUDITORIA_NOTA (ID_ALUNO, ID_COMPONENTE, VALOR_ANTERIOR, VALOR_NOVO)
+        VALUES (NEW.ID_ALUNO, NEW.ID_COMPONENTE, OLD.VALOR, NEW.VALOR);
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- ============================================================================
+-- MENSAGEM FINAL
+-- ============================================================================
+
+SELECT '========================================' AS '';
+SELECT 'Banco de dados criado com sucesso!' AS '';
+SELECT 'Todas as tabelas e triggers foram criadas.' AS '';
+SELECT 'Sistema NotaDez - PI2' AS '';
+SELECT '========================================' AS '';

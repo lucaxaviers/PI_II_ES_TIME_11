@@ -1,5 +1,17 @@
 import http from 'http';
-import { handleRegister, handleLogin, handleForgotPassword } from './routes';
+import { 
+    handleRegister, 
+    handleLogin, 
+    handleForgotPassword,
+    handleGetInstituicoes,
+    handleCreateInstituicao,
+    handleUpdateInstituicao,
+    handleDeleteInstituicao,
+    handleGetCursos,
+    handleCreateCurso,
+    handleUpdateCurso,
+    handleDeleteCurso
+} from './routes';
 import { testConnection } from './db';
 import dotenv from 'dotenv';
 
@@ -14,7 +26,7 @@ const PORT = process.env.PORT || 3000;
 const server = http.createServer(async (req: http.IncomingMessage, res: http.ServerResponse) => {
     // Configura CORS básico
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     // Trata requisições OPTIONS (preflight)
@@ -24,22 +36,112 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
         return;
     }
 
-    const url = req.url || '';
+    let url = (req.url || '').trim();
     const method = req.method;
 
+    // Remove query string para roteamento (mas mantém para uso nas funções)
+    const urlPath = url.split('?')[0].trim();
+
+    // Log da requisição recebida
+    console.log(`[${new Date().toISOString()}] ${method} ${urlPath}${url !== urlPath ? ` (query: ${url.split('?')[1]})` : ''}`);
+
     // Roteamento manual das rotas
-    if (method === 'POST' && url === '/register') {
+    // Rotas de autenticação
+    if (method === 'POST' && urlPath === '/register') {
+        console.log('  → Rota: POST /register');
         await handleRegister(req, res);
-    } else if (method === 'POST' && url === '/login') {
+    } else if (method === 'POST' && urlPath === '/login') {
+        console.log('  → Rota: POST /login');
         await handleLogin(req, res);
-    } else if (method === 'POST' && url === '/forgot-password') {
+    } else if (method === 'POST' && urlPath === '/forgot-password') {
+        console.log('  → Rota: POST /forgot-password');
         await handleForgotPassword(req, res);
+    } 
+    // Rotas de instituições
+    else if (method === 'GET' && urlPath === '/instituicoes') {
+        console.log('  → Rota: GET /instituicoes');
+        await handleGetInstituicoes(req, res);
+    } else if (method === 'POST' && urlPath === '/instituicoes') {
+        console.log('  → Rota: POST /instituicoes');
+        await handleCreateInstituicao(req, res);
+    } else if (method === 'PUT' && urlPath.startsWith('/instituicoes/')) {
+        const urlParts = urlPath.split('/');
+        const id = parseInt(urlParts[2]);
+        if (isNaN(id)) {
+            console.log(`  → Erro: ID inválido em PUT /instituicoes/${urlParts[2]}`);
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({
+                success: false,
+                message: 'ID inválido'
+            }));
+        } else {
+            console.log(`  → Rota: PUT /instituicoes/${id}`);
+            await handleUpdateInstituicao(req, res, id);
+        }
+    } else if (method === 'DELETE' && urlPath.startsWith('/instituicoes/')) {
+        const urlParts = urlPath.split('/');
+        const id = parseInt(urlParts[2]);
+        if (isNaN(id)) {
+            console.log(`  → Erro: ID inválido em DELETE /instituicoes/${urlParts[2]}`);
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({
+                success: false,
+                message: 'ID inválido'
+            }));
+        } else {
+            console.log(`  → Rota: DELETE /instituicoes/${id}`);
+            await handleDeleteInstituicao(req, res, id);
+        }
+    }
+    // Rotas de cursos - verificar rotas com ID primeiro
+    else if (method === 'PUT' && urlPath.startsWith('/cursos/')) {
+        const urlParts = urlPath.split('/');
+        const id = parseInt(urlParts[2]);
+        if (isNaN(id)) {
+            console.log(`  → Erro: ID inválido em PUT /cursos/${urlParts[2]}`);
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({
+                success: false,
+                message: 'ID inválido'
+            }));
+        } else {
+            console.log(`  → Rota: PUT /cursos/${id}`);
+            await handleUpdateCurso(req, res, id);
+        }
+    } else if (method === 'DELETE' && urlPath.startsWith('/cursos/')) {
+        const urlParts = urlPath.split('/');
+        const id = parseInt(urlParts[2]);
+        if (isNaN(id)) {
+            console.log(`  → Erro: ID inválido em DELETE /cursos/${urlParts[2]}`);
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({
+                success: false,
+                message: 'ID inválido'
+            }));
+        } else {
+            console.log(`  → Rota: DELETE /cursos/${id}`);
+            await handleDeleteCurso(req, res, id);
+        }
+    } else if (method === 'GET' && urlPath === '/cursos') {
+        // GET /cursos?instituicaoId=X
+        console.log('  → Rota: GET /cursos');
+        await handleGetCursos(req, res);
+    } else if (method === 'POST' && urlPath === '/cursos') {
+        console.log('  → Rota: POST /cursos');
+        await handleCreateCurso(req, res);
     } else {
         // Rota não encontrada
+        console.log(`  → [404] Rota não encontrada: ${method} ${urlPath}`);
+        
         res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({
             success: false,
-            message: 'Rota não encontrada'
+            message: 'Rota não encontrada',
+            debug: {
+                method: method,
+                url: url,
+                urlPath: urlPath
+            }
         }));
     }
 });
@@ -53,14 +155,27 @@ async function startServer() {
         await testConnection();
 
         server.listen(PORT, () => {
-            console.log(`🚀 Servidor rodando na porta ${PORT}`);
-            console.log(`📡 Endpoints disponíveis:`);
-            console.log(`   POST http://localhost:${PORT}/register`);
-            console.log(`   POST http://localhost:${PORT}/login`);
-            console.log(`   POST http://localhost:${PORT}/forgot-password`);
+            console.log('\n✅ Conexão com MySQL estabelecida com sucesso!');
+            console.log(`\n🚀 Servidor rodando na porta ${PORT}`);
+            console.log('\n📡 Endpoints disponíveis:');
+            console.log('\n   Autenticação:');
+            console.log('     POST http://localhost:' + PORT + '/register');
+            console.log('     POST http://localhost:' + PORT + '/login');
+            console.log('     POST http://localhost:' + PORT + '/forgot-password');
+            console.log('\n   Instituições:');
+            console.log('     GET    http://localhost:' + PORT + '/instituicoes');
+            console.log('     POST   http://localhost:' + PORT + '/instituicoes');
+            console.log('     PUT    http://localhost:' + PORT + '/instituicoes/:id');
+            console.log('     DELETE http://localhost:' + PORT + '/instituicoes/:id');
+            console.log('\n   Cursos:');
+            console.log('     GET    http://localhost:' + PORT + '/cursos?instituicaoId=X');
+            console.log('     POST   http://localhost:' + PORT + '/cursos');
+            console.log('     PUT    http://localhost:' + PORT + '/cursos/:id');
+            console.log('     DELETE http://localhost:' + PORT + '/cursos/:id');
+            console.log('');
         });
-    } catch (error) {
-        console.error('❌ Erro ao iniciar servidor:', error);
+    } catch (error: any) {
+        console.error('❌ Erro ao iniciar servidor:', error.message);
         process.exit(1);
     }
 }

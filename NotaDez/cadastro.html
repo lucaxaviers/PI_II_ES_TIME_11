@@ -155,7 +155,6 @@
                     submitButton.textContent = 'Cadastrar';
                 }
             } catch (error) {
-                console.error('Erro:', error);
                 showMessage('Erro ao conectar com o servidor. Verifique se o backend está rodando.', 'error');
                 submitButton.disabled = false;
                 submitButton.textContent = 'Cadastrar';

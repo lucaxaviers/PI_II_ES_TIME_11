@@ -116,7 +116,7 @@
                     
                     // Redireciona após 1 segundo 
                     setTimeout(() => {
-                        window.location.href = 'dashboard.html'; // Ajuste para sua página de destino
+                        window.location.href = 'dashboard.html';
                     }, 1000);
                 } else {
                     showMessage(data.message || 'Erro ao fazer login', 'error');
@@ -124,7 +124,6 @@
                     submitButton.textContent = 'Entrar';
                 }
             } catch (error) {
-                console.error('Erro:', error);
                 showMessage('Erro ao conectar com o servidor. Verifique se o backend está rodando.', 'error');
                 submitButton.disabled = false;
                 submitButton.textContent = 'Entrar';
@@ -153,7 +152,6 @@
                 const data = await response.json();
                 showMessage(data.message, data.success ? 'success' : 'error');
             } catch (error) {
-                console.error('Erro:', error);
                 showMessage('Erro ao conectar com o servidor', 'error');
             }
         });
