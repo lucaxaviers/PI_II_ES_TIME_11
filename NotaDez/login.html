@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - NotaDez</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center bg-light">
+        <div class="login-container">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <h1 class="text-primary mb-2">NotaDez</h1>
+                        <p class="text-muted">Faça login para continuar</p>
+                    </div>
+
+                    <form id="loginForm">
+                        <div class="mb-3">
+                            <label for="email" class="form-label">E-mail</label>
+                            <input 
+                                type="email" 
+                                class="form-control form-control-lg" 
+                                id="email" 
+                                name="email"
+                                placeholder="seu@email.com"
+                                required
+                            >
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="senha" class="form-label">Senha</label>
+                            <input 
+                                type="password" 
+                                class="form-control form-control-lg" 
+                                id="senha" 
+                                name="senha"
+                                placeholder="Digite sua senha"
+                                required
+                            >
+                        </div>
+
+                        <div class="mb-3 text-end">
+                            <a href="#" class="text-primary text-decoration-none forgot-link">Esqueci minha senha</a>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100 mb-3 btn-entrar">
+                            Entrar
+                        </button>
+
+                        <div class="text-center">
+                            <p class="mb-0 text-muted">
+                                Não tem uma conta? 
+                                <a href="cadastro.html" class="text-primary text-decoration-none fw-bold">Criar conta</a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // URL do backend
+        const API_URL = 'http://localhost:3000';
+
+        // Função para exibir mensagens de feedback
+        function showMessage(message, type = 'success') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            const form = document.getElementById('loginForm');
+            form.insertBefore(alertDiv, form.firstChild);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Submissão do formulário de login
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const senha = document.getElementById('senha').value;
+            const submitButton = document.querySelector('button[type="submit"]');
+            
+            // Desabilita o botão durante a requisição
+            submitButton.disabled = true;
+            submitButton.textContent = 'Entrando...';
+            
+            try {
+                const response = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, senha })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Salva o token no localStorage
+                    localStorage.setItem('token', data.data.token);
+                    localStorage.setItem('user', JSON.stringify(data.data.user));
+                    
+                    showMessage('Login realizado com sucesso! Redirecionando...', 'success');
+                    
+                    // Redireciona após 1 segundo 
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1000);
+                } else {
+                    showMessage(data.message || 'Erro ao fazer login', 'error');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Entrar';
+                }
+            } catch (error) {
+                showMessage('Erro ao conectar com o servidor. Verifique se o backend está rodando.', 'error');
+                submitButton.disabled = false;
+                submitButton.textContent = 'Entrar';
+            }
+        });
+
+        // Link "Esqueci minha senha"
+        document.querySelector('.forgot-link').addEventListener('click', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            
+            if (!email) {
+                showMessage('Por favor, informe seu e-mail primeiro', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/forgot-password`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email })
+                });
+                
+                const data = await response.json();
+                showMessage(data.message, data.success ? 'success' : 'error');
+            } catch (error) {
+                showMessage('Erro ao conectar com o servidor', 'error');
+            }
+        });
+    </script>
+</body>
+</html>
