@@ -272,7 +272,9 @@
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || 'Erro na requisição');
+                // Prioriza mensagem em português do backend, depois message em inglês
+                const errorMsg = data.mensagem || data.message || 'Erro na requisição';
+                throw new Error(errorMsg);
             }
 
             return data;

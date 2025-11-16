@@ -62,6 +62,101 @@ function isValidEmail(email: string): boolean {
 }
 
 /**
+ * Trata erros de Foreign Key e retorna mensagens claras
+ */
+function handleForeignKeyError(error: any, entityType: string): { erro: boolean; mensagem: string } | null {
+    // Detecta erros de Foreign Key
+    const isForeignKeyError = 
+        error.code === 'ER_ROW_IS_REFERENCED_2' || 
+        error.message?.includes('foreign key constraint fails') ||
+        error.message?.includes('Cannot delete or update a parent row');
+
+    if (!isForeignKeyError) {
+        return null; // Não é erro de Foreign Key
+    }
+
+    const errorMsg = error.message?.toLowerCase() || '';
+    
+    // Identifica qual tabela está impedindo a exclusão
+    const blockingTable = 
+        errorMsg.includes('curso') ? 'curso' :
+        errorMsg.includes('disciplina') ? 'disciplina' :
+        errorMsg.includes('turma') ? 'turma' :
+        errorMsg.includes('aluno') ? 'aluno' :
+        errorMsg.includes('componente') || errorMsg.includes('componente_nota') ? 'componente' :
+        errorMsg.includes('nota') || errorMsg.includes('auditoria') ? 'nota' :
+        errorMsg.includes('instituicao') ? 'instituicao' :
+        null;
+
+    // Retorna mensagens específicas baseadas na entidade que está sendo excluída
+    switch (entityType.toLowerCase()) {
+        case 'instituicao':
+            return {
+                erro: true,
+                mensagem: 'Não é possível excluir a instituição porque existem cursos, disciplinas, turmas, alunos ou notas vinculadas.'
+            };
+        
+        case 'curso':
+            return {
+                erro: true,
+                mensagem: 'Não é possível excluir o curso porque existem disciplinas vinculadas.'
+            };
+        
+        case 'disciplina':
+            if (blockingTable === 'turma') {
+                return {
+                    erro: true,
+                    mensagem: 'Não é possível excluir a disciplina porque existem turmas vinculadas.'
+                };
+            } else if (blockingTable === 'componente') {
+                return {
+                    erro: true,
+                    mensagem: 'Não é possível excluir a disciplina porque existem componentes de nota vinculados.'
+                };
+            }
+            return {
+                erro: true,
+                mensagem: 'Não é possível excluir a disciplina porque existem turmas ou componentes vinculados.'
+            };
+        
+        case 'turma':
+            if (blockingTable === 'aluno') {
+                return {
+                    erro: true,
+                    mensagem: 'Não é possível excluir a turma porque existem alunos vinculados.'
+                };
+            } else if (blockingTable === 'nota') {
+                return {
+                    erro: true,
+                    mensagem: 'Não é possível excluir a turma porque existem notas vinculadas.'
+                };
+            }
+            return {
+                erro: true,
+                mensagem: 'Não é possível excluir a turma porque existem alunos ou notas vinculadas.'
+            };
+        
+        case 'aluno':
+            return {
+                erro: true,
+                mensagem: 'Não é possível excluir o aluno porque há notas registradas para ele.'
+            };
+        
+        case 'componente':
+            return {
+                erro: true,
+                mensagem: 'Não é possível excluir o componente porque existem notas vinculadas a ele.'
+            };
+        
+        default:
+            return {
+                erro: true,
+                mensagem: 'Não é possível excluir este item porque existem registros vinculados.'
+            };
+    }
+}
+
+/**
  * POST /register - Cadastro de novo docente
  */
 export async function handleRegister(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -427,9 +522,16 @@ export async function handleDeleteInstituicao(req: IncomingMessage, res: ServerR
         });
 
     } catch (error: any) {
+        // Trata erros de Foreign Key
+        const fkError = handleForeignKeyError(error, 'instituicao');
+        if (fkError) {
+            return sendJSON(res, 400, fkError);
+        }
+        
+        console.error('Erro ao excluir instituição:', error);
         sendJSON(res, 500, {
-            success: false,
-            message: 'Erro interno do servidor'
+            erro: true,
+            mensagem: 'Erro interno do servidor'
         });
     }
 }
@@ -681,9 +783,16 @@ export async function handleDeleteCurso(req: IncomingMessage, res: ServerRespons
         });
 
     } catch (error: any) {
+        // Trata erros de Foreign Key
+        const fkError = handleForeignKeyError(error, 'curso');
+        if (fkError) {
+            return sendJSON(res, 400, fkError);
+        }
+        
+        console.error('Erro ao excluir curso:', error);
         sendJSON(res, 500, {
-            success: false,
-            message: 'Erro interno do servidor'
+            erro: true,
+            mensagem: 'Erro interno do servidor'
         });
     }
 }
@@ -942,9 +1051,16 @@ export async function handleDeleteDisciplina(req: IncomingMessage, res: ServerRe
         });
 
     } catch (error: any) {
+        // Trata erros de Foreign Key
+        const fkError = handleForeignKeyError(error, 'disciplina');
+        if (fkError) {
+            return sendJSON(res, 400, fkError);
+        }
+        
+        console.error('Erro ao excluir disciplina:', error);
         sendJSON(res, 500, {
-            success: false,
-            message: 'Erro interno do servidor'
+            erro: true,
+            mensagem: 'Erro interno do servidor'
         });
     }
 }
@@ -1015,7 +1131,7 @@ export async function handleGetTurmas(req: IncomingMessage, res: ServerResponse)
             data: turmas.map(turma => ({
                 id: turma.ID_TURMA,
                 nome: turma.NOME_TURMA,
-                qtdAlunos: parseInt(turma.QTD_ALUNOS) || 0,
+                qtdAlunos: Number(turma.QTD_ALUNOS) || 0,
                 disciplinaNome: turma.NOME_DISCIPLINA
             }))
         });
@@ -1234,9 +1350,16 @@ export async function handleDeleteTurma(req: IncomingMessage, res: ServerRespons
         });
 
     } catch (error: any) {
+        // Trata erros de Foreign Key
+        const fkError = handleForeignKeyError(error, 'turma');
+        if (fkError) {
+            return sendJSON(res, 400, fkError);
+        }
+        
+        console.error('Erro ao excluir turma:', error);
         sendJSON(res, 500, {
-            success: false,
-            message: 'Erro interno do servidor'
+            erro: true,
+            mensagem: 'Erro interno do servidor'
         });
     }
 }
@@ -1523,9 +1646,16 @@ export async function handleDeleteAluno(req: IncomingMessage, res: ServerRespons
         });
 
     } catch (error: any) {
+        // Trata erros de Foreign Key
+        const fkError = handleForeignKeyError(error, 'aluno');
+        if (fkError) {
+            return sendJSON(res, 400, fkError);
+        }
+        
+        console.error('Erro ao excluir aluno:', error);
         sendJSON(res, 500, {
-            success: false,
-            message: 'Erro interno do servidor'
+            erro: true,
+            mensagem: 'Erro interno do servidor'
         });
     }
 }
@@ -1841,10 +1971,16 @@ export async function handleDeleteComponente(req: IncomingMessage, res: ServerRe
         });
 
     } catch (error: any) {
+        // Trata erros de Foreign Key
+        const fkError = handleForeignKeyError(error, 'componente');
+        if (fkError) {
+            return sendJSON(res, 400, fkError);
+        }
+        
         console.error('Erro ao excluir componente:', error);
         sendJSON(res, 500, {
-            success: false,
-            message: 'Erro interno do servidor'
+            erro: true,
+            mensagem: 'Erro interno do servidor'
         });
     }
 }
