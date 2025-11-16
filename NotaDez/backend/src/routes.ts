@@ -3,15 +3,11 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { query } from './db';
 
-// Carrega variáveis de ambiente
 const JWT_SECRET = process.env.JWT_SECRET || 'secret_default_change_in_production';
 
-/**
- * Middleware de autenticação JWT
- */
 export async function authenticateToken(req: IncomingMessage): Promise<any> {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    const token = authHeader && authHeader.split(' ')[1]; 
 
     if (!token) {
         return null;
@@ -25,9 +21,6 @@ export async function authenticateToken(req: IncomingMessage): Promise<any> {
     }
 }
 
-/**
- * Lê o corpo da requisição e retorna como JSON
- */
 async function readBody(req: IncomingMessage): Promise<any> {
     return new Promise((resolve, reject) => {
         let body = '';
@@ -45,39 +38,29 @@ async function readBody(req: IncomingMessage): Promise<any> {
     });
 }
 
-/**
- * Envia resposta JSON
- */
 function sendJSON(res: ServerResponse, statusCode: number, data: any): void {
     res.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify(data));
 }
 
-/**
- * Valida se um email é válido
- */
 function isValidEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
 }
 
-/**
- * Trata erros de Foreign Key e retorna mensagens claras
- */
 function handleForeignKeyError(error: any, entityType: string): { erro: boolean; mensagem: string } | null {
-    // Detecta erros de Foreign Key
+    
     const isForeignKeyError = 
         error.code === 'ER_ROW_IS_REFERENCED_2' || 
         error.message?.includes('foreign key constraint fails') ||
         error.message?.includes('Cannot delete or update a parent row');
 
     if (!isForeignKeyError) {
-        return null; // Não é erro de Foreign Key
+        return null; 
     }
 
     const errorMsg = error.message?.toLowerCase() || '';
-    
-    // Identifica qual tabela está impedindo a exclusão
+
     const blockingTable = 
         errorMsg.includes('curso') ? 'curso' :
         errorMsg.includes('disciplina') ? 'disciplina' :
@@ -88,7 +71,6 @@ function handleForeignKeyError(error: any, entityType: string): { erro: boolean;
         errorMsg.includes('instituicao') ? 'instituicao' :
         null;
 
-    // Retorna mensagens específicas baseadas na entidade que está sendo excluída
     switch (entityType.toLowerCase()) {
         case 'instituicao':
             return {
@@ -156,15 +138,11 @@ function handleForeignKeyError(error: any, entityType: string): { erro: boolean;
     }
 }
 
-/**
- * POST /register - Cadastro de novo docente
- */
 export async function handleRegister(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
         const body = await readBody(req);
         const { nome, email, telefone, senha } = body;
 
-        // Validação de campos obrigatórios
         if (!nome || !email || !senha) {
             return sendJSON(res, 400, {
                 success: false,
@@ -172,7 +150,6 @@ export async function handleRegister(req: IncomingMessage, res: ServerResponse):
             });
         }
 
-        // Validação de email
         if (!isValidEmail(email)) {
             return sendJSON(res, 400, {
                 success: false,
@@ -180,7 +157,6 @@ export async function handleRegister(req: IncomingMessage, res: ServerResponse):
             });
         }
 
-        // Validação de senha (mínimo 6 caracteres)
         if (senha.length < 6) {
             return sendJSON(res, 400, {
                 success: false,
@@ -188,7 +164,6 @@ export async function handleRegister(req: IncomingMessage, res: ServerResponse):
             });
         }
 
-        // Verifica se o email já existe
         const existingUser = await query(
             'SELECT ID_DOCENTE FROM DOCENTE WHERE EMAIL = ?',
             [email]
@@ -201,11 +176,9 @@ export async function handleRegister(req: IncomingMessage, res: ServerResponse):
             });
         }
 
-        // Criptografa a senha
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(senha, saltRounds);
 
-        // Insere o docente no banco
         const result = await query(
             'INSERT INTO DOCENTE (NOME, EMAIL, TELEFONE, SENHA) VALUES (?, ?, ?, ?)',
             [nome, email, telefone || null, hashedPassword]
@@ -229,15 +202,11 @@ export async function handleRegister(req: IncomingMessage, res: ServerResponse):
     }
 }
 
-/**
- * POST /login - Autenticação de docente
- */
 export async function handleLogin(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
         const body = await readBody(req);
         const { email, senha } = body;
 
-        // Validação de campos obrigatórios
         if (!email || !senha) {
             return sendJSON(res, 400, {
                 success: false,
@@ -245,7 +214,6 @@ export async function handleLogin(req: IncomingMessage, res: ServerResponse): Pr
             });
         }
 
-        // Busca o docente no banco
         const users = await query(
             'SELECT ID_DOCENTE, NOME, EMAIL, SENHA FROM DOCENTE WHERE EMAIL = ?',
             [email]
@@ -260,7 +228,6 @@ export async function handleLogin(req: IncomingMessage, res: ServerResponse): Pr
 
         const user = users[0];
 
-        // Compara a senha
         const passwordMatch = await bcrypt.compare(senha, user.SENHA);
 
         if (!passwordMatch) {
@@ -270,7 +237,6 @@ export async function handleLogin(req: IncomingMessage, res: ServerResponse): Pr
             });
         }
 
-        // Gera o token JWT
         const token = jwt.sign(
             {
                 id: user.ID_DOCENTE,
@@ -302,15 +268,11 @@ export async function handleLogin(req: IncomingMessage, res: ServerResponse): Pr
     }
 }
 
-/**
- * POST /forgot-password - Solicitação de recuperação de senha
- */
 export async function handleForgotPassword(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
         const body = await readBody(req);
         const { email } = body;
 
-        // Validação de email
         if (!email) {
             return sendJSON(res, 400, {
                 success: false,
@@ -318,7 +280,6 @@ export async function handleForgotPassword(req: IncomingMessage, res: ServerResp
             });
         }
 
-        // Sempre retorna a mesma mensagem 
         sendJSON(res, 200, {
             success: true,
             message: 'Se este e-mail existir, enviamos um link para redefinição.'
@@ -332,12 +293,9 @@ export async function handleForgotPassword(req: IncomingMessage, res: ServerResp
     }
 }
 
-/**
- * GET /instituicoes - Lista todas as instituições do docente autenticado
- */
 export async function handleGetInstituicoes(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -346,7 +304,6 @@ export async function handleGetInstituicoes(req: IncomingMessage, res: ServerRes
             });
         }
 
-        // Busca instituições do docente
         const instituicoes = await query(
             'SELECT ID_INSTITUICAO, NOME_INSTITUICAO, CIDADE, UF FROM INSTITUICAO WHERE ID_DOCENTE = ? ORDER BY NOME_INSTITUICAO',
             [user.id]
@@ -370,12 +327,9 @@ export async function handleGetInstituicoes(req: IncomingMessage, res: ServerRes
     }
 }
 
-/**
- * POST /instituicoes - Cria uma nova instituição
- */
 export async function handleCreateInstituicao(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -387,7 +341,6 @@ export async function handleCreateInstituicao(req: IncomingMessage, res: ServerR
         const body = await readBody(req);
         const { nome, cidade, uf } = body;
 
-        // Validação de campos obrigatórios
         if (!nome) {
             return sendJSON(res, 400, {
                 success: false,
@@ -395,7 +348,6 @@ export async function handleCreateInstituicao(req: IncomingMessage, res: ServerR
             });
         }
 
-        // Insere a instituição no banco
         const result = await query(
             'INSERT INTO INSTITUICAO (NOME_INSTITUICAO, CIDADE, UF, ID_DOCENTE) VALUES (?, ?, ?, ?)',
             [nome, cidade || null, uf || null, user.id]
@@ -420,12 +372,9 @@ export async function handleCreateInstituicao(req: IncomingMessage, res: ServerR
     }
 }
 
-/**
- * PUT /instituicoes/:id - Atualiza uma instituição
- */
 export async function handleUpdateInstituicao(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -437,7 +386,6 @@ export async function handleUpdateInstituicao(req: IncomingMessage, res: ServerR
         const body = await readBody(req);
         const { nome, cidade, uf } = body;
 
-        // Validação de campos obrigatórios
         if (!nome) {
             return sendJSON(res, 400, {
                 success: false,
@@ -445,7 +393,6 @@ export async function handleUpdateInstituicao(req: IncomingMessage, res: ServerR
             });
         }
 
-        // Verifica se a instituição pertence ao docente
         const instituicoes = await query(
             'SELECT ID_INSTITUICAO FROM INSTITUICAO WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
             [id, user.id]
@@ -458,7 +405,6 @@ export async function handleUpdateInstituicao(req: IncomingMessage, res: ServerR
             });
         }
 
-        // Atualiza a instituição
         await query(
             'UPDATE INSTITUICAO SET NOME_INSTITUICAO = ?, CIDADE = ?, UF = ? WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
             [nome, cidade || null, uf || null, id, user.id]
@@ -483,12 +429,9 @@ export async function handleUpdateInstituicao(req: IncomingMessage, res: ServerR
     }
 }
 
-/**
- * DELETE /instituicoes/:id - Exclui uma instituição
- */
 export async function handleDeleteInstituicao(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -497,7 +440,6 @@ export async function handleDeleteInstituicao(req: IncomingMessage, res: ServerR
             });
         }
 
-        // Verifica se a instituição pertence ao docente
         const instituicoes = await query(
             'SELECT ID_INSTITUICAO FROM INSTITUICAO WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
             [id, user.id]
@@ -510,7 +452,6 @@ export async function handleDeleteInstituicao(req: IncomingMessage, res: ServerR
             });
         }
 
-        // Exclui a instituição (o ON DELETE CASCADE vai cuidar dos relacionamentos)
         await query(
             'DELETE FROM INSTITUICAO WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
             [id, user.id]
@@ -522,7 +463,7 @@ export async function handleDeleteInstituicao(req: IncomingMessage, res: ServerR
         });
 
     } catch (error: any) {
-        // Trata erros de Foreign Key
+        
         const fkError = handleForeignKeyError(error, 'instituicao');
         if (fkError) {
             return sendJSON(res, 400, fkError);
@@ -536,12 +477,9 @@ export async function handleDeleteInstituicao(req: IncomingMessage, res: ServerR
     }
 }
 
-/**
- * GET /cursos?instituicaoId=X - Lista cursos de uma instituição
- */
 export async function handleGetCursos(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -550,7 +488,6 @@ export async function handleGetCursos(req: IncomingMessage, res: ServerResponse)
             });
         }
 
-        // Obtém o ID da instituição da query string
         const url = req.url || '';
         const urlParts = url.split('?');
         const queryString = urlParts.length > 1 ? urlParts[1] : '';
@@ -564,7 +501,6 @@ export async function handleGetCursos(req: IncomingMessage, res: ServerResponse)
             });
         }
 
-        // Verifica se a instituição pertence ao docente
         const instituicoes = await query(
             'SELECT ID_INSTITUICAO FROM INSTITUICAO WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
             [parseInt(instituicaoId), user.id]
@@ -577,7 +513,6 @@ export async function handleGetCursos(req: IncomingMessage, res: ServerResponse)
             });
         }
 
-        // Busca cursos da instituição
         const cursos = await query(
             `SELECT C.ID_CURSO, C.NOME_CURSO, C.MODALIDADE, C.AREA, C.PERIODO_TOTAL, I.NOME_INSTITUICAO
              FROM CURSO C
@@ -608,12 +543,9 @@ export async function handleGetCursos(req: IncomingMessage, res: ServerResponse)
     }
 }
 
-/**
- * POST /cursos - Cria um novo curso
- */
 export async function handleCreateCurso(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -625,7 +557,6 @@ export async function handleCreateCurso(req: IncomingMessage, res: ServerRespons
         const body = await readBody(req);
         const { nome, area, modalidade, periodoTotal, instituicaoId } = body;
 
-        // Validação de campos obrigatórios
         if (!nome || !instituicaoId) {
             return sendJSON(res, 400, {
                 success: false,
@@ -633,7 +564,6 @@ export async function handleCreateCurso(req: IncomingMessage, res: ServerRespons
             });
         }
 
-        // Verifica se a instituição pertence ao docente
         const instituicoes = await query(
             'SELECT ID_INSTITUICAO, NOME_INSTITUICAO FROM INSTITUICAO WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
             [parseInt(instituicaoId), user.id]
@@ -646,7 +576,6 @@ export async function handleCreateCurso(req: IncomingMessage, res: ServerRespons
             });
         }
 
-        // Insere o curso no banco
         const result = await query(
             'INSERT INTO CURSO (NOME_CURSO, MODALIDADE, AREA, PERIODO_TOTAL, ID_INSTITUICAO) VALUES (?, ?, ?, ?, ?)',
             [nome, modalidade || null, area || null, periodoTotal ? parseInt(periodoTotal) : null, parseInt(instituicaoId)]
@@ -674,12 +603,9 @@ export async function handleCreateCurso(req: IncomingMessage, res: ServerRespons
     }
 }
 
-/**
- * PUT /cursos/:id - Atualiza um curso
- */
 export async function handleUpdateCurso(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -691,7 +617,6 @@ export async function handleUpdateCurso(req: IncomingMessage, res: ServerRespons
         const body = await readBody(req);
         const { nome, area, modalidade, periodoTotal } = body;
 
-        // Validação de campos obrigatórios
         if (!nome) {
             return sendJSON(res, 400, {
                 success: false,
@@ -699,7 +624,6 @@ export async function handleUpdateCurso(req: IncomingMessage, res: ServerRespons
             });
         }
 
-        // Verifica se o curso existe e pertence a uma instituição do docente
         const cursos = await query(
             `SELECT C.ID_CURSO, C.ID_INSTITUICAO 
              FROM CURSO C
@@ -715,7 +639,6 @@ export async function handleUpdateCurso(req: IncomingMessage, res: ServerRespons
             });
         }
 
-        // Atualiza o curso
         await query(
             'UPDATE CURSO SET NOME_CURSO = ?, MODALIDADE = ?, AREA = ?, PERIODO_TOTAL = ? WHERE ID_CURSO = ?',
             [nome, modalidade || null, area || null, periodoTotal ? parseInt(periodoTotal) : null, id]
@@ -741,12 +664,9 @@ export async function handleUpdateCurso(req: IncomingMessage, res: ServerRespons
     }
 }
 
-/**
- * DELETE /cursos/:id - Exclui um curso
- */
 export async function handleDeleteCurso(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -755,7 +675,6 @@ export async function handleDeleteCurso(req: IncomingMessage, res: ServerRespons
             });
         }
 
-        // Verifica se o curso existe e pertence a uma instituição do docente
         const cursos = await query(
             `SELECT C.ID_CURSO 
              FROM CURSO C
@@ -771,7 +690,6 @@ export async function handleDeleteCurso(req: IncomingMessage, res: ServerRespons
             });
         }
 
-        // Exclui o curso (o ON DELETE CASCADE vai cuidar dos relacionamentos)
         await query(
             'DELETE FROM CURSO WHERE ID_CURSO = ?',
             [id]
@@ -783,7 +701,7 @@ export async function handleDeleteCurso(req: IncomingMessage, res: ServerRespons
         });
 
     } catch (error: any) {
-        // Trata erros de Foreign Key
+        
         const fkError = handleForeignKeyError(error, 'curso');
         if (fkError) {
             return sendJSON(res, 400, fkError);
@@ -797,12 +715,9 @@ export async function handleDeleteCurso(req: IncomingMessage, res: ServerRespons
     }
 }
 
-/**
- * GET /disciplinas?cursoId=X - Lista disciplinas de um curso
- */
 export async function handleGetDisciplinas(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -811,7 +726,6 @@ export async function handleGetDisciplinas(req: IncomingMessage, res: ServerResp
             });
         }
 
-        // Obtém o ID do curso da query string
         const url = req.url || '';
         const urlParts = url.split('?');
         const queryString = urlParts.length > 1 ? urlParts[1] : '';
@@ -825,7 +739,6 @@ export async function handleGetDisciplinas(req: IncomingMessage, res: ServerResp
             });
         }
 
-        // Verifica se o curso pertence a uma instituição do docente
         const cursos = await query(
             `SELECT C.ID_CURSO, C.NOME_CURSO
              FROM CURSO C
@@ -841,7 +754,6 @@ export async function handleGetDisciplinas(req: IncomingMessage, res: ServerResp
             });
         }
 
-        // Busca disciplinas do curso
         const disciplinas = await query(
             `SELECT D.ID_DISCIPLINA, D.NOME_DISCIPLINA, D.SIGLA, D.CODIGO, D.PERIODO, C.NOME_CURSO
              FROM DISCIPLINA D
@@ -871,12 +783,9 @@ export async function handleGetDisciplinas(req: IncomingMessage, res: ServerResp
     }
 }
 
-/**
- * POST /disciplinas - Cria uma nova disciplina
- */
 export async function handleCreateDisciplina(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -888,7 +797,6 @@ export async function handleCreateDisciplina(req: IncomingMessage, res: ServerRe
         const body = await readBody(req);
         const { nome, sigla, codigo, periodo, cursoId } = body;
 
-        // Validação de campos obrigatórios
         if (!nome || !sigla || !cursoId) {
             return sendJSON(res, 400, {
                 success: false,
@@ -896,7 +804,6 @@ export async function handleCreateDisciplina(req: IncomingMessage, res: ServerRe
             });
         }
 
-        // Verifica se o curso pertence a uma instituição do docente
         const cursos = await query(
             `SELECT C.ID_CURSO, C.NOME_CURSO
              FROM CURSO C
@@ -912,7 +819,6 @@ export async function handleCreateDisciplina(req: IncomingMessage, res: ServerRe
             });
         }
 
-        // Insere a disciplina no banco
         const result = await query(
             'INSERT INTO DISCIPLINA (NOME_DISCIPLINA, SIGLA, CODIGO, PERIODO, ID_CURSO) VALUES (?, ?, ?, ?, ?)',
             [nome, sigla, codigo || null, periodo || null, parseInt(cursoId)]
@@ -940,12 +846,9 @@ export async function handleCreateDisciplina(req: IncomingMessage, res: ServerRe
     }
 }
 
-/**
- * PUT /disciplinas/:id - Atualiza uma disciplina
- */
 export async function handleUpdateDisciplina(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -957,7 +860,6 @@ export async function handleUpdateDisciplina(req: IncomingMessage, res: ServerRe
         const body = await readBody(req);
         const { nome, sigla, codigo, periodo } = body;
 
-        // Validação de campos obrigatórios
         if (!nome || !sigla) {
             return sendJSON(res, 400, {
                 success: false,
@@ -965,7 +867,6 @@ export async function handleUpdateDisciplina(req: IncomingMessage, res: ServerRe
             });
         }
 
-        // Verifica se a disciplina existe e pertence a um curso do docente
         const disciplinas = await query(
             `SELECT D.ID_DISCIPLINA, D.ID_CURSO
              FROM DISCIPLINA D
@@ -982,7 +883,6 @@ export async function handleUpdateDisciplina(req: IncomingMessage, res: ServerRe
             });
         }
 
-        // Atualiza a disciplina
         await query(
             'UPDATE DISCIPLINA SET NOME_DISCIPLINA = ?, SIGLA = ?, CODIGO = ?, PERIODO = ? WHERE ID_DISCIPLINA = ?',
             [nome, sigla, codigo || null, periodo || null, id]
@@ -1008,12 +908,9 @@ export async function handleUpdateDisciplina(req: IncomingMessage, res: ServerRe
     }
 }
 
-/**
- * DELETE /disciplinas/:id - Exclui uma disciplina
- */
 export async function handleDeleteDisciplina(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -1022,7 +919,6 @@ export async function handleDeleteDisciplina(req: IncomingMessage, res: ServerRe
             });
         }
 
-        // Verifica se a disciplina existe e pertence a um curso do docente
         const disciplinas = await query(
             `SELECT D.ID_DISCIPLINA
              FROM DISCIPLINA D
@@ -1039,7 +935,6 @@ export async function handleDeleteDisciplina(req: IncomingMessage, res: ServerRe
             });
         }
 
-        // Exclui a disciplina (o ON DELETE CASCADE vai cuidar dos relacionamentos)
         await query(
             'DELETE FROM DISCIPLINA WHERE ID_DISCIPLINA = ?',
             [id]
@@ -1051,7 +946,7 @@ export async function handleDeleteDisciplina(req: IncomingMessage, res: ServerRe
         });
 
     } catch (error: any) {
-        // Trata erros de Foreign Key
+        
         const fkError = handleForeignKeyError(error, 'disciplina');
         if (fkError) {
             return sendJSON(res, 400, fkError);
@@ -1065,12 +960,9 @@ export async function handleDeleteDisciplina(req: IncomingMessage, res: ServerRe
     }
 }
 
-/**
- * GET /turmas?disciplinaId=X - Lista turmas de uma disciplina
- */
 export async function handleGetTurmas(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -1079,7 +971,6 @@ export async function handleGetTurmas(req: IncomingMessage, res: ServerResponse)
             });
         }
 
-        // Obtém o ID da disciplina da query string
         const url = req.url || '';
         const urlParts = url.split('?');
         const queryString = urlParts.length > 1 ? urlParts[1] : '';
@@ -1093,7 +984,6 @@ export async function handleGetTurmas(req: IncomingMessage, res: ServerResponse)
             });
         }
 
-        // Verifica se a disciplina pertence a um curso do docente
         const disciplinas = await query(
             `SELECT D.ID_DISCIPLINA, D.NOME_DISCIPLINA
              FROM DISCIPLINA D
@@ -1110,7 +1000,6 @@ export async function handleGetTurmas(req: IncomingMessage, res: ServerResponse)
             });
         }
 
-        // Busca turmas da disciplina com contagem real de alunos
         const turmas = await query(
             `SELECT 
                 T.ID_TURMA, 
@@ -1144,12 +1033,9 @@ export async function handleGetTurmas(req: IncomingMessage, res: ServerResponse)
     }
 }
 
-/**
- * POST /turmas - Cria uma nova turma
- */
 export async function handleCreateTurma(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -1161,7 +1047,6 @@ export async function handleCreateTurma(req: IncomingMessage, res: ServerRespons
         const body = await readBody(req);
         const { nome, sigla, codigo, disciplinaId } = body;
 
-        // Validação de campos obrigatórios
         if (!nome || !disciplinaId) {
             return sendJSON(res, 400, {
                 success: false,
@@ -1169,7 +1054,6 @@ export async function handleCreateTurma(req: IncomingMessage, res: ServerRespons
             });
         }
 
-        // Verifica se a disciplina pertence a um curso do docente
         const disciplinas = await query(
             `SELECT D.ID_DISCIPLINA, D.NOME_DISCIPLINA
              FROM DISCIPLINA D
@@ -1186,7 +1070,6 @@ export async function handleCreateTurma(req: IncomingMessage, res: ServerRespons
             });
         }
 
-        // Monta o nome completo da turma (incluindo sigla e código se fornecidos)
         let nomeCompleto = nome;
         if (sigla) {
             nomeCompleto = `${nome} (${sigla})`;
@@ -1198,7 +1081,6 @@ export async function handleCreateTurma(req: IncomingMessage, res: ServerRespons
             nomeCompleto = `${nome} (${sigla}) [${codigo}]`;
         }
 
-        // Insere a turma no banco
         const result = await query(
             'INSERT INTO TURMA (NOME_TURMA, QTD_ALUNOS, ID_DISCIPLINA) VALUES (?, ?, ?)',
             [nomeCompleto, 0, parseInt(disciplinaId)]
@@ -1226,12 +1108,9 @@ export async function handleCreateTurma(req: IncomingMessage, res: ServerRespons
     }
 }
 
-/**
- * PUT /turmas/:id - Atualiza uma turma
- */
 export async function handleUpdateTurma(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -1243,7 +1122,6 @@ export async function handleUpdateTurma(req: IncomingMessage, res: ServerRespons
         const body = await readBody(req);
         const { nome, sigla, codigo } = body;
 
-        // Validação de campos obrigatórios
         if (!nome) {
             return sendJSON(res, 400, {
                 success: false,
@@ -1251,7 +1129,6 @@ export async function handleUpdateTurma(req: IncomingMessage, res: ServerRespons
             });
         }
 
-        // Verifica se a turma existe e pertence a uma disciplina do docente
         const turmas = await query(
             `SELECT T.ID_TURMA, T.ID_DISCIPLINA
              FROM TURMA T
@@ -1269,7 +1146,6 @@ export async function handleUpdateTurma(req: IncomingMessage, res: ServerRespons
             });
         }
 
-        // Monta o nome completo da turma (incluindo sigla e código se fornecidos)
         let nomeCompleto = nome;
         if (sigla) {
             nomeCompleto = `${nome} (${sigla})`;
@@ -1281,7 +1157,6 @@ export async function handleUpdateTurma(req: IncomingMessage, res: ServerRespons
             nomeCompleto = `${nome} (${sigla}) [${codigo}]`;
         }
 
-        // Atualiza a turma
         await query(
             'UPDATE TURMA SET NOME_TURMA = ? WHERE ID_TURMA = ?',
             [nomeCompleto, id]
@@ -1306,12 +1181,9 @@ export async function handleUpdateTurma(req: IncomingMessage, res: ServerRespons
     }
 }
 
-/**
- * DELETE /turmas/:id - Exclui uma turma
- */
 export async function handleDeleteTurma(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -1320,7 +1192,6 @@ export async function handleDeleteTurma(req: IncomingMessage, res: ServerRespons
             });
         }
 
-        // Verifica se a turma existe e pertence a uma disciplina do docente
         const turmas = await query(
             `SELECT T.ID_TURMA
              FROM TURMA T
@@ -1338,7 +1209,6 @@ export async function handleDeleteTurma(req: IncomingMessage, res: ServerRespons
             });
         }
 
-        // Exclui a turma (o ON DELETE CASCADE vai cuidar dos relacionamentos)
         await query(
             'DELETE FROM TURMA WHERE ID_TURMA = ?',
             [id]
@@ -1350,7 +1220,7 @@ export async function handleDeleteTurma(req: IncomingMessage, res: ServerRespons
         });
 
     } catch (error: any) {
-        // Trata erros de Foreign Key
+        
         const fkError = handleForeignKeyError(error, 'turma');
         if (fkError) {
             return sendJSON(res, 400, fkError);
@@ -1364,12 +1234,9 @@ export async function handleDeleteTurma(req: IncomingMessage, res: ServerRespons
     }
 }
 
-/**
- * GET /alunos - Lista alunos de uma turma
- */
 export async function handleGetAlunos(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -1378,7 +1245,6 @@ export async function handleGetAlunos(req: IncomingMessage, res: ServerResponse)
             });
         }
 
-        // Obtém o ID da turma da query string
         const url = req.url || '';
         const urlParts = url.split('?');
         const queryString = urlParts.length > 1 ? urlParts[1] : '';
@@ -1392,7 +1258,6 @@ export async function handleGetAlunos(req: IncomingMessage, res: ServerResponse)
             });
         }
 
-        // Verifica se a turma pertence a uma disciplina do docente
         const turmas = await query(
             `SELECT T.ID_TURMA, T.NOME_TURMA
              FROM TURMA T
@@ -1410,7 +1275,6 @@ export async function handleGetAlunos(req: IncomingMessage, res: ServerResponse)
             });
         }
 
-        // Busca alunos da turma
         const alunos = await query(
             `SELECT A.ID_ALUNO, A.RA, A.NOME
              FROM ALUNO A
@@ -1437,12 +1301,9 @@ export async function handleGetAlunos(req: IncomingMessage, res: ServerResponse)
     }
 }
 
-/**
- * POST /alunos - Cria um novo aluno
- */
 export async function handleCreateAluno(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -1454,7 +1315,6 @@ export async function handleCreateAluno(req: IncomingMessage, res: ServerRespons
         const body = await readBody(req);
         const { matricula, ra, nome, turmaId } = body;
 
-        // Validação de campos obrigatórios
         const raValue = ra || matricula;
         if (!raValue || !raValue.trim()) {
             return sendJSON(res, 400, {
@@ -1477,7 +1337,6 @@ export async function handleCreateAluno(req: IncomingMessage, res: ServerRespons
             });
         }
 
-        // Verifica se a turma pertence a uma disciplina do docente
         const turmas = await query(
             `SELECT T.ID_TURMA
              FROM TURMA T
@@ -1495,7 +1354,6 @@ export async function handleCreateAluno(req: IncomingMessage, res: ServerRespons
             });
         }
 
-        // Verifica se já existe aluno com o mesmo RA na turma
         const alunosExistentes = await query(
             'SELECT ID_ALUNO FROM ALUNO WHERE RA = ? AND ID_TURMA = ?',
             [raValue.trim(), parseInt(turmaId)]
@@ -1508,7 +1366,6 @@ export async function handleCreateAluno(req: IncomingMessage, res: ServerRespons
             });
         }
 
-        // Insere o aluno
         const result = await query(
             'INSERT INTO ALUNO (RA, NOME, ID_TURMA) VALUES (?, ?, ?)',
             [raValue.trim(), nome.trim(), parseInt(turmaId)]
@@ -1533,12 +1390,9 @@ export async function handleCreateAluno(req: IncomingMessage, res: ServerRespons
     }
 }
 
-/**
- * PUT /alunos/:id - Atualiza um aluno
- */
 export async function handleUpdateAluno(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -1550,7 +1404,6 @@ export async function handleUpdateAluno(req: IncomingMessage, res: ServerRespons
         const body = await readBody(req);
         const { nome } = body;
 
-        // Validação de campos obrigatórios
         if (!nome || !nome.trim()) {
             return sendJSON(res, 400, {
                 success: false,
@@ -1558,7 +1411,6 @@ export async function handleUpdateAluno(req: IncomingMessage, res: ServerRespons
             });
         }
 
-        // Verifica se o aluno existe e pertence a uma turma do docente
         const alunos = await query(
             `SELECT A.ID_ALUNO, A.RA, A.NOME, A.ID_TURMA
              FROM ALUNO A
@@ -1577,7 +1429,6 @@ export async function handleUpdateAluno(req: IncomingMessage, res: ServerRespons
             });
         }
 
-        // Atualiza o aluno (apenas o nome, RA não pode ser alterado)
         await query(
             'UPDATE ALUNO SET NOME = ? WHERE ID_ALUNO = ?',
             [nome.trim(), id]
@@ -1601,12 +1452,9 @@ export async function handleUpdateAluno(req: IncomingMessage, res: ServerRespons
     }
 }
 
-/**
- * DELETE /alunos/:id - Exclui um aluno
- */
 export async function handleDeleteAluno(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -1615,7 +1463,6 @@ export async function handleDeleteAluno(req: IncomingMessage, res: ServerRespons
             });
         }
 
-        // Verifica se o aluno existe e pertence a uma turma do docente
         const alunos = await query(
             `SELECT A.ID_ALUNO
              FROM ALUNO A
@@ -1634,7 +1481,6 @@ export async function handleDeleteAluno(req: IncomingMessage, res: ServerRespons
             });
         }
 
-        // Exclui o aluno
         await query(
             'DELETE FROM ALUNO WHERE ID_ALUNO = ?',
             [id]
@@ -1646,7 +1492,7 @@ export async function handleDeleteAluno(req: IncomingMessage, res: ServerRespons
         });
 
     } catch (error: any) {
-        // Trata erros de Foreign Key
+        
         const fkError = handleForeignKeyError(error, 'aluno');
         if (fkError) {
             return sendJSON(res, 400, fkError);
@@ -1660,16 +1506,9 @@ export async function handleDeleteAluno(req: IncomingMessage, res: ServerRespons
     }
 }
 
-// ============================================================================
-// ROTAS DE COMPONENTES DE NOTA
-// ============================================================================
-
-/**
- * GET /componentes?disciplinaId=X - Lista componentes de nota de uma disciplina
- */
 export async function handleGetComponentes(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -1678,8 +1517,7 @@ export async function handleGetComponentes(req: IncomingMessage, res: ServerResp
             });
         }
 
-        // Extrai disciplinaId da query string
-        const url = new URL(req.url || '', `http://${req.headers.host}`);
+        const url = new URL(req.url || '', `http://localhost:3000`);
         const disciplinaId = url.searchParams.get('disciplinaId');
 
         if (!disciplinaId) {
@@ -1689,7 +1527,6 @@ export async function handleGetComponentes(req: IncomingMessage, res: ServerResp
             });
         }
 
-        // Verifica se a disciplina pertence ao docente
         const disciplinas = await query(
             `SELECT D.ID_DISCIPLINA
              FROM DISCIPLINA D
@@ -1706,7 +1543,6 @@ export async function handleGetComponentes(req: IncomingMessage, res: ServerResp
             });
         }
 
-        // Busca componentes da disciplina
         const componentes = await query(
             `SELECT 
                 ID_COMPONENTE as id,
@@ -1734,12 +1570,9 @@ export async function handleGetComponentes(req: IncomingMessage, res: ServerResp
     }
 }
 
-/**
- * POST /componentes - Cria um novo componente de nota
- */
 export async function handleCreateComponente(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -1751,7 +1584,6 @@ export async function handleCreateComponente(req: IncomingMessage, res: ServerRe
         const body = await readBody(req);
         const { nome, sigla, descricao, peso, disciplinaId } = body;
 
-        // Validação de campos obrigatórios
         if (!nome || !nome.trim()) {
             return sendJSON(res, 400, {
                 success: false,
@@ -1773,7 +1605,6 @@ export async function handleCreateComponente(req: IncomingMessage, res: ServerRe
             });
         }
 
-        // Verifica se a disciplina pertence ao docente
         const disciplinas = await query(
             `SELECT D.ID_DISCIPLINA
              FROM DISCIPLINA D
@@ -1790,7 +1621,6 @@ export async function handleCreateComponente(req: IncomingMessage, res: ServerRe
             });
         }
 
-        // Insere o componente
         const result = await query(
             `INSERT INTO COMPONENTE_NOTA (NOME_COMPONENTE, SIGLA, DESCRICAO, PESO, ID_DISCIPLINA)
              VALUES (?, ?, ?, ?, ?)`,
@@ -1817,8 +1647,7 @@ export async function handleCreateComponente(req: IncomingMessage, res: ServerRe
 
     } catch (error: any) {
         console.error('Erro ao criar componente:', error);
-        
-        // Verifica se é erro de duplicação
+
         if (error.code === 'ER_DUP_ENTRY') {
             return sendJSON(res, 409, {
                 success: false,
@@ -1833,12 +1662,9 @@ export async function handleCreateComponente(req: IncomingMessage, res: ServerRe
     }
 }
 
-/**
- * PUT /componentes/:id - Atualiza um componente de nota
- */
 export async function handleUpdateComponente(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -1850,7 +1676,6 @@ export async function handleUpdateComponente(req: IncomingMessage, res: ServerRe
         const body = await readBody(req);
         const { nome, sigla, descricao, peso } = body;
 
-        // Validação de campos obrigatórios
         if (!nome || !nome.trim()) {
             return sendJSON(res, 400, {
                 success: false,
@@ -1865,7 +1690,6 @@ export async function handleUpdateComponente(req: IncomingMessage, res: ServerRe
             });
         }
 
-        // Verifica se o componente existe e pertence a uma disciplina do docente
         const componentes = await query(
             `SELECT CN.ID_COMPONENTE, CN.SIGLA
              FROM COMPONENTE_NOTA CN
@@ -1883,7 +1707,6 @@ export async function handleUpdateComponente(req: IncomingMessage, res: ServerRe
             });
         }
 
-        // Atualiza o componente
         await query(
             `UPDATE COMPONENTE_NOTA 
              SET NOME_COMPONENTE = ?, SIGLA = ?, DESCRICAO = ?, PESO = ?
@@ -1911,8 +1734,7 @@ export async function handleUpdateComponente(req: IncomingMessage, res: ServerRe
 
     } catch (error: any) {
         console.error('Erro ao atualizar componente:', error);
-        
-        // Verifica se é erro de duplicação
+
         if (error.code === 'ER_DUP_ENTRY') {
             return sendJSON(res, 409, {
                 success: false,
@@ -1927,12 +1749,9 @@ export async function handleUpdateComponente(req: IncomingMessage, res: ServerRe
     }
 }
 
-/**
- * DELETE /componentes/:id - Exclui um componente de nota
- */
 export async function handleDeleteComponente(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -1941,7 +1760,6 @@ export async function handleDeleteComponente(req: IncomingMessage, res: ServerRe
             });
         }
 
-        // Verifica se o componente existe e pertence a uma disciplina do docente
         const componentes = await query(
             `SELECT CN.ID_COMPONENTE
              FROM COMPONENTE_NOTA CN
@@ -1959,7 +1777,6 @@ export async function handleDeleteComponente(req: IncomingMessage, res: ServerRe
             });
         }
 
-        // Exclui o componente (cascade vai excluir as notas relacionadas)
         await query(
             'DELETE FROM COMPONENTE_NOTA WHERE ID_COMPONENTE = ?',
             [id]
@@ -1971,7 +1788,7 @@ export async function handleDeleteComponente(req: IncomingMessage, res: ServerRe
         });
 
     } catch (error: any) {
-        // Trata erros de Foreign Key
+        
         const fkError = handleForeignKeyError(error, 'componente');
         if (fkError) {
             return sendJSON(res, 400, fkError);
@@ -1985,16 +1802,9 @@ export async function handleDeleteComponente(req: IncomingMessage, res: ServerRe
     }
 }
 
-// ============================================================================
-// ROTAS DE NOTAS
-// ============================================================================
-
-/**
- * GET /notas?turmaId=X - Lista notas de uma turma
- */
 export async function handleGetNotas(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -2003,8 +1813,7 @@ export async function handleGetNotas(req: IncomingMessage, res: ServerResponse):
             });
         }
 
-        // Extrai turmaId da query string
-        const url = new URL(req.url || '', `http://${req.headers.host}`);
+        const url = new URL(req.url || '', `http://localhost:3000`);
         const turmaId = url.searchParams.get('turmaId');
 
         if (!turmaId) {
@@ -2014,7 +1823,6 @@ export async function handleGetNotas(req: IncomingMessage, res: ServerResponse):
             });
         }
 
-        // Verifica se a turma pertence ao docente
         const turmas = await query(
             `SELECT T.ID_TURMA
              FROM TURMA T
@@ -2032,7 +1840,6 @@ export async function handleGetNotas(req: IncomingMessage, res: ServerResponse):
             });
         }
 
-        // Busca alunos da turma
         const alunos = await query(
             `SELECT ID_ALUNO as id, RA as ra, NOME as nome
              FROM ALUNO
@@ -2041,7 +1848,6 @@ export async function handleGetNotas(req: IncomingMessage, res: ServerResponse):
             [parseInt(turmaId)]
         ) as any[];
 
-        // Busca componentes da disciplina da turma
         const turmaInfo = await query(
             `SELECT T.ID_DISCIPLINA
              FROM TURMA T
@@ -2066,7 +1872,6 @@ export async function handleGetNotas(req: IncomingMessage, res: ServerResponse):
             [disciplinaId]
         ) as any[];
 
-        // Busca notas finais da turma
         const notasFinais = await query(
             `SELECT ID_ALUNO as alunoId, NOTA_FINAL as notaFinal
              FROM NOTA_FINAL
@@ -2074,13 +1879,11 @@ export async function handleGetNotas(req: IncomingMessage, res: ServerResponse):
             [parseInt(turmaId)]
         ) as any[];
 
-        // Cria mapa de notas finais
         const notasFinaisMap: { [key: number]: number } = {};
         notasFinais.forEach((nf: any) => {
             notasFinaisMap[nf.alunoId] = parseFloat(nf.notaFinal) || 0;
         });
 
-        // Busca todas as notas
         const notas = await query(
             `SELECT 
                 N.ID_ALUNO as alunoId,
@@ -2092,7 +1895,6 @@ export async function handleGetNotas(req: IncomingMessage, res: ServerResponse):
             [parseInt(turmaId)]
         ) as any[];
 
-        // Organiza as notas por aluno e componente
         const notasOrganizadas: any = {};
         alunos.forEach((aluno: any) => {
             notasOrganizadas[aluno.id] = {};
@@ -2126,11 +1928,8 @@ export async function handleGetNotas(req: IncomingMessage, res: ServerResponse):
     }
 }
 
-/**
- * Função auxiliar para calcular e salvar nota final de um aluno
- */
 async function calcularESalvarNotaFinal(alunoId: number, turmaId: number, tipoMedia: string): Promise<number> {
-    // Busca todos os componentes da disciplina da turma
+    
     const turmaInfo = await query(
         `SELECT T.ID_DISCIPLINA
          FROM TURMA T
@@ -2144,7 +1943,6 @@ async function calcularESalvarNotaFinal(alunoId: number, turmaId: number, tipoMe
 
     const disciplinaId = turmaInfo[0].ID_DISCIPLINA;
 
-    // Busca componentes
     const componentes = await query(
         `SELECT ID_COMPONENTE as id, PESO as peso
          FROM COMPONENTE_NOTA
@@ -2153,7 +1951,7 @@ async function calcularESalvarNotaFinal(alunoId: number, turmaId: number, tipoMe
     ) as any[];
 
     if (componentes.length === 0) {
-        // Se não tem componentes, nota final é 0
+        
         await query(
             `INSERT INTO NOTA_FINAL (ID_ALUNO, ID_TURMA, NOTA_FINAL)
              VALUES (?, ?, 0)
@@ -2163,7 +1961,6 @@ async function calcularESalvarNotaFinal(alunoId: number, turmaId: number, tipoMe
         return 0;
     }
 
-    // Busca todas as notas do aluno para esses componentes
     const notas = await query(
         `SELECT ID_COMPONENTE as componenteId, VALOR as valor
          FROM NOTA
@@ -2171,7 +1968,6 @@ async function calcularESalvarNotaFinal(alunoId: number, turmaId: number, tipoMe
         [alunoId, ...componentes.map((c: any) => c.id)]
     ) as any[];
 
-    // Cria mapa de notas
     const notasMap: { [key: number]: number } = {};
     notas.forEach((nota: any) => {
         notasMap[nota.componenteId] = parseFloat(nota.valor) || 0;
@@ -2180,14 +1976,14 @@ async function calcularESalvarNotaFinal(alunoId: number, turmaId: number, tipoMe
     let notaFinal = 0;
 
     if (tipoMedia === 'simples') {
-        // Média Simples: soma todas as notas / quantidade de componentes
+        
         let soma = 0;
         componentes.forEach((comp: any) => {
             soma += notasMap[comp.id] || 0;
         });
         notaFinal = componentes.length > 0 ? soma / componentes.length : 0;
     } else {
-        // Média Ponderada
+        
         let somaPonderada = 0;
         let somaPesos = 0;
         componentes.forEach((comp: any) => {
@@ -2201,10 +1997,8 @@ async function calcularESalvarNotaFinal(alunoId: number, turmaId: number, tipoMe
         notaFinal = somaPesos > 0 ? somaPonderada / somaPesos : 0;
     }
 
-    // Limita entre 0 e 10
     notaFinal = Math.max(0, Math.min(10, notaFinal));
 
-    // Salva ou atualiza nota final
     await query(
         `INSERT INTO NOTA_FINAL (ID_ALUNO, ID_TURMA, NOTA_FINAL)
          VALUES (?, ?, ?)
@@ -2215,12 +2009,9 @@ async function calcularESalvarNotaFinal(alunoId: number, turmaId: number, tipoMe
     return notaFinal;
 }
 
-/**
- * POST /notas/bulk - Salva múltiplas notas de uma vez
- */
 export async function handleBulkNotas(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
-        // Verifica autenticação
+        
         const user = await authenticateToken(req);
         if (!user) {
             return sendJSON(res, 401, {
@@ -2239,7 +2030,6 @@ export async function handleBulkNotas(req: IncomingMessage, res: ServerResponse)
             });
         }
 
-        // Processa cada nota
         const resultados = [];
         for (const nota of notas) {
             const { alunoId, componenteId, valor } = nota;
@@ -2253,11 +2043,8 @@ export async function handleBulkNotas(req: IncomingMessage, res: ServerResponse)
                 continue;
             }
 
-            // Aceita valor 0 (nota zerada)
-            // Não pula se valor for 0
-
             try {
-                // Verifica permissões (aluno e componente)
+                
                 const alunos = await query(
                     `SELECT A.ID_ALUNO
                      FROM ALUNO A
@@ -2283,7 +2070,6 @@ export async function handleBulkNotas(req: IncomingMessage, res: ServerResponse)
 
                 if (componentes.length === 0) continue;
 
-                // Verifica se a nota já existe
                 const notasExistentes = await query(
                     'SELECT ID_NOTA FROM NOTA WHERE ID_ALUNO = ? AND ID_COMPONENTE = ?',
                     [parseInt(alunoId), parseInt(componenteId)]
@@ -2307,7 +2093,6 @@ export async function handleBulkNotas(req: IncomingMessage, res: ServerResponse)
             }
         }
 
-        // Busca turmaId do primeiro aluno (todos devem ser da mesma turma)
         let turmaId: number | null = null;
         if (resultados.length > 0) {
             const primeiroAluno = resultados[0].alunoId;
@@ -2320,20 +2105,16 @@ export async function handleBulkNotas(req: IncomingMessage, res: ServerResponse)
             }
         }
 
-        // Tipo de média padrão: simples
         const tipoMediaCalculo = tipoMedia || 'simples';
 
-        // Recalcula nota final para TODOS os alunos da turma (não apenas os que tiveram notas alteradas)
-        // Isso garante que se um novo componente foi adicionado, todos os alunos terão nota final recalculada
         const notasFinaisCalculadas: { [key: number]: number } = {};
         if (turmaId) {
-            // Busca todos os alunos da turma
+            
             const todosAlunos = await query(
                 'SELECT ID_ALUNO FROM ALUNO WHERE ID_TURMA = ?',
                 [turmaId]
             ) as any[];
 
-            // Recalcula nota final para cada aluno da turma
             for (const aluno of todosAlunos) {
                 try {
                     const notaFinal = await calcularESalvarNotaFinal(aluno.ID_ALUNO, turmaId, tipoMediaCalculo);

@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Header da Página de Cursos -->
+    
     <div class="dashboard-header">
         <div class="container">
             <div class="d-flex justify-content-between align-items-center">
@@ -32,7 +32,7 @@
     </div>
 
     <div class="container">
-        <!-- Formulário de Cadastro de Curso (oculto inicialmente) -->
+        
         <div class="curso-form-container" id="cursoFormContainer" style="display: none;">
             <div class="card shadow-sm mb-4">
                 <div class="card-body p-4">
@@ -112,15 +112,13 @@
             </div>
         </div>
 
-        <!-- Lista de Cursos -->
         <div id="cursosContent">
             <div class="cursos-grid" id="cursosGrid">
-                <!-- Os cards de cursos serão inseridos aqui via JavaScript -->
+                
             </div>
         </div>
     </div>
 
-    <!-- Modal de Edição de Curso -->
     <div class="modal fade" id="editCursoModal" tabindex="-1" aria-labelledby="editCursoModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -186,7 +184,6 @@
         </div>
     </div>
 
-    <!-- Modal de Exclusão de Curso -->
     <div class="modal fade" id="deleteCursoModal" tabindex="-1" aria-labelledby="deleteCursoModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -213,18 +210,13 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // ============================================
-        // CONFIGURAÇÃO DA API
-        // ============================================
-        
+
         const API_URL = 'http://localhost:3000';
 
-        // Função para obter o token de autenticação
         function getAuthToken() {
             return localStorage.getItem('token');
         }
 
-        // Função para verificar se o usuário está autenticado
         function checkAuth() {
             const token = getAuthToken();
             if (!token) {
@@ -235,7 +227,6 @@
             return true;
         }
 
-        // Função para fazer requisições autenticadas
         async function apiRequest(url, options = {}) {
             const token = getAuthToken();
             const headers = {
@@ -255,7 +246,7 @@
             const data = await response.json();
 
             if (!response.ok) {
-                // Prioriza mensagem em português do backend, depois message em inglês
+                
                 const errorMsg = data.mensagem || data.message || 'Erro na requisição';
                 if (data.debug) {
                     throw new Error(`${errorMsg} (${data.debug.method} ${data.debug.urlPath})`);
@@ -266,7 +257,6 @@
             return data;
         }
 
-        // Função para exibir mensagens
         function showMessage(message, type = 'success') {
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
@@ -282,20 +272,13 @@
             }, 5000);
         }
 
-        // Função para voltar ao dashboard
         function voltarDashboard() {
             window.location.href = 'dashboard.html';
         }
 
-        // ============================================
-        // GERENCIAMENTO DE CURSOS
-        // ============================================
-
-        // Variáveis globais
         let currentInstituicaoId = null;
         let currentInstituicaoNome = null;
 
-        // Carregar dados da instituição selecionada
         function loadInstituicaoData() {
             try {
                 const instituicaoData = localStorage.getItem('selectedInstituicao');
@@ -311,7 +294,6 @@
                 currentInstituicaoId = instituicao.id;
                 currentInstituicaoNome = instituicao.nome;
 
-                // Atualizar interface
                 document.getElementById('instituicaoInfo').textContent = `Instituição: ${instituicao.nome}`;
                 
                 return true;
@@ -321,7 +303,6 @@
             }
         }
 
-        // Carregar cursos de uma instituição do backend
         async function loadCursos(instituicaoId) {
             if (!instituicaoId) {
                 showMessage('ID da instituição não fornecido', 'error');
@@ -338,7 +319,6 @@
             }
         }
 
-        // Renderizar lista de cursos
         function renderCursos(cursos) {
             const grid = document.getElementById('cursosGrid');
             
@@ -404,14 +384,12 @@
             });
         }
 
-        // Função para escapar HTML (prevenir XSS)
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
 
-        // Mostrar formulário de cadastro de curso
         function mostrarFormularioCurso() {
             if (!currentInstituicaoId) {
                 showMessage('Erro ao carregar dados da instituição', 'error');
@@ -426,13 +404,11 @@
             formContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        // Ocultar formulário de cadastro de curso
         function ocultarFormularioCurso() {
             document.getElementById('cursoFormContainer').style.display = 'none';
             document.getElementById('cadastroCursoForm').reset();
         }
 
-        // Cadastrar novo curso
         document.getElementById('cadastroCursoForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -478,10 +454,9 @@
             }
         });
 
-        // Editar curso - abrir modal (busca do backend)
         async function editarCurso(cursoId) {
             try {
-                // Buscar curso do backend para garantir dados atualizados
+                
                 const response = await apiRequest(`${API_URL}/cursos?instituicaoId=${currentInstituicaoId}`);
                 const cursos = response.data || [];
                 const curso = cursos.find(c => c.id === cursoId);
@@ -504,7 +479,6 @@
             }
         }
 
-        // Salvar edição de curso
         document.getElementById('editCursoForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -551,14 +525,12 @@
             }
         });
 
-        // Excluir curso - abrir modal
         function excluirCurso(cursoId) {
             document.getElementById('deleteCursoId').value = cursoId;
             const deleteModal = new bootstrap.Modal(document.getElementById('deleteCursoModal'));
             deleteModal.show();
         }
 
-        // Confirmar exclusão de curso
         document.getElementById('confirmDeleteCursoBtn').addEventListener('click', async function() {
             const cursoId = parseInt(document.getElementById('deleteCursoId').value);
             
@@ -586,32 +558,24 @@
             }
         });
 
-        // Ver disciplinas - redireciona para página de disciplinas
         function verDisciplinas(cursoId, cursoNome) {
-            // Salvar dados do curso selecionado no localStorage
+            
             localStorage.setItem('selectedCurso', JSON.stringify({
                 id: cursoId,
                 nome: cursoNome
             }));
-            
-            // Redirecionar para página de disciplinas
+
             window.location.href = 'disciplinas.html';
         }
 
-        // ============================================
-        // INICIALIZAÇÃO
-        // ============================================
-
-        // Quando a página carregar
         document.addEventListener('DOMContentLoaded', async function() {
-            // Verificar autenticação
+            
             if (!checkAuth()) {
                 return;
             }
 
-            // Carregar dados da instituição
             if (loadInstituicaoData()) {
-                // Carregar cursos da instituição
+                
                 await loadCursos(currentInstituicaoId);
             }
         });

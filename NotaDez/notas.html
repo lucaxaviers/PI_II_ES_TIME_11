@@ -1,5 +1,5 @@
-<!-- Autor: LUCAS XAVIER & LEONARDO GAMBARONI -->
-<!-- Página: notas.html — Quadro de Notas -->
+
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -153,7 +153,7 @@
     </style>
 </head>
 <body>
-    <!-- Header da Página de Notas -->
+    
     <div class="dashboard-header">
         <div class="container">
             <div class="d-flex justify-content-between align-items-center">
@@ -176,7 +176,7 @@
     </div>
 
     <div class="container">
-        <!-- Opção de Cálculo da Média (pequena, acima da tabela) - Somente Leitura -->
+        
         <div class="controls-small mb-3">
             <div class="radio-group-small">
                 <div class="radio-option">
@@ -193,21 +193,19 @@
             </small>
         </div>
 
-        <!-- Tabela de Notas -->
         <div class="table-container">
             <table id="notasTable">
                 <thead>
                     <tr id="tableHeader">
-                        <!-- Cabeçalho será gerado via JavaScript -->
+                        
                     </tr>
                 </thead>
                 <tbody id="tableBody">
-                    <!-- Linhas serão geradas via JavaScript -->
+                    
                 </tbody>
             </table>
         </div>
 
-        <!-- Botão Salvar (abaixo da tabela) -->
         <div class="text-end mt-3 mb-4">
             <button class="btn btn-primary btn-lg btn-save" onclick="salvarTudo()">
                 <i class="bi bi-save"></i> SALVAR TUDO
@@ -217,17 +215,13 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // ============================================
-        // CONFIGURAÇÃO DA API
-        // ============================================
+
         const API_URL = 'http://localhost:3000';
 
-        // Função para obter o token de autenticação
         function getAuthToken() {
             return localStorage.getItem('token');
         }
 
-        // Função para verificar se o usuário está autenticado
         function checkAuth() {
             const token = getAuthToken();
             if (!token) {
@@ -238,7 +232,6 @@
             return true;
         }
 
-        // Função para fazer requisições autenticadas
         async function apiRequest(url, options = {}) {
             const token = getAuthToken();
             const headers = {
@@ -258,7 +251,7 @@
             const data = await response.json();
 
             if (!response.ok) {
-                // Prioriza mensagem em português do backend, depois message em inglês
+                
                 const errorMsg = data.mensagem || data.message || 'Erro na requisição';
                 if (data.debug) {
                     throw new Error(`${errorMsg} (${data.debug.method} ${data.debug.urlPath})`);
@@ -269,7 +262,6 @@
             return data;
         }
 
-        // Função para exibir mensagens
         function showMessage(message, type = 'success') {
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
@@ -285,34 +277,19 @@
             }, 5000);
         }
 
-        // ============================================
-        // ESTRUTURA DE DADOS
-        // ============================================
-
-        // Alunos (carregados do backend)
         let alunos = [];
 
-        // Componentes de nota (carregados do backend)
         let componentes = [];
 
-        // Notas (estrutura: notas[alunoId][componenteId] = valor)
         let notas = {};
 
-        // Notas finais do banco (estrutura: notasFinais[alunoId] = valor)
         let notasFinais = {};
 
-        // Armazenar valores anteriores para detectar mudanças
         let notasAnteriores = {};
 
-        // IDs da turma e disciplina
         let currentTurmaId = null;
         let currentDisciplinaId = null;
 
-        // ============================================
-        // FUNÇÕES DE RENDERIZAÇÃO
-        // ============================================
-
-        // Renderiza tabela
         function renderizarTabela() {
             const thead = document.getElementById('tableHeader');
             const tbody = document.getElementById('tableBody');
@@ -322,7 +299,6 @@
                 return;
             }
 
-            // Cabeçalho
             let headerHTML = '<th>RA</th><th>Nome</th>';
             componentes.forEach(comp => {
                 headerHTML += `<th>${comp.sigla}</th>`;
@@ -330,24 +306,20 @@
             headerHTML += '<th>Nota Final</th>';
             thead.innerHTML = headerHTML;
 
-            // Corpo da tabela
             tbody.innerHTML = '';
             alunos.forEach(aluno => {
                 const tr = document.createElement('tr');
-                
-                // RA (não editável)
+
                 const tdRA = document.createElement('td');
                 tdRA.className = 'cell-ra';
                 tdRA.textContent = aluno.ra;
                 tr.appendChild(tdRA);
 
-                // Nome (não editável)
                 const tdNome = document.createElement('td');
                 tdNome.className = 'cell-nome';
                 tdNome.textContent = aluno.nome;
                 tr.appendChild(tdNome);
 
-                // Componentes de nota (editáveis)
                 componentes.forEach(comp => {
                     const td = document.createElement('td');
                     td.className = 'cell-nota';
@@ -364,7 +336,7 @@
                         atualizarNota(aluno.id, comp.id, parseFloat(this.value) || 0);
                     });
                     input.addEventListener('blur', function() {
-                        // Valida e formata ao sair do campo
+                        
                         let valor = parseFloat(this.value) || 0;
                         if (valor < 0) valor = 0;
                         if (valor > 10) valor = 10;
@@ -375,11 +347,10 @@
                     tr.appendChild(td);
                 });
 
-                // Nota Final (somente leitura) - usa do banco se disponível, senão calcula
                 const tdFinal = document.createElement('td');
                 tdFinal.className = 'cell-nota-final';
                 tdFinal.id = `nota-final-${aluno.id}`;
-                // Prioriza nota final do banco, senão calcula visualmente
+                
                 const notaFinalBanco = notasFinais[aluno.id];
                 const notaFinalCalculada = notaFinalBanco !== undefined ? notaFinalBanco : calcularNotaFinal(aluno.id);
                 tdFinal.textContent = notaFinalCalculada.toFixed(2);
@@ -389,23 +360,17 @@
             });
         }
 
-        // ============================================
-        // FUNÇÕES DE CÁLCULO
-        // ============================================
-
-        // Recalcula média
         function calcularNotaFinal(alunoId) {
-            // Verifica se tem dados necessários
+            
             if (!notas[alunoId] || componentes.length === 0) {
                 return 0;
             }
 
-            // Obtém tipo de média (padrão: simples se não estiver selecionado)
             const radioChecked = document.querySelector('input[name="tipoMedia"]:checked');
             const tipoMedia = radioChecked ? radioChecked.value : 'simples';
 
             if (tipoMedia === 'simples') {
-                // Média Simples: (P1 + P2 + P3 + ...) / quantidade
+                
                 let soma = 0;
                 let quantidade = 0;
                 componentes.forEach(comp => {
@@ -416,7 +381,7 @@
                 const resultado = quantidade > 0 ? soma / quantidade : 0;
                 return resultado;
             } else {
-                // Média Ponderada
+                
                 let somaPonderada = 0;
                 let somaPesos = 0;
                 componentes.forEach(comp => {
@@ -432,20 +397,16 @@
             }
         }
 
-        // Atualiza nota
         function atualizarNota(alunoId, componenteId, valor) {
-            // Valida valor
+            
             if (valor < 0) valor = 0;
             if (valor > 10) valor = 10;
-            
-            // Inicializa estrutura se necessário
+
             if (!notas[alunoId]) {
                 notas[alunoId] = {};
             }
             notas[alunoId][componenteId] = valor;
-            
-            // Atualiza Nota Final visualmente (cálculo em tempo real enquanto digita)
-            // Isso é apenas visual - a nota final do banco só será atualizada ao salvar
+
             const notaFinalElement = document.getElementById(`nota-final-${alunoId}`);
             if (notaFinalElement) {
                 const notaFinalCalculada = calcularNotaFinal(alunoId);
@@ -453,11 +414,6 @@
             }
         }
 
-        // ============================================
-        // FUNÇÕES DE LOG
-        // ============================================
-
-        // Gera log (para auditoria no backend)
         function gerarLog() {
             const log = [];
             const agora = new Date();
@@ -473,7 +429,6 @@
             });
             const timestamp = `${dataFormatada} ${horaFormatada}`;
 
-            // Percorre todas as notas e verifica alterações
             alunos.forEach(aluno => {
                 componentes.forEach(comp => {
                     const valorAtual = notas[aluno.id] && notas[aluno.id][comp.id] ? notas[aluno.id][comp.id] : 0;
@@ -486,29 +441,22 @@
                 });
             });
 
-            // Atualiza valores anteriores
             notasAnteriores = JSON.parse(JSON.stringify(notas));
 
             return log;
         }
 
-        // ============================================
-        // FUNÇÕES DE EVENTO
-        // ============================================
-
-        // Salvar tudo
         async function salvarTudo() {
             try {
                 const btn = document.querySelector('.btn-save');
                 btn.disabled = true;
                 btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
 
-                // Prepara array de notas para envio (todas as notas, incluindo zeros)
                 const notasParaSalvar = [];
                 alunos.forEach(aluno => {
                     componentes.forEach(comp => {
                         const valor = notas[aluno.id] && notas[aluno.id][comp.id] !== undefined ? notas[aluno.id][comp.id] : 0;
-                        // Envia todas as notas (incluindo zeros para limpar notas anteriores)
+                        
                         notasParaSalvar.push({
                             alunoId: aluno.id,
                             componenteId: comp.id,
@@ -517,11 +465,9 @@
                     });
                 });
 
-                // Obtém tipo de média
                 const radioChecked = document.querySelector('input[name="tipoMedia"]:checked');
                 const tipoMedia = radioChecked ? radioChecked.value : 'simples';
 
-                // Envia notas para o backend (com tipo de média)
                 const response = await apiRequest(`${API_URL}/notas/bulk`, {
                     method: 'POST',
                     body: JSON.stringify({ 
@@ -530,13 +476,12 @@
                     })
                 });
 
-                // Atualiza notas finais com os valores calculados pelo backend
                 if (response.data && response.data.notasFinais) {
-                    // Atualiza a variável notasFinais
+                    
                     Object.keys(response.data.notasFinais).forEach(alunoId => {
                         notasFinais[alunoId] = response.data.notasFinais[alunoId];
                     });
-                    // Atualiza a interface
+                    
                     Object.keys(response.data.notasFinais).forEach(alunoId => {
                         const notaFinal = response.data.notasFinais[alunoId];
                         const notaFinalElement = document.getElementById(`nota-final-${alunoId}`);
@@ -545,7 +490,7 @@
                         }
                     });
                 } else {
-                    // Fallback: recalcula localmente se backend não retornar
+                    
                     alunos.forEach(aluno => {
                         const notaFinal = calcularNotaFinal(aluno.id);
                         notasFinais[aluno.id] = notaFinal;
@@ -556,11 +501,9 @@
                     });
                 }
 
-                // Gera log (será salvo no banco via triggers)
                 const log = gerarLog();
                 console.log('Log gerado:', log);
 
-                // Feedback visual
                 btn.innerHTML = '<i class="bi bi-check-circle"></i> SALVO!';
                 btn.classList.remove('btn-primary');
                 btn.classList.add('btn-success');
@@ -582,14 +525,12 @@
             }
         }
 
-        // Voltar para turmas
         function voltarTurmas() {
             window.location.href = 'turmas.html';
         }
 
-        // Ver componentes de nota
         function verComponentes() {
-            // A disciplina já deve estar no localStorage quando vem de turmas.html
+            
             const disciplinaData = localStorage.getItem('selectedDisciplina');
             
             if (!disciplinaData) {
@@ -599,22 +540,19 @@
                 }, 2000);
                 return;
             }
-            
-            // Redirecionar para componentes.html
+
             window.location.href = 'componentes.html';
         }
 
-        // Configura listener para mudança de tipo de média
         function configurarListenerTipoMedia() {
             document.querySelectorAll('input[name="tipoMedia"]').forEach(radio => {
-                // Remove listeners anteriores
+                
                 radio.removeEventListener('change', recalcularNotasFinais);
-                // Adiciona novo listener
+                
                 radio.addEventListener('change', recalcularNotasFinais);
             });
         }
 
-        // Recalcula todas as notas finais
         function recalcularNotasFinais() {
             alunos.forEach(aluno => {
                 const notaFinalElement = document.getElementById(`nota-final-${aluno.id}`);
@@ -624,11 +562,6 @@
             });
         }
 
-        // ============================================
-        // FUNÇÕES DE CARREGAMENTO
-        // ============================================
-
-        // Carrega dados da turma e disciplina
         function loadTurmaData() {
             try {
                 const turmaData = localStorage.getItem('selectedTurma');
@@ -659,10 +592,9 @@
             }
         }
 
-        // Carrega componentes de nota do backend (se disciplinaId estiver disponível)
         async function carregarComponentes() {
             if (!currentDisciplinaId) {
-                // Se não tiver disciplinaId, os componentes virão do endpoint de notas
+                
                 return;
             }
 
@@ -670,13 +602,12 @@
                 const response = await apiRequest(`${API_URL}/componentes?disciplinaId=${currentDisciplinaId}`);
                 componentes = response.data || [];
             } catch (error) {
-                // Se der erro, tenta carregar do endpoint de notas depois
+                
                 console.warn('Erro ao carregar componentes separadamente:', error);
                 componentes = [];
             }
         }
 
-        // Carrega alunos e notas do backend
         async function carregarNotas() {
             if (!currentTurmaId) {
                 showMessage('Turma não encontrada', 'error');
@@ -688,8 +619,7 @@
                 const dados = response.data;
 
                 alunos = dados.alunos || [];
-                
-                // Usa componentes do endpoint de notas (já vem com a disciplina correta)
+
                 if (dados.componentes && dados.componentes.length > 0) {
                     componentes = dados.componentes;
                 }
@@ -697,7 +627,6 @@
                 notas = dados.notas || {};
                 notasFinais = dados.notasFinais || {};
 
-                // Inicializa estrutura de notas se necessário
                 alunos.forEach(aluno => {
                     if (!notas[aluno.id]) {
                         notas[aluno.id] = {};
@@ -709,7 +638,6 @@
                     });
                 });
 
-                // Salva valores anteriores para detectar mudanças
                 notasAnteriores = JSON.parse(JSON.stringify(notas));
 
             } catch (error) {
@@ -719,7 +647,6 @@
             }
         }
 
-        // Carrega tipo de média do localStorage
         function carregarTipoMedia() {
             if (!currentDisciplinaId) return;
 
@@ -732,33 +659,23 @@
             }
         }
 
-        // ============================================
-        // INICIALIZAÇÃO
-        // ============================================
-
-        // Inicializa a página
         document.addEventListener('DOMContentLoaded', async function() {
-            // Verificar autenticação
+            
             if (!checkAuth()) {
                 return;
             }
 
-            // Carregar dados da turma
             if (!loadTurmaData()) {
                 return;
             }
 
-            // Carregar tipo de média
             carregarTipoMedia();
 
-            // Carregar componentes e notas
             await carregarComponentes();
             await carregarNotas();
 
-            // Renderizar tabela
             renderizarTabela();
 
-            // Configurar listener para mudança de tipo de média
             configurarListenerTipoMedia();
         });
     </script>

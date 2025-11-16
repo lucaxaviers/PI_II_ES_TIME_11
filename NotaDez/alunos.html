@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Header da Página de Alunos -->
+    
     <div class="dashboard-header">
         <div class="container">
             <div class="d-flex justify-content-between align-items-center">
@@ -38,7 +38,7 @@
     </div>
 
     <div class="container">
-        <!-- Área de Importação CSV (oculta inicialmente) -->
+        
         <div class="card shadow-sm mb-4" id="importacaoCSVContainer" style="display: none;">
             <div class="card-body p-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -68,7 +68,6 @@
             </div>
         </div>
 
-        <!-- Formulário de Cadastro de Aluno (oculto inicialmente) -->
         <div class="curso-form-container" id="alunoFormContainer" style="display: none;">
             <div class="card shadow-sm mb-4">
                 <div class="card-body p-4">
@@ -113,7 +112,6 @@
             </div>
         </div>
 
-        <!-- Lista de Alunos -->
         <div id="alunosContent">
             <h2 class="mb-4 mt-4" style="color: #1D4ED8; font-weight: 600;">
                 <i class="bi bi-list-ul"></i> <span id="alunosTitle">Alunos Cadastrados</span>
@@ -128,7 +126,7 @@
                         </tr>
                     </thead>
                     <tbody id="alunosTableBody">
-                        <!-- Os alunos serão inseridos aqui via JavaScript -->
+                        
                     </tbody>
                 </table>
             </div>
@@ -139,7 +137,6 @@
         </div>
     </div>
 
-    <!-- Modal de Edição de Aluno -->
     <div class="modal fade" id="editAlunoModal" tabindex="-1" aria-labelledby="editAlunoModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -186,7 +183,6 @@
         </div>
     </div>
 
-    <!-- Modal de Exclusão de Aluno -->
     <div class="modal fade" id="deleteAlunoModal" tabindex="-1" aria-labelledby="deleteAlunoModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -212,21 +208,16 @@
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // ============================================
-        // CONFIGURAÇÃO DA API
-        // ============================================
+
         const API_URL = 'http://localhost:3000';
 
-        // Função para obter o token de autenticação
         function getAuthToken() {
             return localStorage.getItem('token');
         }
 
-        // Função para verificar se o usuário está autenticado
         function checkAuth() {
             const token = getAuthToken();
             if (!token) {
@@ -237,7 +228,6 @@
             return true;
         }
 
-        // Função para fazer requisições autenticadas
         async function apiRequest(url, options = {}) {
             const token = getAuthToken();
             const headers = {
@@ -257,7 +247,7 @@
             const data = await response.json();
 
             if (!response.ok) {
-                // Prioriza mensagem em português do backend, depois message em inglês
+                
                 const errorMsg = data.mensagem || data.message || 'Erro na requisição';
                 if (data.debug) {
                     throw new Error(`${errorMsg} (${data.debug.method} ${data.debug.urlPath})`);
@@ -268,29 +258,21 @@
             return data;
         }
 
-        // ============================================
-        // VARIÁVEIS GLOBAIS
-        // ============================================
         let alunos = [];
         let currentTurmaId = null;
         let currentTurmaNome = null;
         let editAlunoModal = null;
         let deleteAlunoModal = null;
 
-        // ============================================
-        // INICIALIZAÇÃO
-        // ============================================
         document.addEventListener('DOMContentLoaded', function() {
-            // Verifica autenticação
+            
             if (!checkAuth()) {
                 return;
             }
 
-            // Inicializa modais do Bootstrap
             editAlunoModal = new bootstrap.Modal(document.getElementById('editAlunoModal'));
             deleteAlunoModal = new bootstrap.Modal(document.getElementById('deleteAlunoModal'));
 
-            // Carrega dados da turma do localStorage
             const selectedTurma = localStorage.getItem('selectedTurma');
             if (selectedTurma) {
                 try {
@@ -311,40 +293,32 @@
                 }, 2000);
             }
 
-            // Event listeners
             document.getElementById('cadastroAlunoForm').addEventListener('submit', cadastroAlunoForm);
             document.getElementById('confirmEditAlunoBtn').addEventListener('click', editAlunoForm);
             document.getElementById('confirmDeleteAlunoBtn').addEventListener('click', confirmDeleteAlunoBtn);
         });
 
-        // ============================================
-        // FUNÇÕES DE NAVEGAÇÃO
-        // ============================================
         function voltarTurmas() {
             window.location.href = 'turmas.html';
         }
 
-        // Ver notas do aluno individual
         function verNotasAluno(alunoId, alunoNome, alunoRA) {
-            // Salvar dados do aluno selecionado no localStorage
+            
             localStorage.setItem('selectedAluno', JSON.stringify({
                 id: alunoId,
                 nome: alunoNome,
                 ra: alunoRA
             }));
-            
-            // Redirecionar para notas.html
+
             window.location.href = 'notas.html';
         }
 
-        // Ver componentes de nota
         function verComponentesNota() {
-            // A disciplina já deve estar no localStorage quando vem de turmas.html
-            // Verificar se existe, caso contrário tentar buscar da turma
+
             const disciplinaData = localStorage.getItem('selectedDisciplina');
             
             if (!disciplinaData) {
-                // Se não tiver disciplina, tentar buscar da turma
+                
                 const turmaData = localStorage.getItem('selectedTurma');
                 if (turmaData) {
                     alert('Por favor, acesse os componentes através da página de disciplinas.');
@@ -355,8 +329,7 @@
                     return;
                 }
             }
-            
-            // Redirecionar para componentes.html
+
             window.location.href = 'componentes.html';
         }
 
@@ -366,9 +339,6 @@
             carregarAlunos();
         }
 
-        // ============================================
-        // FUNÇÕES DE FORMULÁRIO
-        // ============================================
         function mostrarFormularioAluno() {
             document.getElementById('alunoFormContainer').style.display = 'block';
             document.getElementById('alunoMatricula').focus();
@@ -389,9 +359,6 @@
             document.getElementById('csvFile').value = '';
         }
 
-        // ============================================
-        // FUNÇÕES DE CRUD
-        // ============================================
         async function carregarAlunos() {
             if (!currentTurmaId) {
                 return;
@@ -440,9 +407,6 @@
             `).join('');
         }
 
-        // ============================================
-        // FUNÇÕES DE FORMULÁRIO (EVENT LISTENERS)
-        // ============================================
         async function cadastroAlunoForm(e) {
             e.preventDefault();
 
@@ -556,9 +520,6 @@
             }
         }
 
-        // ============================================
-        // FUNÇÃO DE IMPORTAÇÃO CSV
-        // ============================================
         async function importarCSV() {
             const fileInput = document.getElementById('csvFile');
             const file = fileInput.files[0];
@@ -589,11 +550,10 @@
                     let ignorados = 0;
                     const erros = [];
 
-                    // Processa cada linha do CSV
                     for (let index = 0; index < lines.length; index++) {
                         const line = lines[index];
                         try {
-                            // Remove espaços e divide por vírgula
+                            
                             const parts = line.split(',').map(p => p.trim());
                             
                             if (parts.length < 2) {
@@ -602,14 +562,13 @@
                             }
 
                             const matricula = parts[0];
-                            const nome = parts.slice(1).join(',').trim(); // Pega tudo após a primeira vírgula como nome
+                            const nome = parts.slice(1).join(',').trim(); 
 
                             if (!matricula || !nome) {
                                 ignorados++;
                                 continue;
                             }
 
-                            // Tenta adicionar o aluno via API
                             try {
                                 await apiRequest(`${API_URL}/alunos`, {
                                     method: 'POST',
@@ -622,7 +581,7 @@
                                 });
                                 importados++;
                             } catch (error) {
-                                // Se já existe ou outro erro, ignora
+                                
                                 ignorados++;
                             }
                         } catch (error) {
@@ -630,7 +589,6 @@
                         }
                     }
 
-                    // Recarrega a lista de alunos
                     await carregarAlunos();
                     
                     let mensagem = `Importação concluída! ${importados} aluno(s) importado(s)`;
@@ -643,8 +601,7 @@
 
                     showMessage(mensagem, importados > 0 ? 'success' : 'info');
                     fileInput.value = '';
-                    
-                    // Oculta a área de importação após sucesso
+
                     if (importados > 0) {
                         ocultarImportacaoCSV();
                     }
@@ -660,11 +617,8 @@
             reader.readAsText(file);
         }
 
-        // ============================================
-        // FUNÇÃO DE MENSAGENS
-        // ============================================
         function showMessage(message, type = 'info') {
-            // Remove mensagens anteriores
+            
             const existingAlert = document.querySelector('.alert-floating');
             if (existingAlert) {
                 existingAlert.remove();
@@ -684,7 +638,6 @@
 
             document.body.appendChild(alert);
 
-            // Remove automaticamente após 5 segundos
             setTimeout(() => {
                 if (alert.parentNode) {
                     alert.remove();

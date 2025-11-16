@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Header da Página de Disciplinas -->
     <div class="dashboard-header">
         <div class="container">
             <div class="d-flex justify-content-between align-items-center">
@@ -32,7 +31,6 @@
     </div>
 
     <div class="container">
-        <!-- Formulário de Cadastro de Disciplina (oculto inicialmente) -->
         <div class="curso-form-container" id="disciplinaFormContainer" style="display: none;">
             <div class="card shadow-sm mb-4">
                 <div class="card-body p-4">
@@ -112,18 +110,15 @@
             </div>
         </div>
 
-        <!-- Lista de Disciplinas -->
         <div id="disciplinasContent">
             <h2 class="mb-4 mt-4" style="color: #1D4ED8; font-weight: 600;">
                 <i class="bi bi-list-ul"></i> <span id="disciplinasTitle">Disciplinas Cadastradas</span>
             </h2>
             <div class="cursos-grid" id="disciplinasGrid">
-                <!-- Os cards de disciplinas serão inseridos aqui via JavaScript -->
             </div>
         </div>
     </div>
 
-    <!-- Modal de Edição de Disciplina -->
     <div class="modal fade" id="editDisciplinaModal" tabindex="-1" aria-labelledby="editDisciplinaModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -196,7 +191,6 @@
         </div>
     </div>
 
-    <!-- Modal de Exclusão de Disciplina -->
     <div class="modal fade" id="deleteDisciplinaModal" tabindex="-1" aria-labelledby="deleteDisciplinaModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -223,18 +217,13 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // ============================================
-        // CONFIGURAÇÃO DA API
-        // ============================================
         
         const API_URL = 'http://localhost:3000';
 
-        // Função para obter o token de autenticação
         function getAuthToken() {
             return localStorage.getItem('token');
         }
 
-        // Função para verificar se o usuário está autenticado
         function checkAuth() {
             const token = getAuthToken();
             if (!token) {
@@ -245,7 +234,6 @@
             return true;
         }
 
-        // Função para fazer requisições autenticadas
         async function apiRequest(url, options = {}) {
             const token = getAuthToken();
             const headers = {
@@ -265,7 +253,6 @@
             const data = await response.json();
 
             if (!response.ok) {
-                // Prioriza mensagem em português do backend, depois message em inglês
                 const errorMsg = data.mensagem || data.message || 'Erro na requisição';
                 if (data.debug) {
                     throw new Error(`${errorMsg} (${data.debug.method} ${data.debug.urlPath})`);
@@ -276,26 +263,16 @@
             return data;
         }
 
-        // ============================================
-        // VARIÁVEIS GLOBAIS
-        // ============================================
-        
         let currentCursoId = null;
         let currentCursoNome = null;
         let currentInstituicaoNome = null;
 
-        // ============================================
-        // FUNÇÕES AUXILIARES
-        // ============================================
-
-        // Função para escapar HTML (prevenir XSS)
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
 
-        // Função para exibir mensagens
         function showMessage(message, type = 'success') {
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
@@ -311,34 +288,22 @@
             }, 5000);
         }
 
-        // ============================================
-        // FUNÇÕES DE NAVEGAÇÃO
-        // ============================================
-
-        // Voltar para cursos
         function voltarCursos() {
             window.location.href = 'cursos.html';
         }
 
-        // Mostrar formulário de cadastro
         function mostrarFormularioDisciplina() {
             document.getElementById('disciplinaFormContainer').style.display = 'block';
             document.getElementById('btnAddDisciplina').style.display = 'none';
             document.getElementById('disciplinaFormContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        // Ocultar formulário de cadastro
         function ocultarFormularioDisciplina() {
             document.getElementById('disciplinaFormContainer').style.display = 'none';
             document.getElementById('btnAddDisciplina').style.display = 'inline-flex';
             document.getElementById('cadastroDisciplinaForm').reset();
         }
 
-        // ============================================
-        // FUNÇÕES DE CARREGAMENTO
-        // ============================================
-
-        // Carregar dados do curso selecionado
         function loadCursoData() {
             try {
                 const cursoData = localStorage.getItem('selectedCurso');
@@ -354,17 +319,14 @@
                 currentCursoId = curso.id;
                 currentCursoNome = curso.nome;
 
-                // Carregar nome da instituição
                 const instituicaoData = localStorage.getItem('selectedInstituicao');
                 if (instituicaoData) {
                     const instituicao = JSON.parse(instituicaoData);
                     currentInstituicaoNome = instituicao.nome;
                 }
 
-                // Atualizar interface
                 document.getElementById('cursoInfo').textContent = `Curso: ${curso.nome}`;
                 
-                // Atualizar título das disciplinas
                 const titulo = currentInstituicaoNome 
                     ? `Disciplinas de ${curso.nome} - ${currentInstituicaoNome}`
                     : `Disciplinas de ${curso.nome}`;
@@ -377,7 +339,6 @@
             }
         }
 
-        // Carregar disciplinas do backend
         async function loadDisciplinas() {
             if (!currentCursoId) {
                 return;
@@ -393,11 +354,6 @@
             }
         }
 
-        // ============================================
-        // FUNÇÕES DE RENDERIZAÇÃO
-        // ============================================
-
-        // Renderizar lista de disciplinas
         function renderDisciplinas(disciplinas) {
             const grid = document.getElementById('disciplinasGrid');
             
@@ -461,11 +417,6 @@
             });
         }
 
-        // ============================================
-        // FUNÇÕES CRUD
-        // ============================================
-
-        // Cadastrar disciplina
         document.getElementById('cadastroDisciplinaForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -510,10 +461,8 @@
             }
         });
 
-        // Editar disciplina - abrir modal
         async function editarDisciplina(id) {
             try {
-                // Buscar disciplina atual do backend
                 const response = await apiRequest(`${API_URL}/disciplinas?cursoId=${currentCursoId}`);
                 const disciplinas = response.data || [];
                 const disciplina = disciplinas.find(d => d.id === id);
@@ -536,7 +485,6 @@
             }
         }
 
-        // Salvar edição
         document.getElementById('editDisciplinaForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -583,14 +531,12 @@
             }
         });
 
-        // Excluir disciplina
         function excluirDisciplina(id) {
             document.getElementById('deleteDisciplinaId').value = id;
             const deleteModal = new bootstrap.Modal(document.getElementById('deleteDisciplinaModal'));
             deleteModal.show();
         }
 
-        // Confirmar exclusão
         document.getElementById('confirmDeleteDisciplinaBtn').addEventListener('click', async function() {
             const id = parseInt(document.getElementById('deleteDisciplinaId').value);
 
@@ -618,43 +564,31 @@
             }
         });
 
-        // Ver turmas - redireciona para página de turmas
         function verTurmas(disciplinaId, disciplinaNome, disciplinaCodigo) {
-            // Salvar dados da disciplina selecionada no localStorage
             localStorage.setItem('selectedDisciplina', JSON.stringify({
                 id: disciplinaId,
                 nome: disciplinaNome,
                 codigo: disciplinaCodigo || null
             }));
             
-            // Redirecionar para página de turmas
             window.location.href = 'turmas.html';
         }
 
         function verComponentes(disciplinaId, disciplinaNome) {
-            // Salvar dados da disciplina selecionada no localStorage
             localStorage.setItem('selectedDisciplina', JSON.stringify({
                 id: disciplinaId,
                 nome: disciplinaNome
             }));
             
-            // Redirecionar para página de componentes
             window.location.href = 'componentes.html';
         }
 
-        // ============================================
-        // INICIALIZAÇÃO
-        // ============================================
-
         document.addEventListener('DOMContentLoaded', async function() {
-            // Verificar autenticação
             if (!checkAuth()) {
                 return;
             }
 
-            // Carregar dados do curso
             if (loadCursoData()) {
-                // Carregar disciplinas
                 await loadDisciplinas();
             }
         });

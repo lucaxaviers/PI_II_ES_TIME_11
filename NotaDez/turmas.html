@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Header da Página de Turmas -->
+    
     <div class="dashboard-header">
         <div class="container">
             <div class="d-flex justify-content-between align-items-center">
@@ -32,7 +32,7 @@
     </div>
 
     <div class="container">
-        <!-- Formulário de Cadastro de Turma (oculto inicialmente) -->
+        
         <div class="curso-form-container" id="turmaFormContainer" style="display: none;">
             <div class="card shadow-sm mb-4">
                 <div class="card-body p-4">
@@ -89,18 +89,16 @@
             </div>
         </div>
 
-        <!-- Lista de Turmas -->
         <div id="turmasContent">
             <h2 class="mb-4 mt-4" style="color: #1D4ED8; font-weight: 600;">
                 <i class="bi bi-list-ul"></i> <span id="turmasTitle">Turmas Cadastradas</span>
             </h2>
             <div class="cursos-grid" id="turmasGrid">
-                <!-- Os cards de turmas serão inseridos aqui via JavaScript -->
+                
             </div>
         </div>
     </div>
 
-    <!-- Modal de Edição de Turma -->
     <div class="modal fade" id="editTurmaModal" tabindex="-1" aria-labelledby="editTurmaModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -153,7 +151,6 @@
         </div>
     </div>
 
-    <!-- Modal de Exclusão de Turma -->
     <div class="modal fade" id="deleteTurmaModal" tabindex="-1" aria-labelledby="deleteTurmaModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -180,18 +177,13 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // ============================================
-        // CONFIGURAÇÃO DA API
-        // ============================================
-        
+
         const API_URL = 'http://localhost:3000';
 
-        // Função para obter o token de autenticação
         function getAuthToken() {
             return localStorage.getItem('token');
         }
 
-        // Função para verificar se o usuário está autenticado
         function checkAuth() {
             const token = getAuthToken();
             if (!token) {
@@ -202,7 +194,6 @@
             return true;
         }
 
-        // Função para fazer requisições autenticadas
         async function apiRequest(url, options = {}) {
             const token = getAuthToken();
             const headers = {
@@ -222,7 +213,7 @@
             const data = await response.json();
 
             if (!response.ok) {
-                // Prioriza mensagem em português do backend, depois message em inglês
+                
                 const errorMsg = data.mensagem || data.message || 'Erro na requisição';
                 if (data.debug) {
                     throw new Error(`${errorMsg} (${data.debug.method} ${data.debug.urlPath})`);
@@ -233,26 +224,16 @@
             return data;
         }
 
-        // ============================================
-        // VARIÁVEIS GLOBAIS
-        // ============================================
-        
         let currentDisciplinaId = null;
         let currentDisciplinaNome = null;
         let currentDisciplinaCodigo = null;
 
-        // ============================================
-        // FUNÇÕES AUXILIARES
-        // ============================================
-
-        // Função para escapar HTML (prevenir XSS)
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
 
-        // Função para exibir mensagens
         function showMessage(message, type = 'success') {
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
@@ -268,20 +249,17 @@
             }, 5000);
         }
 
-        // Função para extrair sigla e código do nome completo
         function parseTurmaNome(nomeCompleto) {
             let nome = nomeCompleto;
             let sigla = '';
             let codigo = '';
 
-            // Extrair sigla: Nome (SIGLA)
             const siglaMatch = nomeCompleto.match(/^(.+?)\s*\(([^)]+)\)/);
             if (siglaMatch) {
                 nome = siglaMatch[1].trim();
                 sigla = siglaMatch[2].trim();
             }
 
-            // Extrair código: Nome [CODIGO] ou Nome (SIGLA) [CODIGO]
             const codigoMatch = nomeCompleto.match(/\[([^\]]+)\]/);
             if (codigoMatch) {
                 codigo = codigoMatch[1].trim();
@@ -290,34 +268,22 @@
             return { nome, sigla, codigo };
         }
 
-        // ============================================
-        // FUNÇÕES DE NAVEGAÇÃO
-        // ============================================
-
-        // Voltar para disciplinas
         function voltarDisciplinas() {
             window.location.href = 'disciplinas.html';
         }
 
-        // Mostrar formulário de cadastro
         function mostrarFormularioTurma() {
             document.getElementById('turmaFormContainer').style.display = 'block';
             document.getElementById('btnAddTurma').style.display = 'none';
             document.getElementById('turmaFormContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        // Ocultar formulário de cadastro
         function ocultarFormularioTurma() {
             document.getElementById('turmaFormContainer').style.display = 'none';
             document.getElementById('btnAddTurma').style.display = 'inline-flex';
             document.getElementById('cadastroTurmaForm').reset();
         }
 
-        // ============================================
-        // FUNÇÕES DE CARREGAMENTO
-        // ============================================
-
-        // Carregar dados da disciplina selecionada
         function loadDisciplinaData() {
             try {
                 const disciplinaData = localStorage.getItem('selectedDisciplina');
@@ -334,13 +300,11 @@
                 currentDisciplinaNome = disciplina.nome;
                 currentDisciplinaCodigo = disciplina.codigo || '';
 
-                // Atualizar interface
                 const disciplinaInfo = currentDisciplinaCodigo 
                     ? `Disciplina: ${disciplina.nome} (${currentDisciplinaCodigo})`
                     : `Disciplina: ${disciplina.nome}`;
                 document.getElementById('disciplinaInfo').textContent = disciplinaInfo;
-                
-                // Atualizar título das turmas
+
                 const titulo = currentDisciplinaCodigo
                     ? `Turmas da Disciplina: ${disciplina.nome} (${currentDisciplinaCodigo})`
                     : `Turmas da Disciplina: ${disciplina.nome}`;
@@ -353,7 +317,6 @@
             }
         }
 
-        // Carregar turmas do backend
         async function loadTurmas() {
             if (!currentDisciplinaId) {
                 return;
@@ -369,11 +332,6 @@
             }
         }
 
-        // ============================================
-        // FUNÇÕES DE RENDERIZAÇÃO
-        // ============================================
-
-        // Renderizar lista de turmas
         function renderTurmas(turmas) {
             const grid = document.getElementById('turmasGrid');
             
@@ -391,7 +349,7 @@
             grid.innerHTML = '';
             
             turmas.forEach(turma => {
-                // Extrair sigla e código do nome completo
+                
                 const parsed = parseTurmaNome(turma.nome);
                 
                 const card = document.createElement('div');
@@ -440,11 +398,6 @@
             });
         }
 
-        // ============================================
-        // FUNÇÕES CRUD
-        // ============================================
-
-        // Cadastrar turma
         document.getElementById('cadastroTurmaForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -487,10 +440,9 @@
             }
         });
 
-        // Editar turma - abrir modal
         async function editarTurma(id, nomeCompleto) {
             try {
-                // Extrair sigla e código do nome completo
+                
                 const parsed = parseTurmaNome(nomeCompleto);
 
                 document.getElementById('editTurmaId').value = id;
@@ -505,7 +457,6 @@
             }
         }
 
-        // Salvar edição
         document.getElementById('editTurmaForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -550,14 +501,12 @@
             }
         });
 
-        // Excluir turma
         function excluirTurma(id) {
             document.getElementById('deleteTurmaId').value = id;
             const deleteModal = new bootstrap.Modal(document.getElementById('deleteTurmaModal'));
             deleteModal.show();
         }
 
-        // Confirmar exclusão
         document.getElementById('confirmDeleteTurmaBtn').addEventListener('click', async function() {
             const id = parseInt(document.getElementById('deleteTurmaId').value);
 
@@ -585,44 +534,35 @@
             }
         });
 
-        // Gerenciar alunos
         function gerenciarAlunos(turmaId, turmaNome) {
-            // Salvar dados da turma selecionada no localStorage
+            
             localStorage.setItem('selectedTurma', JSON.stringify({
                 id: turmaId,
                 nome: turmaNome
             }));
-            
-            // Redirecionar para alunos.html
+
             window.location.href = 'alunos.html';
         }
 
-        // Ver notas da turma
         function verNotas(turmaId, turmaNome) {
-            // Salvar dados da turma e disciplina selecionadas no localStorage
+            
             const turmaData = {
                 id: turmaId,
                 nome: turmaNome
             };
             localStorage.setItem('selectedTurma', JSON.stringify(turmaData));
-            
-            // Redirecionar para notas.html
+
             window.location.href = 'notas.html';
         }
 
-        // ============================================
-        // INICIALIZAÇÃO
-        // ============================================
-
         document.addEventListener('DOMContentLoaded', async function() {
-            // Verificar autenticação
+            
             if (!checkAuth()) {
                 return;
             }
 
-            // Carregar dados da disciplina
             if (loadDisciplinaData()) {
-                // Carregar turmas
+                
                 await loadTurmas();
             }
         });
