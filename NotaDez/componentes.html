@@ -412,7 +412,6 @@
 
         // ID da disciplina atual
         let currentDisciplinaId = null;
-
         // ============================================
         // FUNÇÕES DE NAVEGAÇÃO
         // ============================================
@@ -699,7 +698,7 @@
         // FUNÇÕES AUXILIARES
         // ============================================
 
-        // Escapar HTML 
+        // Escapar HTML (prevenir XSS)
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
