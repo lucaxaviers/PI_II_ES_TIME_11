@@ -1,0 +1,632 @@
+<!-- Autor: Leonardo Gambaroni -->
+<!-- Página: componentes.html -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Componentes de Nota - NotaDez</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .table-container {
+            background: #FFFFFF;
+            border: 2px solid #1D4ED8;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+
+        #componentesTable {
+            width: 100%;
+            border-collapse: collapse;
+            background: #FFFFFF;
+        }
+
+        #componentesTable thead {
+            background: #1D4ED8;
+            color: #FFFFFF;
+        }
+
+        #componentesTable th {
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid #1D4ED8;
+            white-space: nowrap;
+        }
+
+        #componentesTable td {
+            padding: 8px;
+            border: 1px solid #1D4ED8;
+            background: #FFFFFF;
+        }
+
+        #componentesTable tr:nth-child(even) td {
+            background: #F8F9FA;
+        }
+
+        #componentesTable tr:hover td {
+            background: #E3F2FD;
+        }
+
+        .tipo-media-section {
+            background: #FFFFFF;
+            border: 2px solid #1D4ED8;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .tipo-media-section h3 {
+            color: #1D4ED8;
+            font-size: 1.25rem;
+            margin-bottom: 15px;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .radio-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .radio-option label {
+            color: #1D4ED8;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6C757D;
+            background: #F8F9FA;
+            border: 2px solid #1D4ED8;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header da Página de Componentes -->
+    <div class="dashboard-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="dashboard-title mb-0">
+                        <i class="bi bi-list-check"></i> Componentes de Nota
+                    </h1>
+                    <p class="text-muted mb-0 mt-2" id="disciplinaInfo">Disciplina: Carregando...</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-secondary" onclick="voltarDisciplinas()">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </button>
+                    <button class="btn-add-curso" id="btnAddComponente" onclick="mostrarFormularioComponente()">
+                        <i class="bi bi-plus-circle"></i> Adicionar Componente
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Área de Aviso (quando não há componentes) -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="bi bi-inbox" style="font-size: 3rem; color: #ADB5BD;"></i>
+            <p class="mt-3">Não há componentes cadastrados ainda.</p>
+        </div>
+
+        <!-- Formulário de Cadastro de Componente (oculto inicialmente) -->
+        <div class="curso-form-container" id="componenteFormContainer" style="display: none;">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="curso-form-title mb-4">
+                        <i class="bi bi-list-check"></i> Cadastrar Novo Componente
+                    </h3>
+                    <form id="cadastroComponenteForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="componenteNome" class="form-label">Nome <span class="text-danger">*</span></label>
+                                <input 
+                                    type="text" 
+                                    class="form-control form-control-lg" 
+                                    id="componenteNome" 
+                                    name="nome"
+                                    placeholder="Ex: Prova 1, Trabalho Final"
+                                    required
+                                >
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="componenteSigla" class="form-label">Sigla <span class="text-danger">*</span></label>
+                                <input 
+                                    type="text" 
+                                    class="form-control form-control-lg" 
+                                    id="componenteSigla" 
+                                    name="sigla"
+                                    placeholder="Ex: P1, P2, T1"
+                                    required
+                                    maxlength="10"
+                                >
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label for="componenteDescricao" class="form-label">Descrição</label>
+                                <input 
+                                    type="text" 
+                                    class="form-control form-control-lg" 
+                                    id="componenteDescricao" 
+                                    name="descricao"
+                                    placeholder="Ex: Avaliação teórica"
+                                >
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="componentePeso" class="form-label">Peso da Nota</label>
+                                <input 
+                                    type="number" 
+                                    class="form-control form-control-lg" 
+                                    id="componentePeso" 
+                                    name="peso"
+                                    placeholder="0.0"
+                                    min="0.1"
+                                    max="1.0"
+                                    step="0.1"
+                                    disabled
+                                >
+                                <small class="text-muted">Ative "Média Ponderada" para usar pesos</small>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-secondary btn-lg" onclick="ocultarFormularioComponente()">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-check-circle"></i> Adicionar Componente
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Componentes -->
+        <div id="componentesContent">
+            <h2 class="mb-4 mt-4" style="color: #1D4ED8; font-weight: 600;">
+                <i class="bi bi-list-ul"></i> Componentes Cadastrados
+            </h2>
+            <div class="table-container">
+                <table id="componentesTable">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Sigla</th>
+                            <th>Descrição</th>
+                            <th>Peso</th>
+                            <th class="text-center">Editar</th>
+                            <th class="text-center">Excluir</th>
+                        </tr>
+                    </thead>
+                    <tbody id="componentesTableBody">
+                        <!-- Os componentes serão inseridos aqui via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Seleção do Tipo de Cálculo da Nota Final -->
+        <div class="tipo-media-section">
+            <h3>Tipo de cálculo da nota final:</h3>
+            <div class="radio-group">
+                <div class="radio-option">
+                    <input type="radio" id="mediaSimples" name="tipoMedia" value="simples" checked>
+                    <label for="mediaSimples">Média Simples</label>
+                </div>
+                <div class="radio-option">
+                    <input type="radio" id="mediaPonderada" name="tipoMedia" value="ponderada">
+                    <label for="mediaPonderada">Média Ponderada</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Edição de Componente -->
+    <div class="modal fade" id="editComponenteModal" tabindex="-1" aria-labelledby="editComponenteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editComponenteModalLabel">
+                        <i class="bi bi-pencil-square"></i> Editar Componente
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editComponenteForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="editComponenteId">
+                        <div class="mb-3">
+                            <label for="editComponenteNome" class="form-label">Nome <span class="text-danger">*</span></label>
+                            <input 
+                                type="text" 
+                                class="form-control form-control-lg" 
+                                id="editComponenteNome"
+                                required
+                            >
+                        </div>
+                        <div class="mb-3">
+                            <label for="editComponenteSigla" class="form-label">Sigla <span class="text-danger">*</span></label>
+                            <input 
+                                type="text" 
+                                class="form-control form-control-lg" 
+                                id="editComponenteSigla"
+                                required
+                                maxlength="10"
+                            >
+                        </div>
+                        <div class="mb-3">
+                            <label for="editComponenteDescricao" class="form-label">Descrição</label>
+                            <input 
+                                type="text" 
+                                class="form-control form-control-lg" 
+                                id="editComponenteDescricao"
+                            >
+                        </div>
+                        <div class="mb-3">
+                            <label for="editComponentePeso" class="form-label">Peso da Nota</label>
+                            <input 
+                                type="number" 
+                                class="form-control form-control-lg" 
+                                id="editComponentePeso"
+                                min="0.1"
+                                max="1.0"
+                                step="0.1"
+                                disabled
+                            >
+                            <small class="text-muted">Ative "Média Ponderada" para usar pesos</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary-modal" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Salvar Alterações
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Exclusão de Componente -->
+    <div class="modal fade" id="deleteComponenteModal" tabindex="-1" aria-labelledby="deleteComponenteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteComponenteModalLabel">
+                        <i class="bi bi-exclamation-triangle text-danger"></i> Confirmar Exclusão
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja excluir este componente?</p>
+                    <p class="text-muted small">Esta ação não pode ser desfeita.</p>
+                    <input type="hidden" id="deleteComponenteId">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary-modal" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteComponenteBtn">
+                        <i class="bi bi-trash"></i> Confirmar Exclusão
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ============================================
+        // ESTRUTURA DE DADOS
+        // ============================================
+
+        // Componentes de nota
+        const componentes = [];
+
+        // Tipo de média
+        let tipoMedia = "simples"; // ou "ponderada"
+
+        // ============================================
+        // FUNÇÕES DE NAVEGAÇÃO
+        // ============================================
+
+        // Voltar para disciplinas
+        function voltarDisciplinas() {
+            window.location.href = 'disciplinas.html';
+        }
+
+        // Carregar dados da disciplina
+        function loadDisciplinaData() {
+            try {
+                const disciplinaData = localStorage.getItem('selectedDisciplina');
+                if (!disciplinaData) {
+                    alert('Nenhuma disciplina selecionada. Redirecionando...');
+                    window.location.href = 'disciplinas.html';
+                    return false;
+                }
+
+                const disciplina = JSON.parse(disciplinaData);
+                document.getElementById('disciplinaInfo').textContent = `Disciplina: ${disciplina.nome}`;
+                return true;
+            } catch (error) {
+                alert('Erro ao carregar dados da disciplina');
+                return false;
+            }
+        }
+
+        // ============================================
+        // FUNÇÕES DE FORMULÁRIO
+        // ============================================
+
+        // Mostrar formulário de cadastro
+        function mostrarFormularioComponente() {
+            document.getElementById('componenteFormContainer').style.display = 'block';
+            document.getElementById('btnAddComponente').style.display = 'none';
+            document.getElementById('componenteNome').focus();
+            atualizarEstadoPeso();
+        }
+
+        // Ocultar formulário de cadastro
+        function ocultarFormularioComponente() {
+            document.getElementById('componenteFormContainer').style.display = 'none';
+            document.getElementById('btnAddComponente').style.display = 'inline-flex';
+            document.getElementById('cadastroComponenteForm').reset();
+            atualizarEstadoPeso();
+        }
+
+        // ============================================
+        // FUNÇÕES DE CRUD
+        // ============================================
+
+        // Renderiza lista
+        function atualizarTabela() {
+            const tbody = document.getElementById('componentesTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const componentesContent = document.getElementById('componentesContent');
+
+            if (componentes.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                componentesContent.style.display = 'none';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            componentesContent.style.display = 'block';
+
+            tbody.innerHTML = componentes.map((componente, index) => `
+                <tr>
+                    <td><strong>${escapeHtml(componente.nome)}</strong></td>
+                    <td>${escapeHtml(componente.sigla)}</td>
+                    <td>${escapeHtml(componente.descricao || '-')}</td>
+                    <td>${componente.peso ? componente.peso.toFixed(1) : '-'}</td>
+                    <td class="text-center">
+                        <button class="action-btn btn-edit-curso" onclick="editarComponente(${index})" title="Editar">
+                            <i class="bi bi-pencil"></i> Editar
+                        </button>
+                    </td>
+                    <td class="text-center">
+                        <button class="action-btn btn-delete-curso" onclick="excluirComponente(${index})" title="Excluir">
+                            <i class="bi bi-trash"></i> Excluir
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Adiciona componente
+        document.getElementById('cadastroComponenteForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const nome = document.getElementById('componenteNome').value.trim();
+            const sigla = document.getElementById('componenteSigla').value.trim().toUpperCase();
+            const descricao = document.getElementById('componenteDescricao').value.trim();
+            const peso = tipoMedia === 'ponderada' ? parseFloat(document.getElementById('componentePeso').value) : null;
+
+            // Validação
+            if (!nome || !sigla) {
+                alert('Nome e Sigla são obrigatórios!');
+                return;
+            }
+
+            if (tipoMedia === 'ponderada' && (!peso || peso < 0.1 || peso > 1.0)) {
+                alert('Peso deve estar entre 0.1 e 1.0 quando média ponderada estiver ativa!');
+                return;
+            }
+
+            // Adicionar ao array
+            componentes.push({
+                nome: nome,
+                sigla: sigla,
+                descricao: descricao,
+                peso: peso
+            });
+
+            // Atualizar tabela
+            atualizarTabela();
+            
+            // Limpar formulário e ocultar
+            ocultarFormularioComponente();
+            
+            alert('Componente adicionado com sucesso!');
+        });
+
+        // Edita componente
+        function editarComponente(index) {
+            const componente = componentes[index];
+            if (!componente) {
+                alert('Componente não encontrado');
+                return;
+            }
+
+            document.getElementById('editComponenteId').value = index;
+            document.getElementById('editComponenteNome').value = componente.nome;
+            document.getElementById('editComponenteSigla').value = componente.sigla;
+            document.getElementById('editComponenteDescricao').value = componente.descricao || '';
+            document.getElementById('editComponentePeso').value = componente.peso || '';
+
+            atualizarEstadoPesoModal();
+
+            const editModal = new bootstrap.Modal(document.getElementById('editComponenteModal'));
+            editModal.show();
+        }
+
+        // Salvar edição
+        document.getElementById('editComponenteForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const index = parseInt(document.getElementById('editComponenteId').value);
+            const nome = document.getElementById('editComponenteNome').value.trim();
+            const sigla = document.getElementById('editComponenteSigla').value.trim().toUpperCase();
+            const descricao = document.getElementById('editComponenteDescricao').value.trim();
+            const peso = tipoMedia === 'ponderada' ? parseFloat(document.getElementById('editComponentePeso').value) : null;
+
+            // Validação
+            if (!nome || !sigla) {
+                alert('Nome e Sigla são obrigatórios!');
+                return;
+            }
+
+            if (tipoMedia === 'ponderada' && (!peso || peso < 0.1 || peso > 1.0)) {
+                alert('Peso deve estar entre 0.1 e 1.0 quando média ponderada estiver ativa!');
+                return;
+            }
+
+            // Atualizar no array
+            componentes[index] = {
+                nome: nome,
+                sigla: sigla,
+                descricao: descricao,
+                peso: peso
+            };
+
+            // Atualizar tabela
+            atualizarTabela();
+
+            // Fechar modal
+            const editModal = bootstrap.Modal.getInstance(document.getElementById('editComponenteModal'));
+            editModal.hide();
+
+            alert('Componente atualizado com sucesso!');
+        });
+
+        // Exclui componente
+        function excluirComponente(index) {
+            document.getElementById('deleteComponenteId').value = index;
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteComponenteModal'));
+            deleteModal.show();
+        }
+
+        // Confirmar exclusão
+        document.getElementById('confirmDeleteComponenteBtn').addEventListener('click', function() {
+            const index = parseInt(document.getElementById('deleteComponenteId').value);
+
+            // Remover do array
+            componentes.splice(index, 1);
+
+            // Atualizar tabela
+            atualizarTabela();
+
+            // Fechar modal
+            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteComponenteModal'));
+            deleteModal.hide();
+
+            alert('Componente excluído com sucesso!');
+        });
+
+        // ============================================
+        // FUNÇÕES AUXILIARES
+        // ============================================
+
+        // Escapar HTML (prevenir XSS)
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Controla tipo de média
+        document.querySelectorAll('input[name="tipoMedia"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                tipoMedia = this.value;
+                atualizarEstadoPeso();
+                atualizarEstadoPesoModal();
+                
+                // Salvar escolha no localStorage (associada à disciplina)
+                const disciplinaData = localStorage.getItem('selectedDisciplina');
+                if (disciplinaData) {
+                    const disciplina = JSON.parse(disciplinaData);
+                    localStorage.setItem(`tipoMedia_${disciplina.id}`, tipoMedia);
+                }
+            });
+        });
+
+        // Atualiza estado do campo peso no formulário
+        function atualizarEstadoPeso() {
+            const pesoInput = document.getElementById('componentePeso');
+            if (tipoMedia === 'ponderada') {
+                pesoInput.disabled = false;
+                pesoInput.required = true;
+            } else {
+                pesoInput.disabled = true;
+                pesoInput.required = false;
+                pesoInput.value = '';
+            }
+        }
+
+        // Atualiza estado do campo peso no modal
+        function atualizarEstadoPesoModal() {
+            const pesoInput = document.getElementById('editComponentePeso');
+            if (tipoMedia === 'ponderada') {
+                pesoInput.disabled = false;
+                pesoInput.required = true;
+            } else {
+                pesoInput.disabled = true;
+                pesoInput.required = false;
+            }
+        }
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Carregar dados da disciplina
+            if (loadDisciplinaData()) {
+                // Carregar tipo de média salvo (se existir)
+                const disciplinaData = localStorage.getItem('selectedDisciplina');
+                if (disciplinaData) {
+                    const disciplina = JSON.parse(disciplinaData);
+                    const tipoMediaSalvo = localStorage.getItem(`tipoMedia_${disciplina.id}`);
+                    if (tipoMediaSalvo) {
+                        tipoMedia = tipoMediaSalvo;
+                        document.querySelector(`input[name="tipoMedia"][value="${tipoMediaSalvo}"]`).checked = true;
+                        atualizarEstadoPeso();
+                    }
+                }
+                
+                // Atualizar tabela inicial
+                atualizarTabela();
+            }
+        });
+    </script>
+</body>
+</html>
+

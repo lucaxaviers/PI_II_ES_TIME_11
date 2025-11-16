@@ -445,6 +445,9 @@
                         <button class="action-btn btn-view-curso" onclick="verTurmas(${disciplina.id}, '${disciplina.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', '${(disciplina.codigo || '').replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">
                             <i class="bi bi-people"></i> Ver Turmas
                         </button>
+                        <button class="action-btn btn-view-curso" onclick="verComponentes(${disciplina.id}, '${disciplina.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" style="background-color: #8b5cf6;">
+                            <i class="bi bi-list-check"></i> Componentes
+                        </button>
                         <button class="action-btn btn-edit-curso" onclick="editarDisciplina(${disciplina.id})">
                             <i class="bi bi-pencil"></i> Editar
                         </button>
@@ -625,6 +628,17 @@
             
             // Redirecionar para página de turmas
             window.location.href = 'turmas.html';
+        }
+
+        function verComponentes(disciplinaId, disciplinaNome) {
+            // Salvar dados da disciplina selecionada no localStorage
+            localStorage.setItem('selectedDisciplina', JSON.stringify({
+                id: disciplinaId,
+                nome: disciplinaNome
+            }));
+            
+            // Redirecionar para página de componentes
+            window.location.href = 'componentes.html';
         }
 
         // ============================================

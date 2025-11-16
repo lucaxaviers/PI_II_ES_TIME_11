@@ -135,6 +135,16 @@
             font-size: 0.85rem;
         }
 
+        .radio-option input[type="radio"]:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .radio-option input[type="radio"]:disabled + label {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
         .clearfix::after {
             content: "";
             display: table;
@@ -163,18 +173,21 @@
     </div>
 
     <div class="container">
-        <!-- Opção de Cálculo da Média (pequena, acima da tabela) -->
+        <!-- Opção de Cálculo da Média (pequena, acima da tabela) - Somente Leitura -->
         <div class="controls-small mb-3">
             <div class="radio-group-small">
                 <div class="radio-option">
-                    <input type="radio" id="mediaSimples" name="tipoMedia" value="simples" checked>
-                    <label for="mediaSimples">Média Simples</label>
+                    <input type="radio" id="mediaSimples" name="tipoMedia" value="simples" checked disabled>
+                    <label for="mediaSimples" style="opacity: 0.7;">Média Simples</label>
                 </div>
                 <div class="radio-option">
-                    <input type="radio" id="mediaPonderada" name="tipoMedia" value="ponderada">
-                    <label for="mediaPonderada">Média Ponderada</label>
+                    <input type="radio" id="mediaPonderada" name="tipoMedia" value="ponderada" disabled>
+                    <label for="mediaPonderada" style="opacity: 0.7;">Média Ponderada</label>
                 </div>
             </div>
+            <small class="text-muted d-block mt-2">
+                <i class="bi bi-info-circle"></i> Tipo de média definido em Componentes de Nota
+            </small>
         </div>
 
         <!-- Tabela de Notas -->
@@ -422,25 +435,44 @@
             window.location.href = 'turmas.html';
         }
 
-        // Listener para mudança de tipo de média
-        document.querySelectorAll('input[name="tipoMedia"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                // Recalcula todas as notas finais
-                alunos.forEach(aluno => {
-                    const notaFinalElement = document.getElementById(`nota-final-${aluno.ra}`);
-                    if (notaFinalElement) {
-                        notaFinalElement.textContent = calcularNotaFinal(aluno.ra).toFixed(2);
-                    }
-                });
-            });
-        });
-
         // ============================================
         // INICIALIZAÇÃO
         // ============================================
 
+        // Carrega tipo de média do localStorage
+        function carregarTipoMedia() {
+            // Buscar disciplina do localStorage
+            // A disciplina deve estar salva quando vem de disciplinas.html ou turmas.html
+            let disciplinaId = null;
+            
+            const disciplinaData = localStorage.getItem('selectedDisciplina');
+            if (disciplinaData) {
+                try {
+                    const disciplina = JSON.parse(disciplinaData);
+                    disciplinaId = disciplina.id;
+                } catch (e) {
+                    console.error('Erro ao parsear dados da disciplina:', e);
+                }
+            }
+            
+            // Se encontrou a disciplina, carregar o tipo de média
+            if (disciplinaId) {
+                const tipoMediaSalvo = localStorage.getItem(`tipoMedia_${disciplinaId}`);
+                if (tipoMediaSalvo) {
+                    const radio = document.querySelector(`input[name="tipoMedia"][value="${tipoMediaSalvo}"]`);
+                    if (radio) {
+                        radio.checked = true;
+                    }
+                }
+            }
+        }
+
         // Inicializa a página
         document.addEventListener('DOMContentLoaded', function() {
+            // Carregar tipo de média salvo
+            carregarTipoMedia();
+            
+            // Renderizar tabela
             renderizarTabela();
         });
     </script>
