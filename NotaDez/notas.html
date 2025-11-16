@@ -1,0 +1,449 @@
+<!-- Autor: LUCAS XAVIER & LEONARDO GAMBARONI -->
+<!-- Página: notas.html — Quadro de Notas -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quadro de Notas - NotaDez</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .table-container {
+            background: #FFFFFF;
+            border: 2px solid #1D4ED8;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+
+        #notasTable {
+            width: 100%;
+            border-collapse: collapse;
+            background: #FFFFFF;
+        }
+
+        #notasTable thead {
+            background: #1D4ED8;
+            color: #FFFFFF;
+        }
+
+        #notasTable th {
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid #1D4ED8;
+            white-space: nowrap;
+        }
+
+        #notasTable td {
+            padding: 8px;
+            border: 1px solid #1D4ED8;
+            background: #FFFFFF;
+        }
+
+        #notasTable tr:nth-child(even) td {
+            background: #F8F9FA;
+        }
+
+        #notasTable tr:hover td {
+            background: #E3F2FD;
+        }
+
+        .cell-ra, .cell-nome {
+            font-weight: 500;
+            background: #F8F9FA !important;
+        }
+
+        .cell-nota input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            padding: 4px;
+            font-size: 0.95rem;
+            color: #1D4ED8;
+            text-align: center;
+        }
+
+        .cell-nota input:focus {
+            outline: 2px solid #1D4ED8;
+            background: #FFFFFF;
+        }
+
+        .cell-nota-final {
+            font-weight: 600;
+            text-align: center;
+            background: #E3F2FD !important;
+            color: #1D4ED8;
+        }
+
+        .controls-small {
+            background: #FFFFFF;
+            border: 1px solid #1D4ED8;
+            border-radius: 6px;
+            padding: 10px 15px;
+            display: inline-block;
+        }
+
+        .radio-group-small {
+            display: flex;
+            gap: 15px;
+            margin: 0;
+        }
+
+        .controls {
+            background: #FFFFFF;
+            border: 2px solid #1D4ED8;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .controls h3 {
+            color: #1D4ED8;
+            font-size: 1.25rem;
+            margin-bottom: 15px;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .radio-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .radio-option label {
+            color: #1D4ED8;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .radio-group-small .radio-option label {
+            font-size: 0.85rem;
+        }
+
+        .clearfix::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header da Página de Notas -->
+    <div class="dashboard-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="dashboard-title mb-0">
+                        <i class="bi bi-clipboard-data"></i> Quadro de Notas
+                    </h1>
+                    <p class="text-muted mb-0 mt-2" id="headerTitle">Disciplina X — Turma A</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-secondary" onclick="voltarTurmas()">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Opção de Cálculo da Média (pequena, acima da tabela) -->
+        <div class="controls-small mb-3">
+            <div class="radio-group-small">
+                <div class="radio-option">
+                    <input type="radio" id="mediaSimples" name="tipoMedia" value="simples" checked>
+                    <label for="mediaSimples">Média Simples</label>
+                </div>
+                <div class="radio-option">
+                    <input type="radio" id="mediaPonderada" name="tipoMedia" value="ponderada">
+                    <label for="mediaPonderada">Média Ponderada</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabela de Notas -->
+        <div class="table-container">
+            <table id="notasTable">
+                <thead>
+                    <tr id="tableHeader">
+                        <!-- Cabeçalho será gerado via JavaScript -->
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Linhas serão geradas via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Botão Salvar (abaixo da tabela) -->
+        <div class="text-end mt-3 mb-4">
+            <button class="btn btn-primary btn-lg btn-save" onclick="salvarTudo()">
+                <i class="bi bi-save"></i> SALVAR TUDO
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ============================================
+        // ESTRUTURA DE DADOS
+        // ============================================
+
+        // Alunos
+        const alunos = [
+            { ra: "11111", nome: "Abel Antimônio" },
+            { ra: "11112", nome: "Bianca Nióbio" }
+        ];
+
+        // Componentes de nota
+        const componentes = ["P1", "P2", "Trabalho"];
+
+        // Pesos para média ponderada
+        const pesos = {
+            P1: 0.4,
+            P2: 0.3,
+            Trabalho: 0.3
+        };
+
+        // Notas
+        const notas = {
+            "11111": { P1: 0, P2: 0, Trabalho: 0 },
+            "11112": { P1: 0, P2: 0, Trabalho: 0 }
+        };
+
+        // Log de alterações
+        const log = [];
+
+        // Armazenar valores anteriores para detectar mudanças
+        const notasAnteriores = JSON.parse(JSON.stringify(notas));
+
+        // ============================================
+        // FUNÇÕES DE RENDERIZAÇÃO
+        // ============================================
+
+        // Renderiza tabela
+        function renderizarTabela() {
+            const thead = document.getElementById('tableHeader');
+            const tbody = document.getElementById('tableBody');
+
+            // Cabeçalho
+            let headerHTML = '<th>RA</th><th>Nome</th>';
+            componentes.forEach(comp => {
+                headerHTML += `<th>${comp}</th>`;
+            });
+            headerHTML += '<th>Nota Final</th>';
+            thead.innerHTML = headerHTML;
+
+            // Corpo da tabela
+            tbody.innerHTML = '';
+            alunos.forEach(aluno => {
+                const tr = document.createElement('tr');
+                
+                // RA (não editável)
+                const tdRA = document.createElement('td');
+                tdRA.className = 'cell-ra';
+                tdRA.textContent = aluno.ra;
+                tr.appendChild(tdRA);
+
+                // Nome (não editável)
+                const tdNome = document.createElement('td');
+                tdNome.className = 'cell-nome';
+                tdNome.textContent = aluno.nome;
+                tr.appendChild(tdNome);
+
+                // Componentes de nota (editáveis)
+                componentes.forEach(comp => {
+                    const td = document.createElement('td');
+                    td.className = 'cell-nota';
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.min = '0';
+                    input.max = '10';
+                    input.step = '0.01';
+                    input.value = notas[aluno.ra][comp].toFixed(2);
+                    input.dataset.ra = aluno.ra;
+                    input.dataset.componente = comp;
+                    input.addEventListener('input', function() {
+                        atualizarNota(aluno.ra, comp, parseFloat(this.value) || 0);
+                    });
+                    input.addEventListener('blur', function() {
+                        // Valida e formata ao sair do campo
+                        let valor = parseFloat(this.value) || 0;
+                        if (valor < 0) valor = 0;
+                        if (valor > 10) valor = 10;
+                        this.value = valor.toFixed(2);
+                        atualizarNota(aluno.ra, comp, valor);
+                    });
+                    td.appendChild(input);
+                    tr.appendChild(td);
+                });
+
+                // Nota Final (somente leitura)
+                const tdFinal = document.createElement('td');
+                tdFinal.className = 'cell-nota-final';
+                tdFinal.id = `nota-final-${aluno.ra}`;
+                tdFinal.textContent = calcularNotaFinal(aluno.ra).toFixed(2);
+                tr.appendChild(tdFinal);
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ============================================
+        // FUNÇÕES DE CÁLCULO
+        // ============================================
+
+        // Recalcula média
+        function calcularNotaFinal(ra) {
+            const tipoMedia = document.querySelector('input[name="tipoMedia"]:checked').value;
+            
+            if (tipoMedia === 'simples') {
+                // Média Simples: (P1 + P2 + P3 + ...) / quantidade
+                let soma = 0;
+                let quantidade = 0;
+                componentes.forEach(comp => {
+                    soma += notas[ra][comp];
+                    quantidade++;
+                });
+                return quantidade > 0 ? soma / quantidade : 0;
+            } else {
+                // Média Ponderada
+                let somaPonderada = 0;
+                let somaPesos = 0;
+                componentes.forEach(comp => {
+                    const peso = pesos[comp] || 0;
+                    somaPonderada += notas[ra][comp] * peso;
+                    somaPesos += peso;
+                });
+                return somaPesos > 0 ? somaPonderada / somaPesos : 0;
+            }
+        }
+
+        // Atualiza nota
+        function atualizarNota(ra, componente, valor) {
+            // Valida valor
+            if (valor < 0) valor = 0;
+            if (valor > 10) valor = 10;
+            
+            notas[ra][componente] = valor;
+            
+            // Atualiza Nota Final
+            const notaFinalElement = document.getElementById(`nota-final-${ra}`);
+            if (notaFinalElement) {
+                notaFinalElement.textContent = calcularNotaFinal(ra).toFixed(2);
+            }
+        }
+
+        // ============================================
+        // FUNÇÕES DE LOG
+        // ============================================
+
+        // Gera log
+        function gerarLog() {
+            const agora = new Date();
+            const dataFormatada = agora.toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+            const horaFormatada = agora.toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            const timestamp = `${dataFormatada} ${horaFormatada}`;
+
+            // Percorre todas as notas e verifica alterações
+            alunos.forEach(aluno => {
+                componentes.forEach(comp => {
+                    const valorAtual = notas[aluno.ra][comp];
+                    const valorAnterior = notasAnteriores[aluno.ra][comp];
+                    
+                    if (valorAtual !== valorAnterior) {
+                        const entrada = `${timestamp} — (Aluno ${aluno.nome}) — Nota de ${comp} alterada de ${valorAnterior.toFixed(2)} para ${valorAtual.toFixed(2)}`;
+                        log.push(entrada);
+                    }
+                });
+            });
+
+            // Atualiza valores anteriores
+            Object.keys(notas).forEach(ra => {
+                Object.keys(notas[ra]).forEach(comp => {
+                    notasAnteriores[ra][comp] = notas[ra][comp];
+                });
+            });
+        }
+
+        // ============================================
+        // FUNÇÕES DE EVENTO
+        // ============================================
+
+        // Salvar tudo
+        function salvarTudo() {
+            // Gera log (será salvo no banco via backend)
+            gerarLog();
+            
+            // Aqui o log será enviado para o backend
+            // Por enquanto, apenas simula o salvamento
+            console.log('Log gerado:', log);
+            
+            // Feedback visual
+            const btn = document.querySelector('.btn-save');
+            const textoOriginal = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-check-circle"></i> SALVO!';
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-success');
+            
+            setTimeout(() => {
+                btn.innerHTML = textoOriginal;
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-primary');
+            }, 2000);
+        }
+
+        // Voltar para turmas
+        function voltarTurmas() {
+            window.location.href = 'turmas.html';
+        }
+
+        // Listener para mudança de tipo de média
+        document.querySelectorAll('input[name="tipoMedia"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                // Recalcula todas as notas finais
+                alunos.forEach(aluno => {
+                    const notaFinalElement = document.getElementById(`nota-final-${aluno.ra}`);
+                    if (notaFinalElement) {
+                        notaFinalElement.textContent = calcularNotaFinal(aluno.ra).toFixed(2);
+                    }
+                });
+            });
+        });
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+
+        // Inicializa a página
+        document.addEventListener('DOMContentLoaded', function() {
+            renderizarTabela();
+        });
+    </script>
+</body>
+</html>
+

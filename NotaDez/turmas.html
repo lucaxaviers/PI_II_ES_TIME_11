@@ -424,6 +424,9 @@
                         <button class="action-btn btn-view-curso" onclick="gerenciarAlunos(${turma.id}, '${parsed.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">
                             <i class="bi bi-person-lines-fill"></i> Gerenciar Alunos
                         </button>
+                        <button class="action-btn btn-view-curso" onclick="verNotas(${turma.id}, '${parsed.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" style="background-color: #8b5cf6;">
+                            <i class="bi bi-clipboard-data"></i> Notas da Turma
+                        </button>
                         <button class="action-btn btn-edit-curso" onclick="editarTurma(${turma.id}, '${turma.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">
                             <i class="bi bi-pencil"></i> Editar
                         </button>
@@ -581,7 +584,7 @@
             }
         });
 
-        // Gerenciar alunos (placeholder)
+        // Gerenciar alunos
         function gerenciarAlunos(turmaId, turmaNome) {
             // Salvar dados da turma selecionada no localStorage
             localStorage.setItem('selectedTurma', JSON.stringify({
@@ -591,6 +594,19 @@
             
             // Redirecionar para alunos.html
             window.location.href = 'alunos.html';
+        }
+
+        // Ver notas da turma
+        function verNotas(turmaId, turmaNome) {
+            // Salvar dados da turma e disciplina selecionadas no localStorage
+            const turmaData = {
+                id: turmaId,
+                nome: turmaNome
+            };
+            localStorage.setItem('selectedTurma', JSON.stringify(turmaData));
+            
+            // Redirecionar para notas.html
+            window.location.href = 'notas.html';
         }
 
         // ============================================
