@@ -135,6 +135,16 @@
             font-size: 0.85rem;
         }
 
+        .radio-option input[type="radio"]:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .radio-option input[type="radio"]:disabled + label {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
         .clearfix::after {
             content: "";
             display: table;
@@ -157,24 +167,30 @@
                     <button class="btn btn-secondary" onclick="voltarTurmas()">
                         <i class="bi bi-arrow-left"></i> Voltar
                     </button>
+                    <button class="btn btn-outline-primary" onclick="verComponentes()" style="background-color: #8b5cf6; border-color: #8b5cf6; color: white; font-weight: 500;">
+                        <i class="bi bi-list-check"></i> Ver Componentes
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="container">
-        <!-- Opção de Cálculo da Média (pequena, acima da tabela) -->
+        <!-- Opção de Cálculo da Média (pequena, acima da tabela) - Somente Leitura -->
         <div class="controls-small mb-3">
             <div class="radio-group-small">
                 <div class="radio-option">
-                    <input type="radio" id="mediaSimples" name="tipoMedia" value="simples" checked>
-                    <label for="mediaSimples">Média Simples</label>
+                    <input type="radio" id="mediaSimples" name="tipoMedia" value="simples" checked disabled>
+                    <label for="mediaSimples" style="opacity: 0.7;">Média Simples</label>
                 </div>
                 <div class="radio-option">
-                    <input type="radio" id="mediaPonderada" name="tipoMedia" value="ponderada">
-                    <label for="mediaPonderada">Média Ponderada</label>
+                    <input type="radio" id="mediaPonderada" name="tipoMedia" value="ponderada" disabled>
+                    <label for="mediaPonderada" style="opacity: 0.7;">Média Ponderada</label>
                 </div>
             </div>
+            <small class="text-muted d-block mt-2">
+                <i class="bi bi-info-circle"></i> Tipo de média definido em Componentes de Nota
+            </small>
         </div>
 
         <!-- Tabela de Notas -->
@@ -202,36 +218,94 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // ============================================
+        // CONFIGURAÇÃO DA API
+        // ============================================
+        const API_URL = 'http://localhost:3000';
+
+        // Função para obter o token de autenticação
+        function getAuthToken() {
+            return localStorage.getItem('token');
+        }
+
+        // Função para verificar se o usuário está autenticado
+        function checkAuth() {
+            const token = getAuthToken();
+            if (!token) {
+                alert('Você precisa estar logado para acessar esta página.');
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        // Função para fazer requisições autenticadas
+        async function apiRequest(url, options = {}) {
+            const token = getAuthToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                const errorMsg = data.message || 'Erro na requisição';
+                if (data.debug) {
+                    throw new Error(`${errorMsg} (${data.debug.method} ${data.debug.urlPath})`);
+                }
+                throw new Error(errorMsg);
+            }
+
+            return data;
+        }
+
+        // Função para exibir mensagens
+        function showMessage(message, type = 'success') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // ============================================
         // ESTRUTURA DE DADOS
         // ============================================
 
-        // Alunos
-        const alunos = [
-            { ra: "11111", nome: "Abel Antimônio" },
-            { ra: "11112", nome: "Bianca Nióbio" }
-        ];
+        // Alunos (carregados do backend)
+        let alunos = [];
 
-        // Componentes de nota
-        const componentes = ["P1", "P2", "Trabalho"];
+        // Componentes de nota (carregados do backend)
+        let componentes = [];
 
-        // Pesos para média ponderada
-        const pesos = {
-            P1: 0.4,
-            P2: 0.3,
-            Trabalho: 0.3
-        };
+        // Notas (estrutura: notas[alunoId][componenteId] = valor)
+        let notas = {};
 
-        // Notas
-        const notas = {
-            "11111": { P1: 0, P2: 0, Trabalho: 0 },
-            "11112": { P1: 0, P2: 0, Trabalho: 0 }
-        };
-
-        // Log de alterações
-        const log = [];
+        // Notas finais do banco (estrutura: notasFinais[alunoId] = valor)
+        let notasFinais = {};
 
         // Armazenar valores anteriores para detectar mudanças
-        const notasAnteriores = JSON.parse(JSON.stringify(notas));
+        let notasAnteriores = {};
+
+        // IDs da turma e disciplina
+        let currentTurmaId = null;
+        let currentDisciplinaId = null;
 
         // ============================================
         // FUNÇÕES DE RENDERIZAÇÃO
@@ -242,10 +316,15 @@
             const thead = document.getElementById('tableHeader');
             const tbody = document.getElementById('tableBody');
 
+            if (alunos.length === 0 || componentes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="100%" class="text-center py-4">Carregando dados...</td></tr>';
+                return;
+            }
+
             // Cabeçalho
             let headerHTML = '<th>RA</th><th>Nome</th>';
             componentes.forEach(comp => {
-                headerHTML += `<th>${comp}</th>`;
+                headerHTML += `<th>${comp.sigla}</th>`;
             });
             headerHTML += '<th>Nota Final</th>';
             thead.innerHTML = headerHTML;
@@ -276,11 +355,12 @@
                     input.min = '0';
                     input.max = '10';
                     input.step = '0.01';
-                    input.value = notas[aluno.ra][comp].toFixed(2);
-                    input.dataset.ra = aluno.ra;
-                    input.dataset.componente = comp;
+                    const valorNota = notas[aluno.id] && notas[aluno.id][comp.id] ? notas[aluno.id][comp.id] : 0;
+                    input.value = valorNota.toFixed(2);
+                    input.dataset.alunoId = aluno.id;
+                    input.dataset.componenteId = comp.id;
                     input.addEventListener('input', function() {
-                        atualizarNota(aluno.ra, comp, parseFloat(this.value) || 0);
+                        atualizarNota(aluno.id, comp.id, parseFloat(this.value) || 0);
                     });
                     input.addEventListener('blur', function() {
                         // Valida e formata ao sair do campo
@@ -288,17 +368,20 @@
                         if (valor < 0) valor = 0;
                         if (valor > 10) valor = 10;
                         this.value = valor.toFixed(2);
-                        atualizarNota(aluno.ra, comp, valor);
+                        atualizarNota(aluno.id, comp.id, valor);
                     });
                     td.appendChild(input);
                     tr.appendChild(td);
                 });
 
-                // Nota Final (somente leitura)
+                // Nota Final (somente leitura) - usa do banco se disponível, senão calcula
                 const tdFinal = document.createElement('td');
                 tdFinal.className = 'cell-nota-final';
-                tdFinal.id = `nota-final-${aluno.ra}`;
-                tdFinal.textContent = calcularNotaFinal(aluno.ra).toFixed(2);
+                tdFinal.id = `nota-final-${aluno.id}`;
+                // Prioriza nota final do banco, senão calcula visualmente
+                const notaFinalBanco = notasFinais[aluno.id];
+                const notaFinalCalculada = notaFinalBanco !== undefined ? notaFinalBanco : calcularNotaFinal(aluno.id);
+                tdFinal.textContent = notaFinalCalculada.toFixed(2);
                 tr.appendChild(tdFinal);
 
                 tbody.appendChild(tr);
@@ -310,43 +393,62 @@
         // ============================================
 
         // Recalcula média
-        function calcularNotaFinal(ra) {
-            const tipoMedia = document.querySelector('input[name="tipoMedia"]:checked').value;
-            
+        function calcularNotaFinal(alunoId) {
+            // Verifica se tem dados necessários
+            if (!notas[alunoId] || componentes.length === 0) {
+                return 0;
+            }
+
+            // Obtém tipo de média (padrão: simples se não estiver selecionado)
+            const radioChecked = document.querySelector('input[name="tipoMedia"]:checked');
+            const tipoMedia = radioChecked ? radioChecked.value : 'simples';
+
             if (tipoMedia === 'simples') {
                 // Média Simples: (P1 + P2 + P3 + ...) / quantidade
                 let soma = 0;
                 let quantidade = 0;
                 componentes.forEach(comp => {
-                    soma += notas[ra][comp];
+                    const valor = notas[alunoId][comp.id] || 0;
+                    soma += valor;
                     quantidade++;
                 });
-                return quantidade > 0 ? soma / quantidade : 0;
+                const resultado = quantidade > 0 ? soma / quantidade : 0;
+                return resultado;
             } else {
                 // Média Ponderada
                 let somaPonderada = 0;
                 let somaPesos = 0;
                 componentes.forEach(comp => {
-                    const peso = pesos[comp] || 0;
-                    somaPonderada += notas[ra][comp] * peso;
-                    somaPesos += peso;
+                    const peso = comp.peso || 0;
+                    const valor = notas[alunoId][comp.id] || 0;
+                    if (peso > 0) {
+                        somaPonderada += valor * peso;
+                        somaPesos += peso;
+                    }
                 });
-                return somaPesos > 0 ? somaPonderada / somaPesos : 0;
+                const resultado = somaPesos > 0 ? somaPonderada / somaPesos : 0;
+                return resultado;
             }
         }
 
         // Atualiza nota
-        function atualizarNota(ra, componente, valor) {
+        function atualizarNota(alunoId, componenteId, valor) {
             // Valida valor
             if (valor < 0) valor = 0;
             if (valor > 10) valor = 10;
             
-            notas[ra][componente] = valor;
+            // Inicializa estrutura se necessário
+            if (!notas[alunoId]) {
+                notas[alunoId] = {};
+            }
+            notas[alunoId][componenteId] = valor;
             
-            // Atualiza Nota Final
-            const notaFinalElement = document.getElementById(`nota-final-${ra}`);
+            // Atualiza Nota Final visualmente (cálculo em tempo real enquanto digita)
+            // Isso é apenas visual - a nota final do banco só será atualizada ao salvar
+            const notaFinalElement = document.getElementById(`nota-final-${alunoId}`);
             if (notaFinalElement) {
-                notaFinalElement.textContent = calcularNotaFinal(ra).toFixed(2);
+                const notaFinalCalculada = calcularNotaFinal(alunoId);
+                notaFinalElement.textContent = notaFinalCalculada.toFixed(2);
             }
         }
 
@@ -354,8 +456,9 @@
         // FUNÇÕES DE LOG
         // ============================================
 
-        // Gera log
+        // Gera log (para auditoria no backend)
         function gerarLog() {
+            const log = [];
             const agora = new Date();
             const dataFormatada = agora.toLocaleDateString('pt-BR', {
                 day: '2-digit',
@@ -372,22 +475,20 @@
             // Percorre todas as notas e verifica alterações
             alunos.forEach(aluno => {
                 componentes.forEach(comp => {
-                    const valorAtual = notas[aluno.ra][comp];
-                    const valorAnterior = notasAnteriores[aluno.ra][comp];
+                    const valorAtual = notas[aluno.id] && notas[aluno.id][comp.id] ? notas[aluno.id][comp.id] : 0;
+                    const valorAnterior = notasAnteriores[aluno.id] && notasAnteriores[aluno.id][comp.id] ? notasAnteriores[aluno.id][comp.id] : 0;
                     
                     if (valorAtual !== valorAnterior) {
-                        const entrada = `${timestamp} — (Aluno ${aluno.nome}) — Nota de ${comp} alterada de ${valorAnterior.toFixed(2)} para ${valorAtual.toFixed(2)}`;
+                        const entrada = `${timestamp} — (Aluno ${aluno.nome}) — Nota de ${comp.sigla} alterada de ${valorAnterior.toFixed(2)} para ${valorAtual.toFixed(2)}`;
                         log.push(entrada);
                     }
                 });
             });
 
             // Atualiza valores anteriores
-            Object.keys(notas).forEach(ra => {
-                Object.keys(notas[ra]).forEach(comp => {
-                    notasAnteriores[ra][comp] = notas[ra][comp];
-                });
-            });
+            notasAnteriores = JSON.parse(JSON.stringify(notas));
+
+            return log;
         }
 
         // ============================================
@@ -395,26 +496,89 @@
         // ============================================
 
         // Salvar tudo
-        function salvarTudo() {
-            // Gera log (será salvo no banco via backend)
-            gerarLog();
-            
-            // Aqui o log será enviado para o backend
-            // Por enquanto, apenas simula o salvamento
-            console.log('Log gerado:', log);
-            
-            // Feedback visual
-            const btn = document.querySelector('.btn-save');
-            const textoOriginal = btn.innerHTML;
-            btn.innerHTML = '<i class="bi bi-check-circle"></i> SALVO!';
-            btn.classList.remove('btn-primary');
-            btn.classList.add('btn-success');
-            
-            setTimeout(() => {
-                btn.innerHTML = textoOriginal;
-                btn.classList.remove('btn-success');
-                btn.classList.add('btn-primary');
-            }, 2000);
+        async function salvarTudo() {
+            try {
+                const btn = document.querySelector('.btn-save');
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
+
+                // Prepara array de notas para envio (todas as notas, incluindo zeros)
+                const notasParaSalvar = [];
+                alunos.forEach(aluno => {
+                    componentes.forEach(comp => {
+                        const valor = notas[aluno.id] && notas[aluno.id][comp.id] !== undefined ? notas[aluno.id][comp.id] : 0;
+                        // Envia todas as notas (incluindo zeros para limpar notas anteriores)
+                        notasParaSalvar.push({
+                            alunoId: aluno.id,
+                            componenteId: comp.id,
+                            valor: valor
+                        });
+                    });
+                });
+
+                // Obtém tipo de média
+                const radioChecked = document.querySelector('input[name="tipoMedia"]:checked');
+                const tipoMedia = radioChecked ? radioChecked.value : 'simples';
+
+                // Envia notas para o backend (com tipo de média)
+                const response = await apiRequest(`${API_URL}/notas/bulk`, {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        notas: notasParaSalvar,
+                        tipoMedia: tipoMedia
+                    })
+                });
+
+                // Atualiza notas finais com os valores calculados pelo backend
+                if (response.data && response.data.notasFinais) {
+                    // Atualiza a variável notasFinais
+                    Object.keys(response.data.notasFinais).forEach(alunoId => {
+                        notasFinais[alunoId] = response.data.notasFinais[alunoId];
+                    });
+                    // Atualiza a interface
+                    Object.keys(response.data.notasFinais).forEach(alunoId => {
+                        const notaFinal = response.data.notasFinais[alunoId];
+                        const notaFinalElement = document.getElementById(`nota-final-${alunoId}`);
+                        if (notaFinalElement) {
+                            notaFinalElement.textContent = notaFinal.toFixed(2);
+                        }
+                    });
+                } else {
+                    // Fallback: recalcula localmente se backend não retornar
+                    alunos.forEach(aluno => {
+                        const notaFinal = calcularNotaFinal(aluno.id);
+                        notasFinais[aluno.id] = notaFinal;
+                        const notaFinalElement = document.getElementById(`nota-final-${aluno.id}`);
+                        if (notaFinalElement) {
+                            notaFinalElement.textContent = notaFinal.toFixed(2);
+                        }
+                    });
+                }
+
+                // Gera log (será salvo no banco via triggers)
+                const log = gerarLog();
+                console.log('Log gerado:', log);
+
+                // Feedback visual
+                btn.innerHTML = '<i class="bi bi-check-circle"></i> SALVO!';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-success');
+                
+                showMessage('Notas salvas e nota final calculada com sucesso!', 'success');
+
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="bi bi-save"></i> SALVAR TUDO';
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-primary');
+                    btn.disabled = false;
+                }, 2000);
+
+            } catch (error) {
+                showMessage(error.message || 'Erro ao salvar notas', 'error');
+                const btn = document.querySelector('.btn-save');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-save"></i> SALVAR TUDO';
+            }
         }
 
         // Voltar para turmas
@@ -422,26 +586,183 @@
             window.location.href = 'turmas.html';
         }
 
-        // Listener para mudança de tipo de média
-        document.querySelectorAll('input[name="tipoMedia"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                // Recalcula todas as notas finais
-                alunos.forEach(aluno => {
-                    const notaFinalElement = document.getElementById(`nota-final-${aluno.ra}`);
-                    if (notaFinalElement) {
-                        notaFinalElement.textContent = calcularNotaFinal(aluno.ra).toFixed(2);
-                    }
-                });
+        // Ver componentes de nota
+        function verComponentes() {
+            // A disciplina já deve estar no localStorage quando vem de turmas.html
+            const disciplinaData = localStorage.getItem('selectedDisciplina');
+            
+            if (!disciplinaData) {
+                showMessage('Disciplina não encontrada. Redirecionando...', 'error');
+                setTimeout(() => {
+                    window.location.href = 'disciplinas.html';
+                }, 2000);
+                return;
+            }
+            
+            // Redirecionar para componentes.html
+            window.location.href = 'componentes.html';
+        }
+
+        // Configura listener para mudança de tipo de média
+        function configurarListenerTipoMedia() {
+            document.querySelectorAll('input[name="tipoMedia"]').forEach(radio => {
+                // Remove listeners anteriores
+                radio.removeEventListener('change', recalcularNotasFinais);
+                // Adiciona novo listener
+                radio.addEventListener('change', recalcularNotasFinais);
             });
-        });
+        }
+
+        // Recalcula todas as notas finais
+        function recalcularNotasFinais() {
+            alunos.forEach(aluno => {
+                const notaFinalElement = document.getElementById(`nota-final-${aluno.id}`);
+                if (notaFinalElement) {
+                    notaFinalElement.textContent = calcularNotaFinal(aluno.id).toFixed(2);
+                }
+            });
+        }
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
+
+        // ============================================
+        // FUNÇÕES DE CARREGAMENTO
+        // ============================================
+
+        // Carrega dados da turma e disciplina
+        function loadTurmaData() {
+            try {
+                const turmaData = localStorage.getItem('selectedTurma');
+                if (!turmaData) {
+                    showMessage('Nenhuma turma selecionada. Redirecionando...', 'error');
+                    setTimeout(() => {
+                        window.location.href = 'turmas.html';
+                    }, 2000);
+                    return false;
+                }
+
+                const turma = JSON.parse(turmaData);
+                currentTurmaId = turma.id;
+
+                const disciplinaData = localStorage.getItem('selectedDisciplina');
+                if (disciplinaData) {
+                    const disciplina = JSON.parse(disciplinaData);
+                    currentDisciplinaId = disciplina.id;
+                    document.getElementById('headerTitle').textContent = `${disciplina.nome} — ${turma.nome}`;
+                } else {
+                    document.getElementById('headerTitle').textContent = `Turma: ${turma.nome}`;
+                }
+
+                return true;
+            } catch (error) {
+                showMessage('Erro ao carregar dados da turma', 'error');
+                return false;
+            }
+        }
+
+        // Carrega componentes de nota do backend (se disciplinaId estiver disponível)
+        async function carregarComponentes() {
+            if (!currentDisciplinaId) {
+                // Se não tiver disciplinaId, os componentes virão do endpoint de notas
+                return;
+            }
+
+            try {
+                const response = await apiRequest(`${API_URL}/componentes?disciplinaId=${currentDisciplinaId}`);
+                componentes = response.data || [];
+            } catch (error) {
+                // Se der erro, tenta carregar do endpoint de notas depois
+                console.warn('Erro ao carregar componentes separadamente:', error);
+                componentes = [];
+            }
+        }
+
+        // Carrega alunos e notas do backend
+        async function carregarNotas() {
+            if (!currentTurmaId) {
+                showMessage('Turma não encontrada', 'error');
+                return;
+            }
+
+            try {
+                const response = await apiRequest(`${API_URL}/notas?turmaId=${currentTurmaId}`);
+                const dados = response.data;
+
+                alunos = dados.alunos || [];
+                
+                // Usa componentes do endpoint de notas (já vem com a disciplina correta)
+                if (dados.componentes && dados.componentes.length > 0) {
+                    componentes = dados.componentes;
+                }
+                
+                notas = dados.notas || {};
+                notasFinais = dados.notasFinais || {};
+
+                // Inicializa estrutura de notas se necessário
+                alunos.forEach(aluno => {
+                    if (!notas[aluno.id]) {
+                        notas[aluno.id] = {};
+                    }
+                    componentes.forEach(comp => {
+                        if (!notas[aluno.id][comp.id]) {
+                            notas[aluno.id][comp.id] = 0;
+                        }
+                    });
+                });
+
+                // Salva valores anteriores para detectar mudanças
+                notasAnteriores = JSON.parse(JSON.stringify(notas));
+
+            } catch (error) {
+                showMessage(error.message || 'Erro ao carregar notas', 'error');
+                alunos = [];
+                notas = {};
+            }
+        }
+
+        // Carrega tipo de média do localStorage
+        function carregarTipoMedia() {
+            if (!currentDisciplinaId) return;
+
+            const tipoMediaSalvo = localStorage.getItem(`tipoMedia_${currentDisciplinaId}`);
+            if (tipoMediaSalvo) {
+                const radio = document.querySelector(`input[name="tipoMedia"][value="${tipoMediaSalvo}"]`);
+                if (radio) {
+                    radio.checked = true;
+                }
+            }
+        }
 
         // ============================================
         // INICIALIZAÇÃO
         // ============================================
 
         // Inicializa a página
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Verificar autenticação
+            if (!checkAuth()) {
+                return;
+            }
+
+            // Carregar dados da turma
+            if (!loadTurmaData()) {
+                return;
+            }
+
+            // Carregar tipo de média
+            carregarTipoMedia();
+
+            // Carregar componentes e notas
+            await carregarComponentes();
+            await carregarNotas();
+
+            // Renderizar tabela
             renderizarTabela();
+
+            // Configurar listener para mudança de tipo de média
+            configurarListenerTipoMedia();
         });
     </script>
 </body>

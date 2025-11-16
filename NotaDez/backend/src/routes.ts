@@ -994,12 +994,18 @@ export async function handleGetTurmas(req: IncomingMessage, res: ServerResponse)
             });
         }
 
-        // Busca turmas da disciplina
+        // Busca turmas da disciplina com contagem real de alunos
         const turmas = await query(
-            `SELECT T.ID_TURMA, T.NOME_TURMA, T.QTD_ALUNOS, D.NOME_DISCIPLINA
+            `SELECT 
+                T.ID_TURMA, 
+                T.NOME_TURMA, 
+                D.NOME_DISCIPLINA,
+                COUNT(A.ID_ALUNO) as QTD_ALUNOS
              FROM TURMA T
              INNER JOIN DISCIPLINA D ON T.ID_DISCIPLINA = D.ID_DISCIPLINA
+             LEFT JOIN ALUNO A ON T.ID_TURMA = A.ID_TURMA
              WHERE T.ID_DISCIPLINA = ?
+             GROUP BY T.ID_TURMA, T.NOME_TURMA, D.NOME_DISCIPLINA
              ORDER BY T.NOME_TURMA`,
             [parseInt(disciplinaId)]
         ) as any[];
@@ -1009,7 +1015,7 @@ export async function handleGetTurmas(req: IncomingMessage, res: ServerResponse)
             data: turmas.map(turma => ({
                 id: turma.ID_TURMA,
                 nome: turma.NOME_TURMA,
-                qtdAlunos: turma.QTD_ALUNOS || 0,
+                qtdAlunos: parseInt(turma.QTD_ALUNOS) || 0,
                 disciplinaNome: turma.NOME_DISCIPLINA
             }))
         });
@@ -1517,6 +1523,702 @@ export async function handleDeleteAluno(req: IncomingMessage, res: ServerRespons
         });
 
     } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// ============================================================================
+// ROTAS DE COMPONENTES DE NOTA
+// ============================================================================
+
+/**
+ * GET /componentes?disciplinaId=X - Lista componentes de nota de uma disciplina
+ */
+export async function handleGetComponentes(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        // Extrai disciplinaId da query string
+        const url = new URL(req.url || '', `http://${req.headers.host}`);
+        const disciplinaId = url.searchParams.get('disciplinaId');
+
+        if (!disciplinaId) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'disciplinaId é obrigatório'
+            });
+        }
+
+        // Verifica se a disciplina pertence ao docente
+        const disciplinas = await query(
+            `SELECT D.ID_DISCIPLINA
+             FROM DISCIPLINA D
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE D.ID_DISCIPLINA = ? AND I.ID_DOCENTE = ?`,
+            [parseInt(disciplinaId), user.id]
+        ) as any[];
+
+        if (disciplinas.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Disciplina não encontrada ou você não tem permissão para acessá-la'
+            });
+        }
+
+        // Busca componentes da disciplina
+        const componentes = await query(
+            `SELECT 
+                ID_COMPONENTE as id,
+                NOME_COMPONENTE as nome,
+                SIGLA as sigla,
+                DESCRICAO as descricao,
+                PESO as peso
+             FROM COMPONENTE_NOTA
+             WHERE ID_DISCIPLINA = ?
+             ORDER BY NOME_COMPONENTE`,
+            [parseInt(disciplinaId)]
+        ) as any[];
+
+        sendJSON(res, 200, {
+            success: true,
+            data: componentes
+        });
+
+    } catch (error: any) {
+        console.error('Erro ao buscar componentes:', error);
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+/**
+ * POST /componentes - Cria um novo componente de nota
+ */
+export async function handleCreateComponente(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { nome, sigla, descricao, peso, disciplinaId } = body;
+
+        // Validação de campos obrigatórios
+        if (!nome || !nome.trim()) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome é obrigatório'
+            });
+        }
+
+        if (!sigla || !sigla.trim()) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Sigla é obrigatória'
+            });
+        }
+
+        if (!disciplinaId) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'disciplinaId é obrigatório'
+            });
+        }
+
+        // Verifica se a disciplina pertence ao docente
+        const disciplinas = await query(
+            `SELECT D.ID_DISCIPLINA
+             FROM DISCIPLINA D
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE D.ID_DISCIPLINA = ? AND I.ID_DOCENTE = ?`,
+            [parseInt(disciplinaId), user.id]
+        ) as any[];
+
+        if (disciplinas.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Disciplina não encontrada ou você não tem permissão para editá-la'
+            });
+        }
+
+        // Insere o componente
+        const result = await query(
+            `INSERT INTO COMPONENTE_NOTA (NOME_COMPONENTE, SIGLA, DESCRICAO, PESO, ID_DISCIPLINA)
+             VALUES (?, ?, ?, ?, ?)`,
+            [
+                nome.trim(),
+                sigla.trim().toUpperCase(),
+                descricao ? descricao.trim() : null,
+                peso ? parseFloat(peso) : null,
+                parseInt(disciplinaId)
+            ]
+        ) as any;
+
+        sendJSON(res, 201, {
+            success: true,
+            message: 'Componente criado com sucesso',
+            data: {
+                id: result.insertId,
+                nome: nome.trim(),
+                sigla: sigla.trim().toUpperCase(),
+                descricao: descricao ? descricao.trim() : null,
+                peso: peso ? parseFloat(peso) : null
+            }
+        });
+
+    } catch (error: any) {
+        console.error('Erro ao criar componente:', error);
+        
+        // Verifica se é erro de duplicação
+        if (error.code === 'ER_DUP_ENTRY') {
+            return sendJSON(res, 409, {
+                success: false,
+                message: 'Já existe um componente com esta sigla nesta disciplina'
+            });
+        }
+
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+/**
+ * PUT /componentes/:id - Atualiza um componente de nota
+ */
+export async function handleUpdateComponente(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { nome, sigla, descricao, peso } = body;
+
+        // Validação de campos obrigatórios
+        if (!nome || !nome.trim()) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome é obrigatório'
+            });
+        }
+
+        if (!sigla || !sigla.trim()) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Sigla é obrigatória'
+            });
+        }
+
+        // Verifica se o componente existe e pertence a uma disciplina do docente
+        const componentes = await query(
+            `SELECT CN.ID_COMPONENTE, CN.SIGLA
+             FROM COMPONENTE_NOTA CN
+             INNER JOIN DISCIPLINA D ON CN.ID_DISCIPLINA = D.ID_DISCIPLINA
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE CN.ID_COMPONENTE = ? AND I.ID_DOCENTE = ?`,
+            [id, user.id]
+        ) as any[];
+
+        if (componentes.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Componente não encontrado ou você não tem permissão para editá-lo'
+            });
+        }
+
+        // Atualiza o componente
+        await query(
+            `UPDATE COMPONENTE_NOTA 
+             SET NOME_COMPONENTE = ?, SIGLA = ?, DESCRICAO = ?, PESO = ?
+             WHERE ID_COMPONENTE = ?`,
+            [
+                nome.trim(),
+                sigla.trim().toUpperCase(),
+                descricao ? descricao.trim() : null,
+                peso ? parseFloat(peso) : null,
+                id
+            ]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Componente atualizado com sucesso',
+            data: {
+                id: id,
+                nome: nome.trim(),
+                sigla: sigla.trim().toUpperCase(),
+                descricao: descricao ? descricao.trim() : null,
+                peso: peso ? parseFloat(peso) : null
+            }
+        });
+
+    } catch (error: any) {
+        console.error('Erro ao atualizar componente:', error);
+        
+        // Verifica se é erro de duplicação
+        if (error.code === 'ER_DUP_ENTRY') {
+            return sendJSON(res, 409, {
+                success: false,
+                message: 'Já existe um componente com esta sigla nesta disciplina'
+            });
+        }
+
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+/**
+ * DELETE /componentes/:id - Exclui um componente de nota
+ */
+export async function handleDeleteComponente(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        // Verifica se o componente existe e pertence a uma disciplina do docente
+        const componentes = await query(
+            `SELECT CN.ID_COMPONENTE
+             FROM COMPONENTE_NOTA CN
+             INNER JOIN DISCIPLINA D ON CN.ID_DISCIPLINA = D.ID_DISCIPLINA
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE CN.ID_COMPONENTE = ? AND I.ID_DOCENTE = ?`,
+            [id, user.id]
+        ) as any[];
+
+        if (componentes.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Componente não encontrado ou você não tem permissão para excluí-lo'
+            });
+        }
+
+        // Exclui o componente (cascade vai excluir as notas relacionadas)
+        await query(
+            'DELETE FROM COMPONENTE_NOTA WHERE ID_COMPONENTE = ?',
+            [id]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Componente excluído com sucesso'
+        });
+
+    } catch (error: any) {
+        console.error('Erro ao excluir componente:', error);
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// ============================================================================
+// ROTAS DE NOTAS
+// ============================================================================
+
+/**
+ * GET /notas?turmaId=X - Lista notas de uma turma
+ */
+export async function handleGetNotas(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        // Extrai turmaId da query string
+        const url = new URL(req.url || '', `http://${req.headers.host}`);
+        const turmaId = url.searchParams.get('turmaId');
+
+        if (!turmaId) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'turmaId é obrigatório'
+            });
+        }
+
+        // Verifica se a turma pertence ao docente
+        const turmas = await query(
+            `SELECT T.ID_TURMA
+             FROM TURMA T
+             INNER JOIN DISCIPLINA D ON T.ID_DISCIPLINA = D.ID_DISCIPLINA
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE T.ID_TURMA = ? AND I.ID_DOCENTE = ?`,
+            [parseInt(turmaId), user.id]
+        ) as any[];
+
+        if (turmas.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Turma não encontrada ou você não tem permissão para acessá-la'
+            });
+        }
+
+        // Busca alunos da turma
+        const alunos = await query(
+            `SELECT ID_ALUNO as id, RA as ra, NOME as nome
+             FROM ALUNO
+             WHERE ID_TURMA = ?
+             ORDER BY NOME`,
+            [parseInt(turmaId)]
+        ) as any[];
+
+        // Busca componentes da disciplina da turma
+        const turmaInfo = await query(
+            `SELECT T.ID_DISCIPLINA
+             FROM TURMA T
+             WHERE T.ID_TURMA = ?`,
+            [parseInt(turmaId)]
+        ) as any[];
+
+        if (turmaInfo.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Turma não encontrada'
+            });
+        }
+
+        const disciplinaId = turmaInfo[0].ID_DISCIPLINA;
+
+        const componentes = await query(
+            `SELECT ID_COMPONENTE as id, NOME_COMPONENTE as nome, SIGLA as sigla, PESO as peso
+             FROM COMPONENTE_NOTA
+             WHERE ID_DISCIPLINA = ?
+             ORDER BY NOME_COMPONENTE`,
+            [disciplinaId]
+        ) as any[];
+
+        // Busca notas finais da turma
+        const notasFinais = await query(
+            `SELECT ID_ALUNO as alunoId, NOTA_FINAL as notaFinal
+             FROM NOTA_FINAL
+             WHERE ID_TURMA = ?`,
+            [parseInt(turmaId)]
+        ) as any[];
+
+        // Cria mapa de notas finais
+        const notasFinaisMap: { [key: number]: number } = {};
+        notasFinais.forEach((nf: any) => {
+            notasFinaisMap[nf.alunoId] = parseFloat(nf.notaFinal) || 0;
+        });
+
+        // Busca todas as notas
+        const notas = await query(
+            `SELECT 
+                N.ID_ALUNO as alunoId,
+                N.ID_COMPONENTE as componenteId,
+                N.VALOR as valor
+             FROM NOTA N
+             INNER JOIN ALUNO A ON N.ID_ALUNO = A.ID_ALUNO
+             WHERE A.ID_TURMA = ?`,
+            [parseInt(turmaId)]
+        ) as any[];
+
+        // Organiza as notas por aluno e componente
+        const notasOrganizadas: any = {};
+        alunos.forEach((aluno: any) => {
+            notasOrganizadas[aluno.id] = {};
+            componentes.forEach((comp: any) => {
+                notasOrganizadas[aluno.id][comp.id] = 0;
+            });
+        });
+
+        notas.forEach((nota: any) => {
+            if (notasOrganizadas[nota.alunoId]) {
+                notasOrganizadas[nota.alunoId][nota.componenteId] = parseFloat(nota.valor);
+            }
+        });
+
+        sendJSON(res, 200, {
+            success: true,
+            data: {
+                alunos: alunos,
+                componentes: componentes,
+                notas: notasOrganizadas,
+                notasFinais: notasFinaisMap
+            }
+        });
+
+    } catch (error: any) {
+        console.error('Erro ao buscar notas:', error);
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+/**
+ * Função auxiliar para calcular e salvar nota final de um aluno
+ */
+async function calcularESalvarNotaFinal(alunoId: number, turmaId: number, tipoMedia: string): Promise<number> {
+    // Busca todos os componentes da disciplina da turma
+    const turmaInfo = await query(
+        `SELECT T.ID_DISCIPLINA
+         FROM TURMA T
+         WHERE T.ID_TURMA = ?`,
+        [turmaId]
+    ) as any[];
+
+    if (turmaInfo.length === 0) {
+        return 0;
+    }
+
+    const disciplinaId = turmaInfo[0].ID_DISCIPLINA;
+
+    // Busca componentes
+    const componentes = await query(
+        `SELECT ID_COMPONENTE as id, PESO as peso
+         FROM COMPONENTE_NOTA
+         WHERE ID_DISCIPLINA = ?`,
+        [disciplinaId]
+    ) as any[];
+
+    if (componentes.length === 0) {
+        // Se não tem componentes, nota final é 0
+        await query(
+            `INSERT INTO NOTA_FINAL (ID_ALUNO, ID_TURMA, NOTA_FINAL)
+             VALUES (?, ?, 0)
+             ON DUPLICATE KEY UPDATE NOTA_FINAL = 0, DATA_CALCULO = CURRENT_TIMESTAMP`,
+            [alunoId, turmaId]
+        );
+        return 0;
+    }
+
+    // Busca todas as notas do aluno para esses componentes
+    const notas = await query(
+        `SELECT ID_COMPONENTE as componenteId, VALOR as valor
+         FROM NOTA
+         WHERE ID_ALUNO = ? AND ID_COMPONENTE IN (${componentes.map(() => '?').join(',')})`,
+        [alunoId, ...componentes.map((c: any) => c.id)]
+    ) as any[];
+
+    // Cria mapa de notas
+    const notasMap: { [key: number]: number } = {};
+    notas.forEach((nota: any) => {
+        notasMap[nota.componenteId] = parseFloat(nota.valor) || 0;
+    });
+
+    let notaFinal = 0;
+
+    if (tipoMedia === 'simples') {
+        // Média Simples: soma todas as notas / quantidade de componentes
+        let soma = 0;
+        componentes.forEach((comp: any) => {
+            soma += notasMap[comp.id] || 0;
+        });
+        notaFinal = componentes.length > 0 ? soma / componentes.length : 0;
+    } else {
+        // Média Ponderada
+        let somaPonderada = 0;
+        let somaPesos = 0;
+        componentes.forEach((comp: any) => {
+            const peso = parseFloat(comp.peso) || 0;
+            const valor = notasMap[comp.id] || 0;
+            if (peso > 0) {
+                somaPonderada += valor * peso;
+                somaPesos += peso;
+            }
+        });
+        notaFinal = somaPesos > 0 ? somaPonderada / somaPesos : 0;
+    }
+
+    // Limita entre 0 e 10
+    notaFinal = Math.max(0, Math.min(10, notaFinal));
+
+    // Salva ou atualiza nota final
+    await query(
+        `INSERT INTO NOTA_FINAL (ID_ALUNO, ID_TURMA, NOTA_FINAL)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE NOTA_FINAL = ?, DATA_CALCULO = CURRENT_TIMESTAMP`,
+        [alunoId, turmaId, notaFinal, notaFinal]
+    );
+
+    return notaFinal;
+}
+
+/**
+ * POST /notas/bulk - Salva múltiplas notas de uma vez
+ */
+export async function handleBulkNotas(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        // Verifica autenticação
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { notas, tipoMedia } = body;
+
+        if (!Array.isArray(notas)) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'notas deve ser um array'
+            });
+        }
+
+        // Processa cada nota
+        const resultados = [];
+        for (const nota of notas) {
+            const { alunoId, componenteId, valor } = nota;
+
+            if (!alunoId || !componenteId || valor === undefined || valor === null) {
+                continue;
+            }
+
+            const valorNum = parseFloat(valor);
+            if (isNaN(valorNum) || valorNum < 0 || valorNum > 10) {
+                continue;
+            }
+
+            // Aceita valor 0 (nota zerada)
+            // Não pula se valor for 0
+
+            try {
+                // Verifica permissões (aluno e componente)
+                const alunos = await query(
+                    `SELECT A.ID_ALUNO
+                     FROM ALUNO A
+                     INNER JOIN TURMA T ON A.ID_TURMA = T.ID_TURMA
+                     INNER JOIN DISCIPLINA D ON T.ID_DISCIPLINA = D.ID_DISCIPLINA
+                     INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+                     INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+                     WHERE A.ID_ALUNO = ? AND I.ID_DOCENTE = ?`,
+                    [parseInt(alunoId), user.id]
+                ) as any[];
+
+                if (alunos.length === 0) continue;
+
+                const componentes = await query(
+                    `SELECT CN.ID_COMPONENTE
+                     FROM COMPONENTE_NOTA CN
+                     INNER JOIN DISCIPLINA D ON CN.ID_DISCIPLINA = D.ID_DISCIPLINA
+                     INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+                     INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+                     WHERE CN.ID_COMPONENTE = ? AND I.ID_DOCENTE = ?`,
+                    [parseInt(componenteId), user.id]
+                ) as any[];
+
+                if (componentes.length === 0) continue;
+
+                // Verifica se a nota já existe
+                const notasExistentes = await query(
+                    'SELECT ID_NOTA FROM NOTA WHERE ID_ALUNO = ? AND ID_COMPONENTE = ?',
+                    [parseInt(alunoId), parseInt(componenteId)]
+                ) as any[];
+
+                if (notasExistentes.length > 0) {
+                    await query(
+                        'UPDATE NOTA SET VALOR = ? WHERE ID_ALUNO = ? AND ID_COMPONENTE = ?',
+                        [valorNum, parseInt(alunoId), parseInt(componenteId)]
+                    );
+                } else {
+                    await query(
+                        'INSERT INTO NOTA (ID_ALUNO, ID_COMPONENTE, VALOR) VALUES (?, ?, ?)',
+                        [parseInt(alunoId), parseInt(componenteId), valorNum]
+                    );
+                }
+
+                resultados.push({ alunoId: parseInt(alunoId), componenteId: parseInt(componenteId), valor: valorNum });
+            } catch (error) {
+                console.error('Erro ao processar nota:', error);
+            }
+        }
+
+        // Busca turmaId do primeiro aluno (todos devem ser da mesma turma)
+        let turmaId: number | null = null;
+        if (resultados.length > 0) {
+            const primeiroAluno = resultados[0].alunoId;
+            const alunoInfo = await query(
+                'SELECT ID_TURMA FROM ALUNO WHERE ID_ALUNO = ?',
+                [primeiroAluno]
+            ) as any[];
+            if (alunoInfo.length > 0) {
+                turmaId = alunoInfo[0].ID_TURMA;
+            }
+        }
+
+        // Tipo de média padrão: simples
+        const tipoMediaCalculo = tipoMedia || 'simples';
+
+        // Recalcula nota final para TODOS os alunos da turma (não apenas os que tiveram notas alteradas)
+        // Isso garante que se um novo componente foi adicionado, todos os alunos terão nota final recalculada
+        const notasFinaisCalculadas: { [key: number]: number } = {};
+        if (turmaId) {
+            // Busca todos os alunos da turma
+            const todosAlunos = await query(
+                'SELECT ID_ALUNO FROM ALUNO WHERE ID_TURMA = ?',
+                [turmaId]
+            ) as any[];
+
+            // Recalcula nota final para cada aluno da turma
+            for (const aluno of todosAlunos) {
+                try {
+                    const notaFinal = await calcularESalvarNotaFinal(aluno.ID_ALUNO, turmaId, tipoMediaCalculo);
+                    notasFinaisCalculadas[aluno.ID_ALUNO] = notaFinal;
+                } catch (error) {
+                    console.error(`Erro ao calcular nota final para aluno ${aluno.ID_ALUNO}:`, error);
+                }
+            }
+        }
+
+        sendJSON(res, 200, {
+            success: true,
+            message: `${resultados.length} nota(s) salva(s) com sucesso`,
+            data: {
+                notas: resultados,
+                notasFinais: notasFinaisCalculadas
+            }
+        });
+
+    } catch (error: any) {
+        console.error('Erro ao salvar notas em lote:', error);
         sendJSON(res, 500, {
             success: false,
             message: 'Erro interno do servidor'

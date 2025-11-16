@@ -22,7 +22,13 @@ import {
     handleGetAlunos,
     handleCreateAluno,
     handleUpdateAluno,
-    handleDeleteAluno
+    handleDeleteAluno,
+    handleGetComponentes,
+    handleCreateComponente,
+    handleUpdateComponente,
+    handleDeleteComponente,
+    handleGetNotas,
+    handleBulkNotas
 } from './routes';
 import { testConnection } from './db';
 import dotenv from 'dotenv';
@@ -252,6 +258,52 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
     } else if (method === 'POST' && urlPath === '/alunos') {
         console.log('  → Rota: POST /alunos');
         await handleCreateAluno(req, res);
+    }
+    // Rotas de componentes de nota - verificar rotas com ID primeiro
+    else if (method === 'PUT' && urlPath.startsWith('/componentes/')) {
+        const urlParts = urlPath.split('/');
+        const id = parseInt(urlParts[2]);
+        if (isNaN(id)) {
+            console.log(`  → Erro: ID inválido em PUT /componentes/${urlParts[2]}`);
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({
+                success: false,
+                message: 'ID inválido'
+            }));
+        } else {
+            console.log(`  → Rota: PUT /componentes/${id}`);
+            await handleUpdateComponente(req, res, id);
+        }
+    } else if (method === 'DELETE' && urlPath.startsWith('/componentes/')) {
+        const urlParts = urlPath.split('/');
+        const id = parseInt(urlParts[2]);
+        if (isNaN(id)) {
+            console.log(`  → Erro: ID inválido em DELETE /componentes/${urlParts[2]}`);
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({
+                success: false,
+                message: 'ID inválido'
+            }));
+        } else {
+            console.log(`  → Rota: DELETE /componentes/${id}`);
+            await handleDeleteComponente(req, res, id);
+        }
+    } else if (method === 'GET' && urlPath === '/componentes') {
+        // GET /componentes?disciplinaId=X
+        console.log('  → Rota: GET /componentes');
+        await handleGetComponentes(req, res);
+    } else if (method === 'POST' && urlPath === '/componentes') {
+        console.log('  → Rota: POST /componentes');
+        await handleCreateComponente(req, res);
+    }
+    // Rotas de notas
+    else if (method === 'GET' && urlPath === '/notas') {
+        // GET /notas?turmaId=X
+        console.log('  → Rota: GET /notas');
+        await handleGetNotas(req, res);
+    } else if (method === 'POST' && urlPath === '/notas/bulk') {
+        console.log('  → Rota: POST /notas/bulk');
+        await handleBulkNotas(req, res);
     } else {
         // Rota não encontrada
         console.log(`  → [404] Rota não encontrada: ${method} ${urlPath}`);
@@ -310,6 +362,14 @@ async function startServer() {
             console.log('     POST   http://localhost:' + PORT + '/alunos');
             console.log('     PUT    http://localhost:' + PORT + '/alunos/:id');
             console.log('     DELETE http://localhost:' + PORT + '/alunos/:id');
+            console.log('\n   Componentes de Nota:');
+            console.log('     GET    http://localhost:' + PORT + '/componentes?disciplinaId=X');
+            console.log('     POST   http://localhost:' + PORT + '/componentes');
+            console.log('     PUT    http://localhost:' + PORT + '/componentes/:id');
+            console.log('     DELETE http://localhost:' + PORT + '/componentes/:id');
+            console.log('\n   Notas:');
+            console.log('     GET    http://localhost:' + PORT + '/notas?turmaId=X');
+            console.log('     POST   http://localhost:' + PORT + '/notas/bulk');
             console.log('');
         });
     } catch (error: any) {

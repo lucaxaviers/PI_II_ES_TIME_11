@@ -23,6 +23,9 @@
                     <button class="btn btn-secondary" onclick="voltarTurmas()">
                         <i class="bi bi-arrow-left"></i> Voltar
                     </button>
+                    <button class="btn btn-outline-primary" onclick="verComponentesNota()" style="background-color: #8b5cf6; border-color: #8b5cf6; color: white; font-weight: 500;">
+                        <i class="bi bi-list-check"></i> Ver Componentes de Nota
+                    </button>
                     <button class="btn btn-outline-primary" onclick="mostrarImportacaoCSV()">
                         <i class="bi bi-file-earmark-spreadsheet"></i> Importar CSV
                     </button>
@@ -331,6 +334,29 @@
             
             // Redirecionar para notas.html
             window.location.href = 'notas.html';
+        }
+
+        // Ver componentes de nota
+        function verComponentesNota() {
+            // A disciplina já deve estar no localStorage quando vem de turmas.html
+            // Verificar se existe, caso contrário tentar buscar da turma
+            const disciplinaData = localStorage.getItem('selectedDisciplina');
+            
+            if (!disciplinaData) {
+                // Se não tiver disciplina, tentar buscar da turma
+                const turmaData = localStorage.getItem('selectedTurma');
+                if (turmaData) {
+                    alert('Por favor, acesse os componentes através da página de disciplinas.');
+                    return;
+                } else {
+                    alert('Nenhuma disciplina selecionada. Redirecionando...');
+                    window.location.href = 'disciplinas.html';
+                    return;
+                }
+            }
+            
+            // Redirecionar para componentes.html
+            window.location.href = 'componentes.html';
         }
 
         function loadTurmaData() {
