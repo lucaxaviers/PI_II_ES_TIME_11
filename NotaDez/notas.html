@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -78,73 +76,6 @@
             color: #1D4ED8;
         }
 
-        .controls-small {
-            background: #FFFFFF;
-            border: 1px solid #1D4ED8;
-            border-radius: 6px;
-            padding: 10px 15px;
-            display: inline-block;
-        }
-
-        .radio-group-small {
-            display: flex;
-            gap: 15px;
-            margin: 0;
-        }
-
-        .controls {
-            background: #FFFFFF;
-            border: 2px solid #1D4ED8;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .controls h3 {
-            color: #1D4ED8;
-            font-size: 1.25rem;
-            margin-bottom: 15px;
-        }
-
-        .radio-group {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .radio-option {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .radio-option input[type="radio"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-
-        .radio-option label {
-            color: #1D4ED8;
-            font-weight: 500;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-
-        .radio-group-small .radio-option label {
-            font-size: 0.85rem;
-        }
-
-        .radio-option input[type="radio"]:disabled {
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-
-        .radio-option input[type="radio"]:disabled + label {
-            cursor: not-allowed;
-            opacity: 0.7;
-        }
-
         .clearfix::after {
             content: "";
             display: table;
@@ -177,19 +108,9 @@
 
     <div class="container">
         
-        <div class="controls-small mb-3">
-            <div class="radio-group-small">
-                <div class="radio-option">
-                    <input type="radio" id="mediaSimples" name="tipoMedia" value="simples" checked disabled>
-                    <label for="mediaSimples" style="opacity: 0.7;">Média Simples</label>
-                </div>
-                <div class="radio-option">
-                    <input type="radio" id="mediaPonderada" name="tipoMedia" value="ponderada" disabled>
-                    <label for="mediaPonderada" style="opacity: 0.7;">Média Ponderada</label>
-                </div>
-            </div>
-            <small class="text-muted d-block mt-2">
-                <i class="bi bi-info-circle"></i> Tipo de média definido em Componentes de Nota
+        <div class="d-flex justify-content-end mb-2">
+            <small class="text-muted" style="font-size: 0.85rem;">
+                <i class="bi bi-calculator"></i> Cálculo da média baseado em média simples (ex.: (P1 + P2 + P3) / 3)
             </small>
         </div>
 
@@ -251,7 +172,6 @@
             const data = await response.json();
 
             if (!response.ok) {
-                
                 const errorMsg = data.mensagem || data.message || 'Erro na requisição';
                 if (data.debug) {
                     throw new Error(`${errorMsg} (${data.debug.method} ${data.debug.urlPath})`);
@@ -336,7 +256,6 @@
                         atualizarNota(aluno.id, comp.id, parseFloat(this.value) || 0);
                     });
                     input.addEventListener('blur', function() {
-                        
                         let valor = parseFloat(this.value) || 0;
                         if (valor < 0) valor = 0;
                         if (valor > 10) valor = 10;
@@ -350,7 +269,6 @@
                 const tdFinal = document.createElement('td');
                 tdFinal.className = 'cell-nota-final';
                 tdFinal.id = `nota-final-${aluno.id}`;
-                
                 const notaFinalBanco = notasFinais[aluno.id];
                 const notaFinalCalculada = notaFinalBanco !== undefined ? notaFinalBanco : calcularNotaFinal(aluno.id);
                 tdFinal.textContent = notaFinalCalculada.toFixed(2);
@@ -361,44 +279,22 @@
         }
 
         function calcularNotaFinal(alunoId) {
-            
             if (!notas[alunoId] || componentes.length === 0) {
                 return 0;
             }
 
-            const radioChecked = document.querySelector('input[name="tipoMedia"]:checked');
-            const tipoMedia = radioChecked ? radioChecked.value : 'simples';
-
-            if (tipoMedia === 'simples') {
-                
-                let soma = 0;
-                let quantidade = 0;
-                componentes.forEach(comp => {
-                    const valor = notas[alunoId][comp.id] || 0;
-                    soma += valor;
-                    quantidade++;
-                });
-                const resultado = quantidade > 0 ? soma / quantidade : 0;
-                return resultado;
-            } else {
-                
-                let somaPonderada = 0;
-                let somaPesos = 0;
-                componentes.forEach(comp => {
-                    const peso = comp.peso || 0;
-                    const valor = notas[alunoId][comp.id] || 0;
-                    if (peso > 0) {
-                        somaPonderada += valor * peso;
-                        somaPesos += peso;
-                    }
-                });
-                const resultado = somaPesos > 0 ? somaPonderada / somaPesos : 0;
-                return resultado;
-            }
+            let soma = 0;
+            let quantidade = 0;
+            componentes.forEach(comp => {
+                const valor = notas[alunoId][comp.id] || 0;
+                soma += valor;
+                quantidade++;
+            });
+            const resultado = quantidade > 0 ? soma / quantidade : 0;
+            return resultado;
         }
 
         function atualizarNota(alunoId, componenteId, valor) {
-            
             if (valor < 0) valor = 0;
             if (valor > 10) valor = 10;
 
@@ -433,7 +329,6 @@
                 componentes.forEach(comp => {
                     const valorAtual = notas[aluno.id] && notas[aluno.id][comp.id] ? notas[aluno.id][comp.id] : 0;
                     const valorAnterior = notasAnteriores[aluno.id] && notasAnteriores[aluno.id][comp.id] ? notasAnteriores[aluno.id][comp.id] : 0;
-                    
                     if (valorAtual !== valorAnterior) {
                         const entrada = `${timestamp} — (Aluno ${aluno.nome}) — Nota de ${comp.sigla} alterada de ${valorAnterior.toFixed(2)} para ${valorAtual.toFixed(2)}`;
                         log.push(entrada);
@@ -456,7 +351,6 @@
                 alunos.forEach(aluno => {
                     componentes.forEach(comp => {
                         const valor = notas[aluno.id] && notas[aluno.id][comp.id] !== undefined ? notas[aluno.id][comp.id] : 0;
-                        
                         notasParaSalvar.push({
                             alunoId: aluno.id,
                             componenteId: comp.id,
@@ -465,8 +359,7 @@
                     });
                 });
 
-                const radioChecked = document.querySelector('input[name="tipoMedia"]:checked');
-                const tipoMedia = radioChecked ? radioChecked.value : 'simples';
+                const tipoMedia = 'simples';
 
                 const response = await apiRequest(`${API_URL}/notas/bulk`, {
                     method: 'POST',
@@ -477,11 +370,9 @@
                 });
 
                 if (response.data && response.data.notasFinais) {
-                    
                     Object.keys(response.data.notasFinais).forEach(alunoId => {
                         notasFinais[alunoId] = response.data.notasFinais[alunoId];
                     });
-                    
                     Object.keys(response.data.notasFinais).forEach(alunoId => {
                         const notaFinal = response.data.notasFinais[alunoId];
                         const notaFinalElement = document.getElementById(`nota-final-${alunoId}`);
@@ -490,7 +381,6 @@
                         }
                     });
                 } else {
-                    
                     alunos.forEach(aluno => {
                         const notaFinal = calcularNotaFinal(aluno.id);
                         notasFinais[aluno.id] = notaFinal;
@@ -507,7 +397,6 @@
                 btn.innerHTML = '<i class="bi bi-check-circle"></i> SALVO!';
                 btn.classList.remove('btn-primary');
                 btn.classList.add('btn-success');
-                
                 showMessage('Notas salvas e nota final calculada com sucesso!', 'success');
 
                 setTimeout(() => {
@@ -530,9 +419,7 @@
         }
 
         function verComponentes() {
-            
             const disciplinaData = localStorage.getItem('selectedDisciplina');
-            
             if (!disciplinaData) {
                 showMessage('Disciplina não encontrada. Redirecionando...', 'error');
                 setTimeout(() => {
@@ -542,15 +429,6 @@
             }
 
             window.location.href = 'componentes.html';
-        }
-
-        function configurarListenerTipoMedia() {
-            document.querySelectorAll('input[name="tipoMedia"]').forEach(radio => {
-                
-                radio.removeEventListener('change', recalcularNotasFinais);
-                
-                radio.addEventListener('change', recalcularNotasFinais);
-            });
         }
 
         function recalcularNotasFinais() {
@@ -594,7 +472,6 @@
 
         async function carregarComponentes() {
             if (!currentDisciplinaId) {
-                
                 return;
             }
 
@@ -602,7 +479,6 @@
                 const response = await apiRequest(`${API_URL}/componentes?disciplinaId=${currentDisciplinaId}`);
                 componentes = response.data || [];
             } catch (error) {
-                
                 console.warn('Erro ao carregar componentes separadamente:', error);
                 componentes = [];
             }
@@ -623,7 +499,6 @@
                 if (dados.componentes && dados.componentes.length > 0) {
                     componentes = dados.componentes;
                 }
-                
                 notas = dados.notas || {};
                 notasFinais = dados.notasFinais || {};
 
@@ -647,20 +522,7 @@
             }
         }
 
-        function carregarTipoMedia() {
-            if (!currentDisciplinaId) return;
-
-            const tipoMediaSalvo = localStorage.getItem(`tipoMedia_${currentDisciplinaId}`);
-            if (tipoMediaSalvo) {
-                const radio = document.querySelector(`input[name="tipoMedia"][value="${tipoMediaSalvo}"]`);
-                if (radio) {
-                    radio.checked = true;
-                }
-            }
-        }
-
         document.addEventListener('DOMContentLoaded', async function() {
-            
             if (!checkAuth()) {
                 return;
             }
@@ -669,14 +531,10 @@
                 return;
             }
 
-            carregarTipoMedia();
-
             await carregarComponentes();
             await carregarNotas();
 
             renderizarTabela();
-
-            configurarListenerTipoMedia();
         });
     </script>
 </body>

@@ -49,43 +49,6 @@
             background: #E3F2FD;
         }
 
-        .tipo-media-section {
-            background: #FFFFFF;
-            border: 2px solid #1D4ED8;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-
-        .tipo-media-section h3 {
-            color: #1D4ED8;
-            font-size: 1.25rem;
-            margin-bottom: 15px;
-        }
-
-        .radio-group {
-            display: flex;
-            gap: 20px;
-        }
-
-        .radio-option {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .radio-option input[type="radio"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-
-        .radio-option label {
-            color: #1D4ED8;
-            font-weight: 500;
-            cursor: pointer;
-        }
-
         .empty-state {
             text-align: center;
             padding: 3rem;
@@ -159,7 +122,7 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-8 mb-3">
+                            <div class="col-md-12 mb-3">
                                 <label for="componenteDescricao" class="form-label">Descrição</label>
                                 <input 
                                     type="text" 
@@ -169,21 +132,11 @@
                                     placeholder="Ex: Avaliação teórica"
                                 >
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="componentePeso" class="form-label">Peso da Nota</label>
-                                <input 
-                                    type="number" 
-                                    class="form-control form-control-lg" 
-                                    id="componentePeso" 
-                                    name="peso"
-                                    placeholder="0.0"
-                                    min="0.1"
-                                    max="1.0"
-                                    step="0.1"
-                                    disabled
-                                >
-                                <small class="text-muted">Ative "Média Ponderada" para usar pesos</small>
-                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                <i class="bi bi-calculator"></i> Tipo de média: Média Simples
+                            </small>
                         </div>
                         <div class="d-flex gap-2">
                             <button type="button" class="btn btn-secondary btn-lg" onclick="ocultarFormularioComponente()">
@@ -209,7 +162,6 @@
                             <th>Nome</th>
                             <th>Sigla</th>
                             <th>Descrição</th>
-                            <th>Peso</th>
                             <th class="text-center">Editar</th>
                             <th class="text-center">Excluir</th>
                         </tr>
@@ -218,20 +170,6 @@
                         
                     </tbody>
                 </table>
-            </div>
-        </div>
-
-        <div class="tipo-media-section">
-            <h3>Tipo de cálculo da nota final:</h3>
-            <div class="radio-group">
-                <div class="radio-option">
-                    <input type="radio" id="mediaSimples" name="tipoMedia" value="simples" checked>
-                    <label for="mediaSimples">Média Simples</label>
-                </div>
-                <div class="radio-option">
-                    <input type="radio" id="mediaPonderada" name="tipoMedia" value="ponderada">
-                    <label for="mediaPonderada">Média Ponderada</label>
-                </div>
             </div>
         </div>
     </div>
@@ -276,17 +214,9 @@
                             >
                         </div>
                         <div class="mb-3">
-                            <label for="editComponentePeso" class="form-label">Peso da Nota</label>
-                            <input 
-                                type="number" 
-                                class="form-control form-control-lg" 
-                                id="editComponentePeso"
-                                min="0.1"
-                                max="1.0"
-                                step="0.1"
-                                disabled
-                            >
-                            <small class="text-muted">Ative "Média Ponderada" para usar pesos</small>
+                            <small class="text-muted">
+                                <i class="bi bi-calculator"></i> Tipo de média: Média Simples
+                            </small>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -389,7 +319,6 @@
 
         let componentes = [];
 
-        let tipoMedia = "simples"; 
 
         let currentDisciplinaId = null;
 
@@ -438,14 +367,12 @@
             document.getElementById('componenteFormContainer').style.display = 'block';
             document.getElementById('btnAddComponente').style.display = 'none';
             document.getElementById('componenteNome').focus();
-            atualizarEstadoPeso();
         }
 
         function ocultarFormularioComponente() {
             document.getElementById('componenteFormContainer').style.display = 'none';
             document.getElementById('btnAddComponente').style.display = 'inline-flex';
             document.getElementById('cadastroComponenteForm').reset();
-            atualizarEstadoPeso();
         }
 
         function atualizarTabela() {
@@ -468,7 +395,6 @@
                     <td><strong>${escapeHtml(componente.nome)}</strong></td>
                     <td>${escapeHtml(componente.sigla)}</td>
                     <td>${escapeHtml(componente.descricao || '-')}</td>
-                    <td>${componente.peso ? parseFloat(componente.peso).toFixed(1) : '-'}</td>
                     <td class="text-center">
                         <button class="action-btn btn-edit-curso" onclick="editarComponente(${componente.id})" title="Editar">
                             <i class="bi bi-pencil"></i> Editar
@@ -489,15 +415,10 @@
             const nome = document.getElementById('componenteNome').value.trim();
             const sigla = document.getElementById('componenteSigla').value.trim().toUpperCase();
             const descricao = document.getElementById('componenteDescricao').value.trim();
-            const peso = tipoMedia === 'ponderada' ? parseFloat(document.getElementById('componentePeso').value) : null;
+            const peso = null;
 
             if (!nome || !sigla) {
                 showMessage('Nome e Sigla são obrigatórios!', 'error');
-                return;
-            }
-
-            if (tipoMedia === 'ponderada' && (!peso || peso < 0.1 || peso > 1.0)) {
-                showMessage('Peso deve estar entre 0.1 e 1.0 quando média ponderada estiver ativa!', 'error');
                 return;
             }
 
@@ -549,9 +470,6 @@
             document.getElementById('editComponenteNome').value = componente.nome;
             document.getElementById('editComponenteSigla').value = componente.sigla;
             document.getElementById('editComponenteDescricao').value = componente.descricao || '';
-            document.getElementById('editComponentePeso').value = componente.peso || '';
-
-            atualizarEstadoPesoModal();
 
             const editModal = new bootstrap.Modal(document.getElementById('editComponenteModal'));
             editModal.show();
@@ -564,15 +482,10 @@
             const nome = document.getElementById('editComponenteNome').value.trim();
             const sigla = document.getElementById('editComponenteSigla').value.trim().toUpperCase();
             const descricao = document.getElementById('editComponenteDescricao').value.trim();
-            const peso = tipoMedia === 'ponderada' ? parseFloat(document.getElementById('editComponentePeso').value) : null;
+            const peso = null;
 
             if (!nome || !sigla) {
                 showMessage('Nome e Sigla são obrigatórios!', 'error');
-                return;
-            }
-
-            if (tipoMedia === 'ponderada' && (!peso || peso < 0.1 || peso > 1.0)) {
-                showMessage('Peso deve estar entre 0.1 e 1.0 quando média ponderada estiver ativa!', 'error');
                 return;
             }
 
@@ -647,42 +560,6 @@
             return div.innerHTML;
         }
 
-        document.querySelectorAll('input[name="tipoMedia"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                tipoMedia = this.value;
-                atualizarEstadoPeso();
-                atualizarEstadoPesoModal();
-
-                const disciplinaData = localStorage.getItem('selectedDisciplina');
-                if (disciplinaData) {
-                    const disciplina = JSON.parse(disciplinaData);
-                    localStorage.setItem(`tipoMedia_${disciplina.id}`, tipoMedia);
-                }
-            });
-        });
-
-        function atualizarEstadoPeso() {
-            const pesoInput = document.getElementById('componentePeso');
-            if (tipoMedia === 'ponderada') {
-                pesoInput.disabled = false;
-                pesoInput.required = true;
-            } else {
-                pesoInput.disabled = true;
-                pesoInput.required = false;
-                pesoInput.value = '';
-            }
-        }
-
-        function atualizarEstadoPesoModal() {
-            const pesoInput = document.getElementById('editComponentePeso');
-            if (tipoMedia === 'ponderada') {
-                pesoInput.disabled = false;
-                pesoInput.required = true;
-            } else {
-                pesoInput.disabled = true;
-                pesoInput.required = false;
-            }
-        }
 
         document.addEventListener('DOMContentLoaded', async function() {
             
@@ -691,15 +568,6 @@
             }
 
             if (loadDisciplinaData()) {
-                if (currentDisciplinaId) {
-                    const tipoMediaSalvo = localStorage.getItem(`tipoMedia_${currentDisciplinaId}`);
-                    if (tipoMediaSalvo) {
-                        tipoMedia = tipoMediaSalvo;
-                        document.querySelector(`input[name="tipoMedia"][value="${tipoMediaSalvo}"]`).checked = true;
-                        atualizarEstadoPeso();
-                    }
-                }
-
                 await carregarComponentes();
             }
         });
