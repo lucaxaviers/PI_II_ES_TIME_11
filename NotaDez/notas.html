@@ -52,7 +52,10 @@
             </table>
         </div>
 
-        <div class="text-end mt-3 mb-4">
+        <div class="text-end mt-3 mb-4 d-flex gap-2 justify-content-end">
+            <button class="btn btn-success btn-lg" onclick="exportarCSV()">
+                <i class="bi bi-download"></i> EXPORTAR CSV
+            </button>
             <button class="btn btn-primary btn-lg btn-save" onclick="salvarTudo()">
                 <i class="bi bi-save"></i> SALVAR TUDO
             </button>
@@ -134,6 +137,8 @@
 
         let currentTurmaId = null;
         let currentDisciplinaId = null;
+        let currentTurmaNome = null;
+        let currentDisciplinaSigla = null;
 
         function renderizarTabela() {
             const thead = document.getElementById('tableHeader');
@@ -378,13 +383,16 @@
 
                 const turma = JSON.parse(turmaData);
                 currentTurmaId = turma.id;
+                currentTurmaNome = turma.nome || 'Turma';
 
                 const disciplinaData = localStorage.getItem('selectedDisciplina');
                 if (disciplinaData) {
                     const disciplina = JSON.parse(disciplinaData);
                     currentDisciplinaId = disciplina.id;
+                    currentDisciplinaSigla = disciplina.sigla || disciplina.codigo || 'DISC';
                     document.getElementById('headerTitle').textContent = `${disciplina.nome} — ${turma.nome}`;
                 } else {
+                    currentDisciplinaSigla = 'DISC';
                     document.getElementById('headerTitle').textContent = `Turma: ${turma.nome}`;
                 }
 
@@ -461,6 +469,86 @@
 
             renderizarTabela();
         });
+
+        function exportarCSV() {
+            if (alunos.length === 0 || componentes.length === 0) {
+                showMessage('Não há dados para exportar', 'error');
+                return;
+            }
+
+            const notasVazias = [];
+            alunos.forEach(aluno => {
+                componentes.forEach(comp => {
+                    if (!notas[aluno.id] || notas[aluno.id][comp.id] === undefined || notas[aluno.id][comp.id] === null) {
+                        notasVazias.push(`${aluno.nome} - ${comp.sigla}`);
+                    }
+                });
+            });
+
+            if (notasVazias.length > 0) {
+                showMessage('Não é possível exportar. Existem notas vazias. Por favor, preencha todas as notas antes de exportar.', 'error');
+                return;
+            }
+
+            const linhas = [];
+
+            const cabecalho = ['Matrícula', 'Nome'];
+            componentes.forEach(comp => {
+                cabecalho.push(comp.sigla);
+            });
+            cabecalho.push('Nota Final');
+            linhas.push(cabecalho.join(','));
+
+            alunos.forEach(aluno => {
+                const linha = [];
+                linha.push(`"${aluno.ra}"`);
+                linha.push(`"${aluno.nome.replace(/"/g, '""')}"`);
+
+                componentes.forEach(comp => {
+                    const valor = notas[aluno.id] && notas[aluno.id][comp.id] !== undefined ? notas[aluno.id][comp.id] : 0;
+                    linha.push(valor.toFixed(2).replace('.', ','));
+                });
+
+                const notaFinal = notasFinais[aluno.id] !== undefined ? notasFinais[aluno.id] : calcularNotaFinal(aluno.id);
+                linha.push(notaFinal.toFixed(2).replace('.', ','));
+
+                linhas.push(linha.join(','));
+            });
+
+            const csvContent = linhas.join('\n');
+            const bom = '\uFEFF';
+            const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+            const agora = new Date();
+            const ano = agora.getFullYear();
+            const mes = String(agora.getMonth() + 1).padStart(2, '0');
+            const dia = String(agora.getDate()).padStart(2, '0');
+            const hora = String(agora.getHours()).padStart(2, '0');
+            const minuto = String(agora.getMinutes()).padStart(2, '0');
+            const segundo = String(agora.getSeconds()).padStart(2, '0');
+            const milissegundo = String(agora.getMilliseconds()).padStart(3, '0');
+
+            const nomeTurma = currentTurmaNome.replace(/[^a-zA-Z0-9]/g, '');
+            const sigla = currentDisciplinaSigla.replace(/[^a-zA-Z0-9]/g, '');
+            
+            const nomeArquivo = `${ano}-${mes}-${dia}_${hora}${minuto}${segundo}${milissegundo}-${nomeTurma}_${sigla}.csv`;
+
+            const link = document.createElement('a');
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', nomeArquivo);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                showMessage('CSV exportado com sucesso!', 'success');
+            } else {
+                showMessage('Seu navegador não suporta download de arquivos', 'error');
+            }
+        }
     </script>
 </body>
 </html>

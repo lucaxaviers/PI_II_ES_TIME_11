@@ -399,10 +399,10 @@
                         </div>
                     </div>
                     <div class="curso-card-actions">
-                        <button class="action-btn btn-view-curso" onclick="verTurmas(${disciplina.id}, '${disciplina.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', '${(disciplina.codigo || '').replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">
+                        <button class="action-btn btn-view-curso" onclick="verTurmas(${disciplina.id}, '${disciplina.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', '${(disciplina.sigla || '').replace(/'/g, "\\'").replace(/"/g, '&quot;')}', '${(disciplina.codigo || '').replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">
                             <i class="bi bi-people"></i> Ver Turmas
                         </button>
-                        <button class="action-btn btn-view-curso" onclick="verComponentes(${disciplina.id}, '${disciplina.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" style="background-color: #8b5cf6;">
+                        <button class="action-btn btn-view-curso" onclick="verComponentes(${disciplina.id}, '${disciplina.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', '${(disciplina.sigla || '').replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" style="background-color: #8b5cf6;">
                             <i class="bi bi-list-check"></i> Componentes
                         </button>
                         <button class="action-btn btn-edit-curso" onclick="editarDisciplina(${disciplina.id})">
@@ -564,20 +564,22 @@
             }
         });
 
-        function verTurmas(disciplinaId, disciplinaNome, disciplinaCodigo) {
+        function verTurmas(disciplinaId, disciplinaNome, disciplinaSigla, disciplinaCodigo) {
             localStorage.setItem('selectedDisciplina', JSON.stringify({
                 id: disciplinaId,
                 nome: disciplinaNome,
+                sigla: disciplinaSigla || null,
                 codigo: disciplinaCodigo || null
             }));
             
             window.location.href = 'turmas.html';
         }
 
-        function verComponentes(disciplinaId, disciplinaNome) {
+        function verComponentes(disciplinaId, disciplinaNome, disciplinaSigla) {
             localStorage.setItem('selectedDisciplina', JSON.stringify({
                 id: disciplinaId,
-                nome: disciplinaNome
+                nome: disciplinaNome,
+                sigla: disciplinaSigla || null
             }));
             
             window.location.href = 'componentes.html';
