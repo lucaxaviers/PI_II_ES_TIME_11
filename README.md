@@ -20,11 +20,10 @@ Resumindo: tudo que você precisa pra gerenciar notas de forma simples e sem com
 ## 👥 Quem fez?
 
 **TIME_11** - Projeto Integrador II
-
 Fizemos esse projeto pro PI II do curso de Engenharia de Software
 
 **Alunos**
-Gustavo Antonio Mariano - 25009767 
+Gustavo Antonio Mariano - 25009767
 Lucas Rodrigues Xavier - 25000508
 
 ## 🚀 Como fazer funcionar
