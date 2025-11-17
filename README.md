@@ -8,12 +8,12 @@ Basicamente, criamos um sistema pra ajudar professores a organizarem as notas do
 
 O NotaDez é um sistema web que deixa o professor:
 
-🏫 Cadastrar a instituição e cursos
-📖 Organizar as disciplinas
-👥 Criar turmas
-👨‍🎓 Adicionar alunos
-📊 Lançar notas e calcular médias automaticamente
-📈 Ver como os alunos estão indo
+- 🏫 Cadastrar a instituição e cursos
+- 📖 Organizar as disciplinas
+- 👥 Criar turmas
+- 👨‍🎓 Adicionar alunos
+- 📊 Lançar notas e calcular médias automaticamente
+- 📈 Ver como os alunos estão indo
 
 Resumindo: tudo que você precisa pra gerenciar notas de forma simples e sem complicação. A interface é bem fácil de usar, então qualquer professor consegue navegar de boa.
 
