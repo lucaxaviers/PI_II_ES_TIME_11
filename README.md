@@ -27,6 +27,8 @@ Leonardo Gambaroni Alves - 25003494
 
 Lucas Rodrigues Xavier - 25000508
 
+Mateus Oliveira Rafael - 25001369
+
 Wanderley Celestino Vieira Filho - 25007121
 
 ## 🚀 Como fazer funcionar
