@@ -8,12 +8,12 @@ Basicamente, criamos um sistema pra ajudar professores a organizarem as notas do
 
 O NotaDez é um sistema web que deixa o professor:
 
-- 🏫 Cadastrar a instituição e cursos
-- 📖 Organizar as disciplinas
-- 👥 Criar turmas
-- 👨‍🎓 Adicionar alunos
-- 📊 Lançar notas e calcular médias automaticamente
-- 📈 Ver como os alunos estão indo
+🏫 Cadastrar a instituição e cursos
+📖 Organizar as disciplinas
+👥 Criar turmas
+👨‍🎓 Adicionar alunos
+📊 Lançar notas e calcular médias automaticamente
+📈 Ver como os alunos estão indo
 
 Resumindo: tudo que você precisa pra gerenciar notas de forma simples e sem complicação. A interface é bem fácil de usar, então qualquer professor consegue navegar de boa.
 
@@ -146,38 +146,15 @@ Você vai ver uma mensagem dizendo que o servidor tá rodando na porta 3000. Se 
 8. **Definir componentes:** Configura os tipos de avaliação (provas, trabalhos, etc.)
 9. **Lançar notas:** Começa a lançar as notas dos alunos
 
-É nessa ordem mesmo! Vai passo a passo que funciona melhor.
-
-## ⚙️ Algumas configurações importantes
-
-### Porta do servidor
-
-Por padrão, o servidor roda na porta 3000. Se precisar mudar:
-
-1. Edita o arquivo `.env` na pasta `backend`
-2. Muda a variável `PORT`
-3. Reinicia o servidor
-
-### Banco de dados
-
-O sistema usa MySQL. Confirma que:
-- O MySQL tá rodando
-- As credenciais no `.env` tão certas
-- O banco foi criado e o script SQL rodou
-
-### Segurança
-
-Pra testes locais, já tá configurado e funciona tranquilo. Se for colocar em produção, aí precisa ajustar umas coisinhas de segurança no `routes.ts`.
-
 ## 🐛 Problemas? Aqui tem algumas soluções
 
 ### Erro ao conectar no banco
 - Confere se o MySQL tá rodando
-- Verifica se usuário e senha no `.env` tão certos
+- Verifica se usuário e senha estão certos
 - Certifica que o banco `notadez` existe
 
 ### Porta 3000 já em uso
-- Muda a porta no arquivo `.env`
+- Muda a porta no arquivo 
 - Ou fecha o programa que tá usando a porta 3000
 
 ### Páginas não carregam
