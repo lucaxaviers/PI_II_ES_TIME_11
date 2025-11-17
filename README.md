@@ -110,8 +110,6 @@ Você vai ver uma mensagem dizendo que o servidor tá rodando na porta 3000. Se 
 2. Va até a pasta `NotaDez` no seu computador
 3. Abre o arquivo `login.html`
 
-**Importante:** Por padrão, o sistema tenta se conectar no backend em `http://localhost:3000`. Se você mudou a porta no `.env`, tem que trocar nos arquivos HTML também (procura por `localhost:3000` e troca pela porta certa).
-
 ## 🛠️ O que a gente usou
 
 ### Frontend
