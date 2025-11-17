@@ -21,7 +21,9 @@ Resumindo: tudo que você precisa pra gerenciar notas de forma simples e sem com
 
 **TIME_11** - Projeto Integrador II
 
-Fizemos esse projeto pro PI II do curso de Engenharia de Software. Somos estudantes tentando facilitar a vida dos professores com um sistema simples e funcional!
+Fizemos esse projeto pro PI II do curso de Engenharia de Software 
+**Alunos**
+Gustavo Antonio Mariano - 25009767
 
 ## 🚀 Como fazer funcionar
 
