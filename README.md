@@ -24,6 +24,7 @@ Fizemos esse projeto pro PI II do curso de Engenharia de Software
 
 **Alunos**
 Gustavo Antonio Mariano - 25009767
+
 Lucas Rodrigues Xavier - 25000508
 
 ## 🚀 Como fazer funcionar
