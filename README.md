@@ -15,8 +15,6 @@ O NotaDez é um sistema web que deixa o professor:
 - 📊 Lançar notas e calcular médias automaticamente
 - 📈 Ver como os alunos estão indo
 
-Resumindo: tudo que você precisa pra gerenciar notas de forma simples e sem complicação. A interface é bem fácil de usar, então qualquer professor consegue navegar de boa.
-
 ## 👥 Quem fez? - **TIME_11** - Projeto Integrador II
 
 **Alunos:**
