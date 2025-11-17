@@ -23,6 +23,8 @@ Resumindo: tudo que você precisa pra gerenciar notas de forma simples e sem com
 
 Gustavo Antonio Mariano - 25009767
 
+Leonardo Gambaroni Alves - 25003494
+
 Lucas Rodrigues Xavier - 25000508
 
 ## 🚀 Como fazer funcionar
