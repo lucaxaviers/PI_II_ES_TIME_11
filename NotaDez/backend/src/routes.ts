@@ -1,0 +1,2237 @@
+/* Autores do arquivo: Todos os integrantes */
+
+import { IncomingMessage, ServerResponse } from 'http';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { query } from './db';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'secret_default_change_in_production';
+
+// autor: Leonardo
+// o que faz: verifica se o token de autenticação é válido
+// o que é: função que valida o token JWT do usuário logado
+export async function authenticateToken(req: IncomingMessage): Promise<any> {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; 
+
+    if (!token) {
+        return null;
+    }
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        return decoded;
+    } catch (error) {
+        return null;
+    }
+}
+
+async function readBody(req: IncomingMessage): Promise<any> {
+    return new Promise((resolve, reject) => {
+        let body = '';
+        req.on('data', (chunk: Buffer) => {
+            body += chunk.toString();
+        });
+        req.on('end', () => {
+            try {
+                resolve(JSON.parse(body));
+            } catch (error) {
+                reject(new Error('JSON inválido'));
+            }
+        });
+        req.on('error', reject);
+    });
+}
+
+function sendJSON(res: ServerResponse, statusCode: number, data: any): void {
+    res.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify(data));
+}
+
+function isValidEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+function handleForeignKeyError(error: any, entityType: string): { erro: boolean; mensagem: string } | null {
+    
+    const isForeignKeyError = 
+        error.code === 'ER_ROW_IS_REFERENCED_2' || 
+        error.message?.includes('foreign key constraint fails') ||
+        error.message?.includes('Cannot delete or update a parent row');
+
+    if (!isForeignKeyError) {
+        return null; 
+    }
+
+    const errorMsg = error.message?.toLowerCase() || '';
+
+    const blockingTable = 
+        errorMsg.includes('curso') ? 'curso' :
+        errorMsg.includes('disciplina') ? 'disciplina' :
+        errorMsg.includes('turma') ? 'turma' :
+        errorMsg.includes('aluno') ? 'aluno' :
+        errorMsg.includes('componente') || errorMsg.includes('componente_nota') ? 'componente' :
+        errorMsg.includes('nota') || errorMsg.includes('auditoria') ? 'nota' :
+        errorMsg.includes('instituicao') ? 'instituicao' :
+        null;
+
+    switch (entityType.toLowerCase()) {
+        case 'instituicao':
+            return {
+                erro: true,
+                mensagem: 'Não é possível excluir a instituição porque existem cursos, disciplinas, turmas, alunos ou notas vinculadas.'
+            };
+        
+        case 'curso':
+            return {
+                erro: true,
+                mensagem: 'Não é possível excluir o curso porque existem disciplinas vinculadas.'
+            };
+        
+        case 'disciplina':
+            if (blockingTable === 'turma') {
+                return {
+                    erro: true,
+                    mensagem: 'Não é possível excluir a disciplina porque existem turmas vinculadas.'
+                };
+            } else if (blockingTable === 'componente') {
+                return {
+                    erro: true,
+                    mensagem: 'Não é possível excluir a disciplina porque existem componentes de nota vinculados.'
+                };
+            }
+            return {
+                erro: true,
+                mensagem: 'Não é possível excluir a disciplina porque existem turmas ou componentes vinculados.'
+            };
+        
+        case 'turma':
+            if (blockingTable === 'aluno') {
+                return {
+                    erro: true,
+                    mensagem: 'Não é possível excluir a turma porque existem alunos vinculados.'
+                };
+            } else if (blockingTable === 'nota') {
+                return {
+                    erro: true,
+                    mensagem: 'Não é possível excluir a turma porque existem notas vinculadas.'
+                };
+            }
+            return {
+                erro: true,
+                mensagem: 'Não é possível excluir a turma porque existem alunos ou notas vinculadas.'
+            };
+        
+        case 'aluno':
+            return {
+                erro: true,
+                mensagem: 'Não é possível excluir o aluno porque há notas registradas para ele.'
+            };
+        
+        case 'componente':
+            return {
+                erro: true,
+                mensagem: 'Não é possível excluir o componente porque existem notas vinculadas a ele.'
+            };
+        
+        default:
+            return {
+                erro: true,
+                mensagem: 'Não é possível excluir este item porque existem registros vinculados.'
+            };
+    }
+}
+
+// autor: Leonardo
+// o que faz: cadastra um novo usuário no sistema
+// o que é: rota que recebe os dados do cadastro e salva no banco
+export async function handleRegister(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        const body = await readBody(req);
+        const { nome, email, telefone, senha } = body;
+
+        if (!nome || !email || !senha) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Campos obrigatórios: nome, email e senha'
+            });
+        }
+
+        if (!isValidEmail(email)) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Email inválido'
+            });
+        }
+
+        if (senha.length < 6) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Senha deve ter no mínimo 6 caracteres'
+            });
+        }
+
+        const existingUser = await query(
+            'SELECT ID_DOCENTE FROM DOCENTE WHERE EMAIL = ?',
+            [email]
+        ) as any[];
+
+        if (existingUser.length > 0) {
+            return sendJSON(res, 409, {
+                success: false,
+                message: 'Este email já está cadastrado'
+            });
+        }
+
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(senha, saltRounds);
+
+        const result = await query(
+            'INSERT INTO DOCENTE (NOME, EMAIL, TELEFONE, SENHA) VALUES (?, ?, ?, ?)',
+            [nome, email, telefone || null, hashedPassword]
+        ) as any;
+
+        sendJSON(res, 201, {
+            success: true,
+            message: 'Docente cadastrado com sucesso',
+            data: {
+                id: result.insertId,
+                nome,
+                email
+            }
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Leonardo
+// o que faz: verifica email e senha para fazer login
+// o que é: rota que valida as credenciais e retorna um token de acesso
+export async function handleLogin(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        const body = await readBody(req);
+        const { email, senha } = body;
+
+        if (!email || !senha) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Email e senha são obrigatórios'
+            });
+        }
+
+        const users = await query(
+            'SELECT ID_DOCENTE, NOME, EMAIL, SENHA FROM DOCENTE WHERE EMAIL = ?',
+            [email]
+        ) as any[];
+
+        if (users.length === 0) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Email ou senha inválidos'
+            });
+        }
+
+        const user = users[0];
+
+        const passwordMatch = await bcrypt.compare(senha, user.SENHA);
+
+        if (!passwordMatch) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Email ou senha inválidos'
+            });
+        }
+
+        const token = jwt.sign(
+            {
+                id: user.ID_DOCENTE,
+                nome: user.NOME,
+                email: user.EMAIL
+            },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Login realizado com sucesso',
+            data: {
+                token,
+                user: {
+                    id: user.ID_DOCENTE,
+                    nome: user.NOME,
+                    email: user.EMAIL
+                }
+            }
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Leonardo
+// o que faz: envia email para recuperação de senha
+// o que é: rota que processa a solicitação de recuperação de senha
+export async function handleForgotPassword(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        const body = await readBody(req);
+        const { email } = body;
+
+        if (!email) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Email é obrigatório'
+            });
+        }
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Se este e-mail existir, enviamos um link para redefinição.'
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Xavier
+// o que faz: busca todas as instituições do usuário logado
+// o que é: rota que lista as instituições cadastradas
+export async function handleGetInstituicoes(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const instituicoes = await query(
+            'SELECT ID_INSTITUICAO, NOME_INSTITUICAO, CIDADE, UF FROM INSTITUICAO WHERE ID_DOCENTE = ? ORDER BY NOME_INSTITUICAO',
+            [user.id]
+        ) as any[];
+
+        sendJSON(res, 200, {
+            success: true,
+            data: instituicoes.map(inst => ({
+                id: inst.ID_INSTITUICAO,
+                nome: inst.NOME_INSTITUICAO,
+                cidade: inst.CIDADE,
+                uf: inst.UF
+            }))
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Xavier
+// o que faz: cria uma nova instituição no banco de dados
+// o que é: rota que salva os dados da instituição no banco
+export async function handleCreateInstituicao(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { nome, cidade, uf } = body;
+
+        if (!nome) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome da instituição é obrigatório'
+            });
+        }
+
+        const result = await query(
+            'INSERT INTO INSTITUICAO (NOME_INSTITUICAO, CIDADE, UF, ID_DOCENTE) VALUES (?, ?, ?, ?)',
+            [nome, cidade || null, uf || null, user.id]
+        ) as any;
+
+        sendJSON(res, 201, {
+            success: true,
+            message: 'Instituição cadastrada com sucesso',
+            data: {
+                id: result.insertId,
+                nome,
+                cidade: cidade || null,
+                uf: uf || null
+            }
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Xavier
+// o que faz: atualiza os dados de uma instituição existente
+// o que é: rota que modifica as informações da instituição no banco
+export async function handleUpdateInstituicao(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { nome, cidade, uf } = body;
+
+        if (!nome) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome da instituição é obrigatório'
+            });
+        }
+
+        const instituicoes = await query(
+            'SELECT ID_INSTITUICAO FROM INSTITUICAO WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
+            [id, user.id]
+        ) as any[];
+
+        if (instituicoes.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Instituição não encontrada ou você não tem permissão para editá-la'
+            });
+        }
+
+        await query(
+            'UPDATE INSTITUICAO SET NOME_INSTITUICAO = ?, CIDADE = ?, UF = ? WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
+            [nome, cidade || null, uf || null, id, user.id]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Instituição atualizada com sucesso',
+            data: {
+                id,
+                nome,
+                cidade: cidade || null,
+                uf: uf || null
+            }
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Xavier
+// o que faz: remove uma instituição do banco de dados
+// o que é: rota que exclui a instituição se não tiver dados vinculados
+export async function handleDeleteInstituicao(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const instituicoes = await query(
+            'SELECT ID_INSTITUICAO FROM INSTITUICAO WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
+            [id, user.id]
+        ) as any[];
+
+        if (instituicoes.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Instituição não encontrada ou você não tem permissão para excluí-la'
+            });
+        }
+
+        await query(
+            'DELETE FROM INSTITUICAO WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
+            [id, user.id]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Instituição excluída com sucesso'
+        });
+
+    } catch (error: any) {
+        
+        const fkError = handleForeignKeyError(error, 'instituicao');
+        if (fkError) {
+            return sendJSON(res, 400, fkError);
+        }
+        
+        console.error('Erro ao excluir instituição:', error);
+        sendJSON(res, 500, {
+            erro: true,
+            mensagem: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Mateus
+// o que faz: busca todos os cursos de uma instituição
+// o que é: rota que lista os cursos cadastrados
+export async function handleGetCursos(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const url = req.url || '';
+        const urlParts = url.split('?');
+        const queryString = urlParts.length > 1 ? urlParts[1] : '';
+        const params = new URLSearchParams(queryString);
+        const instituicaoId = params.get('instituicaoId');
+
+        if (!instituicaoId) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'ID da instituição é obrigatório'
+            });
+        }
+
+        const instituicoes = await query(
+            'SELECT ID_INSTITUICAO FROM INSTITUICAO WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
+            [parseInt(instituicaoId), user.id]
+        ) as any[];
+
+        if (instituicoes.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Instituição não encontrada ou você não tem permissão para acessá-la'
+            });
+        }
+
+        const cursos = await query(
+            `SELECT C.ID_CURSO, C.NOME_CURSO, C.MODALIDADE, C.AREA, C.PERIODO_TOTAL, I.NOME_INSTITUICAO
+             FROM CURSO C
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE C.ID_INSTITUICAO = ?
+             ORDER BY C.NOME_CURSO`,
+            [parseInt(instituicaoId)]
+        ) as any[];
+
+        sendJSON(res, 200, {
+            success: true,
+            data: cursos.map(curso => ({
+                id: curso.ID_CURSO,
+                nome: curso.NOME_CURSO,
+                modalidade: curso.MODALIDADE,
+                area: curso.AREA,
+                periodoTotal: curso.PERIODO_TOTAL,
+                duracao: curso.PERIODO_TOTAL ? `${curso.PERIODO_TOTAL} períodos` : null,
+                instituicaoNome: curso.NOME_INSTITUICAO
+            }))
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Mateus
+// o que faz: cria um novo curso no banco de dados
+// o que é: rota que salva os dados do curso no banco
+export async function handleCreateCurso(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { nome, area, modalidade, periodoTotal, instituicaoId } = body;
+
+        if (!nome || !instituicaoId) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome do curso e ID da instituição são obrigatórios'
+            });
+        }
+
+        const instituicoes = await query(
+            'SELECT ID_INSTITUICAO, NOME_INSTITUICAO FROM INSTITUICAO WHERE ID_INSTITUICAO = ? AND ID_DOCENTE = ?',
+            [parseInt(instituicaoId), user.id]
+        ) as any[];
+
+        if (instituicoes.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Instituição não encontrada ou você não tem permissão para criar cursos nela'
+            });
+        }
+
+        const result = await query(
+            'INSERT INTO CURSO (NOME_CURSO, MODALIDADE, AREA, PERIODO_TOTAL, ID_INSTITUICAO) VALUES (?, ?, ?, ?, ?)',
+            [nome, modalidade || null, area || null, periodoTotal ? parseInt(periodoTotal) : null, parseInt(instituicaoId)]
+        ) as any;
+
+        sendJSON(res, 201, {
+            success: true,
+            message: 'Curso cadastrado com sucesso',
+            data: {
+                id: result.insertId,
+                nome,
+                area: area || null,
+                modalidade: modalidade || null,
+                periodoTotal: periodoTotal ? parseInt(periodoTotal) : null,
+                instituicaoId: parseInt(instituicaoId),
+                instituicaoNome: instituicoes[0].NOME_INSTITUICAO
+            }
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Mateus
+// o que faz: atualiza os dados de um curso existente
+// o que é: rota que modifica as informações do curso no banco
+export async function handleUpdateCurso(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { nome, area, modalidade, periodoTotal } = body;
+
+        if (!nome) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome do curso é obrigatório'
+            });
+        }
+
+        const cursos = await query(
+            `SELECT C.ID_CURSO, C.ID_INSTITUICAO 
+             FROM CURSO C
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE C.ID_CURSO = ? AND I.ID_DOCENTE = ?`,
+            [id, user.id]
+        ) as any[];
+
+        if (cursos.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Curso não encontrado ou você não tem permissão para editá-lo'
+            });
+        }
+
+        await query(
+            'UPDATE CURSO SET NOME_CURSO = ?, MODALIDADE = ?, AREA = ?, PERIODO_TOTAL = ? WHERE ID_CURSO = ?',
+            [nome, modalidade || null, area || null, periodoTotal ? parseInt(periodoTotal) : null, id]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Curso atualizado com sucesso',
+            data: {
+                id,
+                nome,
+                area: area || null,
+                modalidade: modalidade || null,
+                periodoTotal: periodoTotal ? parseInt(periodoTotal) : null
+            }
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Mateus
+// o que faz: remove um curso do banco de dados
+// o que é: rota que exclui o curso se não tiver disciplinas vinculadas
+export async function handleDeleteCurso(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const cursos = await query(
+            `SELECT C.ID_CURSO 
+             FROM CURSO C
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE C.ID_CURSO = ? AND I.ID_DOCENTE = ?`,
+            [id, user.id]
+        ) as any[];
+
+        if (cursos.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Curso não encontrado ou você não tem permissão para excluí-lo'
+            });
+        }
+
+        await query(
+            'DELETE FROM CURSO WHERE ID_CURSO = ?',
+            [id]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Curso excluído com sucesso'
+        });
+
+    } catch (error: any) {
+        
+        const fkError = handleForeignKeyError(error, 'curso');
+        if (fkError) {
+            return sendJSON(res, 400, fkError);
+        }
+        
+        console.error('Erro ao excluir curso:', error);
+        sendJSON(res, 500, {
+            erro: true,
+            mensagem: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Gustavo
+// o que faz: busca todas as disciplinas de um curso
+// o que é: rota que lista as disciplinas cadastradas
+export async function handleGetDisciplinas(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const url = req.url || '';
+        const urlParts = url.split('?');
+        const queryString = urlParts.length > 1 ? urlParts[1] : '';
+        const params = new URLSearchParams(queryString);
+        const cursoId = params.get('cursoId');
+
+        if (!cursoId) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'ID do curso é obrigatório'
+            });
+        }
+
+        const cursos = await query(
+            `SELECT C.ID_CURSO, C.NOME_CURSO
+             FROM CURSO C
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE C.ID_CURSO = ? AND I.ID_DOCENTE = ?`,
+            [parseInt(cursoId), user.id]
+        ) as any[];
+
+        if (cursos.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Curso não encontrado ou você não tem permissão para acessá-lo'
+            });
+        }
+
+        const disciplinas = await query(
+            `SELECT D.ID_DISCIPLINA, D.NOME_DISCIPLINA, D.SIGLA, D.CODIGO, D.PERIODO, C.NOME_CURSO
+             FROM DISCIPLINA D
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             WHERE D.ID_CURSO = ?
+             ORDER BY D.PERIODO, D.NOME_DISCIPLINA`,
+            [parseInt(cursoId)]
+        ) as any[];
+
+        sendJSON(res, 200, {
+            success: true,
+            data: disciplinas.map(disciplina => ({
+                id: disciplina.ID_DISCIPLINA,
+                nome: disciplina.NOME_DISCIPLINA,
+                sigla: disciplina.SIGLA,
+                codigo: disciplina.CODIGO,
+                periodo: disciplina.PERIODO,
+                cursoNome: disciplina.NOME_CURSO
+            }))
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Gustavo
+// o que faz: cria uma nova disciplina no banco de dados
+// o que é: rota que salva os dados da disciplina no banco
+export async function handleCreateDisciplina(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { nome, sigla, codigo, periodo, cursoId } = body;
+
+        if (!nome || !sigla || !cursoId) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome da disciplina, sigla e ID do curso são obrigatórios'
+            });
+        }
+
+        const cursos = await query(
+            `SELECT C.ID_CURSO, C.NOME_CURSO
+             FROM CURSO C
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE C.ID_CURSO = ? AND I.ID_DOCENTE = ?`,
+            [parseInt(cursoId), user.id]
+        ) as any[];
+
+        if (cursos.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Curso não encontrado ou você não tem permissão para criar disciplinas nele'
+            });
+        }
+
+        const result = await query(
+            'INSERT INTO DISCIPLINA (NOME_DISCIPLINA, SIGLA, CODIGO, PERIODO, ID_CURSO) VALUES (?, ?, ?, ?, ?)',
+            [nome, sigla, codigo || null, periodo || null, parseInt(cursoId)]
+        ) as any;
+
+        sendJSON(res, 201, {
+            success: true,
+            message: 'Disciplina cadastrada com sucesso',
+            data: {
+                id: result.insertId,
+                nome,
+                sigla,
+                codigo: codigo || null,
+                periodo: periodo || null,
+                cursoId: parseInt(cursoId),
+                cursoNome: cursos[0].NOME_CURSO
+            }
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Gustavo
+// o que faz: atualiza os dados de uma disciplina existente
+// o que é: rota que modifica as informações da disciplina no banco
+export async function handleUpdateDisciplina(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { nome, sigla, codigo, periodo } = body;
+
+        if (!nome || !sigla) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome da disciplina e sigla são obrigatórios'
+            });
+        }
+
+        const disciplinas = await query(
+            `SELECT D.ID_DISCIPLINA, D.ID_CURSO
+             FROM DISCIPLINA D
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE D.ID_DISCIPLINA = ? AND I.ID_DOCENTE = ?`,
+            [id, user.id]
+        ) as any[];
+
+        if (disciplinas.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Disciplina não encontrada ou você não tem permissão para editá-la'
+            });
+        }
+
+        await query(
+            'UPDATE DISCIPLINA SET NOME_DISCIPLINA = ?, SIGLA = ?, CODIGO = ?, PERIODO = ? WHERE ID_DISCIPLINA = ?',
+            [nome, sigla, codigo || null, periodo || null, id]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Disciplina atualizada com sucesso',
+            data: {
+                id,
+                nome,
+                sigla,
+                codigo: codigo || null,
+                periodo: periodo || null
+            }
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Gustavo
+// o que faz: remove uma disciplina do banco de dados
+// o que é: rota que exclui a disciplina se não tiver turmas ou componentes vinculados
+export async function handleDeleteDisciplina(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const disciplinas = await query(
+            `SELECT D.ID_DISCIPLINA
+             FROM DISCIPLINA D
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE D.ID_DISCIPLINA = ? AND I.ID_DOCENTE = ?`,
+            [id, user.id]
+        ) as any[];
+
+        if (disciplinas.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Disciplina não encontrada ou você não tem permissão para excluí-la'
+            });
+        }
+
+        await query(
+            'DELETE FROM DISCIPLINA WHERE ID_DISCIPLINA = ?',
+            [id]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Disciplina excluída com sucesso'
+        });
+
+    } catch (error: any) {
+        
+        const fkError = handleForeignKeyError(error, 'disciplina');
+        if (fkError) {
+            return sendJSON(res, 400, fkError);
+        }
+        
+        console.error('Erro ao excluir disciplina:', error);
+        sendJSON(res, 500, {
+            erro: true,
+            mensagem: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Wanderley
+// o que faz: busca todas as turmas de uma disciplina
+// o que é: rota que lista as turmas cadastradas
+export async function handleGetTurmas(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const url = req.url || '';
+        const urlParts = url.split('?');
+        const queryString = urlParts.length > 1 ? urlParts[1] : '';
+        const params = new URLSearchParams(queryString);
+        const disciplinaId = params.get('disciplinaId');
+
+        if (!disciplinaId) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'ID da disciplina é obrigatório'
+            });
+        }
+
+        const disciplinas = await query(
+            `SELECT D.ID_DISCIPLINA, D.NOME_DISCIPLINA
+             FROM DISCIPLINA D
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE D.ID_DISCIPLINA = ? AND I.ID_DOCENTE = ?`,
+            [parseInt(disciplinaId), user.id]
+        ) as any[];
+
+        if (disciplinas.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Disciplina não encontrada ou você não tem permissão para acessá-la'
+            });
+        }
+
+        const turmas = await query(
+            `SELECT 
+                T.ID_TURMA, 
+                T.NOME_TURMA, 
+                D.NOME_DISCIPLINA,
+                COUNT(A.ID_ALUNO) as QTD_ALUNOS
+             FROM TURMA T
+             INNER JOIN DISCIPLINA D ON T.ID_DISCIPLINA = D.ID_DISCIPLINA
+             LEFT JOIN ALUNO A ON T.ID_TURMA = A.ID_TURMA
+             WHERE T.ID_DISCIPLINA = ?
+             GROUP BY T.ID_TURMA, T.NOME_TURMA, D.NOME_DISCIPLINA
+             ORDER BY T.NOME_TURMA`,
+            [parseInt(disciplinaId)]
+        ) as any[];
+
+        sendJSON(res, 200, {
+            success: true,
+            data: turmas.map(turma => ({
+                id: turma.ID_TURMA,
+                nome: turma.NOME_TURMA,
+                qtdAlunos: Number(turma.QTD_ALUNOS) || 0,
+                disciplinaNome: turma.NOME_DISCIPLINA
+            }))
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Wanderley
+// o que faz: cria uma nova turma no banco de dados
+// o que é: rota que salva os dados da turma no banco
+export async function handleCreateTurma(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { nome, sigla, codigo, disciplinaId } = body;
+
+        if (!nome || !disciplinaId) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome da turma e ID da disciplina são obrigatórios'
+            });
+        }
+
+        const disciplinas = await query(
+            `SELECT D.ID_DISCIPLINA, D.NOME_DISCIPLINA
+             FROM DISCIPLINA D
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE D.ID_DISCIPLINA = ? AND I.ID_DOCENTE = ?`,
+            [parseInt(disciplinaId), user.id]
+        ) as any[];
+
+        if (disciplinas.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Disciplina não encontrada ou você não tem permissão para criar turmas nela'
+            });
+        }
+
+        let nomeCompleto = nome;
+        if (sigla) {
+            nomeCompleto = `${nome} (${sigla})`;
+        }
+        if (codigo) {
+            nomeCompleto = `${nome} [${codigo}]`;
+        }
+        if (sigla && codigo) {
+            nomeCompleto = `${nome} (${sigla}) [${codigo}]`;
+        }
+
+        const result = await query(
+            'INSERT INTO TURMA (NOME_TURMA, QTD_ALUNOS, ID_DISCIPLINA) VALUES (?, ?, ?)',
+            [nomeCompleto, 0, parseInt(disciplinaId)]
+        ) as any;
+
+        sendJSON(res, 201, {
+            success: true,
+            message: 'Turma cadastrada com sucesso',
+            data: {
+                id: result.insertId,
+                nome: nomeCompleto,
+                sigla: sigla || null,
+                codigo: codigo || null,
+                qtdAlunos: 0,
+                disciplinaId: parseInt(disciplinaId),
+                disciplinaNome: disciplinas[0].NOME_DISCIPLINA
+            }
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Wanderley
+// o que faz: atualiza os dados de uma turma existente
+// o que é: rota que modifica as informações da turma no banco
+export async function handleUpdateTurma(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { nome, sigla, codigo } = body;
+
+        if (!nome) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome da turma é obrigatório'
+            });
+        }
+
+        const turmas = await query(
+            `SELECT T.ID_TURMA, T.ID_DISCIPLINA
+             FROM TURMA T
+             INNER JOIN DISCIPLINA D ON T.ID_DISCIPLINA = D.ID_DISCIPLINA
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE T.ID_TURMA = ? AND I.ID_DOCENTE = ?`,
+            [id, user.id]
+        ) as any[];
+
+        if (turmas.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Turma não encontrada ou você não tem permissão para editá-la'
+            });
+        }
+
+        let nomeCompleto = nome;
+        if (sigla) {
+            nomeCompleto = `${nome} (${sigla})`;
+        }
+        if (codigo) {
+            nomeCompleto = `${nome} [${codigo}]`;
+        }
+        if (sigla && codigo) {
+            nomeCompleto = `${nome} (${sigla}) [${codigo}]`;
+        }
+
+        await query(
+            'UPDATE TURMA SET NOME_TURMA = ? WHERE ID_TURMA = ?',
+            [nomeCompleto, id]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Turma atualizada com sucesso',
+            data: {
+                id,
+                nome: nomeCompleto,
+                sigla: sigla || null,
+                codigo: codigo || null
+            }
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Wanderley
+// o que faz: remove uma turma do banco de dados
+// o que é: rota que exclui a turma se não tiver alunos ou notas vinculadas
+export async function handleDeleteTurma(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const turmas = await query(
+            `SELECT T.ID_TURMA
+             FROM TURMA T
+             INNER JOIN DISCIPLINA D ON T.ID_DISCIPLINA = D.ID_DISCIPLINA
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE T.ID_TURMA = ? AND I.ID_DOCENTE = ?`,
+            [id, user.id]
+        ) as any[];
+
+        if (turmas.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Turma não encontrada ou você não tem permissão para excluí-la'
+            });
+        }
+
+        await query(
+            'DELETE FROM TURMA WHERE ID_TURMA = ?',
+            [id]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Turma excluída com sucesso'
+        });
+
+    } catch (error: any) {
+        
+        const fkError = handleForeignKeyError(error, 'turma');
+        if (fkError) {
+            return sendJSON(res, 400, fkError);
+        }
+        
+        console.error('Erro ao excluir turma:', error);
+        sendJSON(res, 500, {
+            erro: true,
+            mensagem: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Xavier
+// o que faz: busca todos os alunos de uma turma
+// o que é: rota que lista os alunos cadastrados
+export async function handleGetAlunos(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const url = req.url || '';
+        const urlParts = url.split('?');
+        const queryString = urlParts.length > 1 ? urlParts[1] : '';
+        const params = new URLSearchParams(queryString);
+        const turmaId = params.get('turmaId');
+
+        if (!turmaId) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'ID da turma é obrigatório'
+            });
+        }
+
+        const turmas = await query(
+            `SELECT T.ID_TURMA, T.NOME_TURMA
+             FROM TURMA T
+             INNER JOIN DISCIPLINA D ON T.ID_DISCIPLINA = D.ID_DISCIPLINA
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE T.ID_TURMA = ? AND I.ID_DOCENTE = ?`,
+            [parseInt(turmaId), user.id]
+        ) as any[];
+
+        if (turmas.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Turma não encontrada ou você não tem permissão para acessá-la'
+            });
+        }
+
+        const alunos = await query(
+            `SELECT A.ID_ALUNO, A.RA, A.NOME
+             FROM ALUNO A
+             WHERE A.ID_TURMA = ?
+             ORDER BY A.NOME`,
+            [parseInt(turmaId)]
+        ) as any[];
+
+        sendJSON(res, 200, {
+            success: true,
+            data: alunos.map(aluno => ({
+                id: aluno.ID_ALUNO,
+                matricula: aluno.RA,
+                ra: aluno.RA,
+                nome: aluno.NOME
+            }))
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Xavier
+// o que faz: cria um novo aluno no banco de dados
+// o que é: rota que salva os dados do aluno no banco
+export async function handleCreateAluno(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { matricula, ra, nome, turmaId } = body;
+
+        const raValue = ra || matricula;
+        if (!raValue || !raValue.trim()) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'RA é obrigatório'
+            });
+        }
+
+        if (!nome || !nome.trim()) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome é obrigatório'
+            });
+        }
+
+        if (!turmaId) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'ID da turma é obrigatório'
+            });
+        }
+
+        const turmas = await query(
+            `SELECT T.ID_TURMA
+             FROM TURMA T
+             INNER JOIN DISCIPLINA D ON T.ID_DISCIPLINA = D.ID_DISCIPLINA
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE T.ID_TURMA = ? AND I.ID_DOCENTE = ?`,
+            [parseInt(turmaId), user.id]
+        ) as any[];
+
+        if (turmas.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Turma não encontrada ou você não tem permissão para adicionar alunos'
+            });
+        }
+
+        const alunosExistentes = await query(
+            'SELECT ID_ALUNO FROM ALUNO WHERE RA = ? AND ID_TURMA = ?',
+            [raValue.trim(), parseInt(turmaId)]
+        ) as any[];
+
+        if (alunosExistentes.length > 0) {
+            return sendJSON(res, 409, {
+                success: false,
+                message: 'Já existe um aluno com este RA nesta turma'
+            });
+        }
+
+        const result = await query(
+            'INSERT INTO ALUNO (RA, NOME, ID_TURMA) VALUES (?, ?, ?)',
+            [raValue.trim(), nome.trim(), parseInt(turmaId)]
+        ) as any;
+
+        sendJSON(res, 201, {
+            success: true,
+            message: 'Aluno cadastrado com sucesso',
+            data: {
+                id: result.insertId,
+                ra: raValue.trim(),
+                nome: nome.trim(),
+                turmaId: parseInt(turmaId)
+            }
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Xavier
+// o que faz: atualiza os dados de um aluno existente
+// o que é: rota que modifica as informações do aluno no banco
+export async function handleUpdateAluno(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { nome } = body;
+
+        if (!nome || !nome.trim()) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome é obrigatório'
+            });
+        }
+
+        const alunos = await query(
+            `SELECT A.ID_ALUNO, A.RA, A.NOME, A.ID_TURMA
+             FROM ALUNO A
+             INNER JOIN TURMA T ON A.ID_TURMA = T.ID_TURMA
+             INNER JOIN DISCIPLINA D ON T.ID_DISCIPLINA = D.ID_DISCIPLINA
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE A.ID_ALUNO = ? AND I.ID_DOCENTE = ?`,
+            [id, user.id]
+        ) as any[];
+
+        if (alunos.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Aluno não encontrado ou você não tem permissão para editá-lo'
+            });
+        }
+
+        await query(
+            'UPDATE ALUNO SET NOME = ? WHERE ID_ALUNO = ?',
+            [nome.trim(), id]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Aluno atualizado com sucesso',
+            data: {
+                id: id,
+                ra: alunos[0].RA,
+                nome: nome.trim()
+            }
+        });
+
+    } catch (error: any) {
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Xavier
+// o que faz: remove um aluno do banco de dados
+// o que é: rota que exclui o aluno se não tiver notas registradas
+export async function handleDeleteAluno(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const alunos = await query(
+            `SELECT A.ID_ALUNO
+             FROM ALUNO A
+             INNER JOIN TURMA T ON A.ID_TURMA = T.ID_TURMA
+             INNER JOIN DISCIPLINA D ON T.ID_DISCIPLINA = D.ID_DISCIPLINA
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE A.ID_ALUNO = ? AND I.ID_DOCENTE = ?`,
+            [id, user.id]
+        ) as any[];
+
+        if (alunos.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Aluno não encontrado ou você não tem permissão para excluí-lo'
+            });
+        }
+
+        await query(
+            'DELETE FROM ALUNO WHERE ID_ALUNO = ?',
+            [id]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Aluno excluído com sucesso'
+        });
+
+    } catch (error: any) {
+        
+        const fkError = handleForeignKeyError(error, 'aluno');
+        if (fkError) {
+            return sendJSON(res, 400, fkError);
+        }
+        
+        console.error('Erro ao excluir aluno:', error);
+        sendJSON(res, 500, {
+            erro: true,
+            mensagem: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Leonardo, Xavier
+// o que faz: busca todos os componentes de nota de uma disciplina
+// o que é: rota que lista os componentes cadastrados
+export async function handleGetComponentes(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const url = new URL(req.url || '', `http://localhost:3000`);
+        const disciplinaId = url.searchParams.get('disciplinaId');
+
+        if (!disciplinaId) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'disciplinaId é obrigatório'
+            });
+        }
+
+        const disciplinas = await query(
+            `SELECT D.ID_DISCIPLINA
+             FROM DISCIPLINA D
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE D.ID_DISCIPLINA = ? AND I.ID_DOCENTE = ?`,
+            [parseInt(disciplinaId), user.id]
+        ) as any[];
+
+        if (disciplinas.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Disciplina não encontrada ou você não tem permissão para acessá-la'
+            });
+        }
+
+        const componentes = await query(
+            `SELECT 
+                ID_COMPONENTE as id,
+                NOME_COMPONENTE as nome,
+                SIGLA as sigla,
+                DESCRICAO as descricao,
+                PESO as peso
+             FROM COMPONENTE_NOTA
+             WHERE ID_DISCIPLINA = ?
+             ORDER BY NOME_COMPONENTE`,
+            [parseInt(disciplinaId)]
+        ) as any[];
+
+        sendJSON(res, 200, {
+            success: true,
+            data: componentes
+        });
+
+    } catch (error: any) {
+        console.error('Erro ao buscar componentes:', error);
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Leonardo, Xavier
+// o que faz: cria um novo componente de nota no banco de dados
+// o que é: rota que salva os dados do componente no banco
+export async function handleCreateComponente(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { nome, sigla, descricao, peso, disciplinaId } = body;
+
+        if (!nome || !nome.trim()) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome é obrigatório'
+            });
+        }
+
+        if (!sigla || !sigla.trim()) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Sigla é obrigatória'
+            });
+        }
+
+        if (!disciplinaId) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'disciplinaId é obrigatório'
+            });
+        }
+
+        const disciplinas = await query(
+            `SELECT D.ID_DISCIPLINA
+             FROM DISCIPLINA D
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE D.ID_DISCIPLINA = ? AND I.ID_DOCENTE = ?`,
+            [parseInt(disciplinaId), user.id]
+        ) as any[];
+
+        if (disciplinas.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Disciplina não encontrada ou você não tem permissão para editá-la'
+            });
+        }
+
+        const result = await query(
+            `INSERT INTO COMPONENTE_NOTA (NOME_COMPONENTE, SIGLA, DESCRICAO, PESO, ID_DISCIPLINA)
+             VALUES (?, ?, ?, ?, ?)`,
+            [
+                nome.trim(),
+                sigla.trim().toUpperCase(),
+                descricao ? descricao.trim() : null,
+                peso ? parseFloat(peso) : null,
+                parseInt(disciplinaId)
+            ]
+        ) as any;
+
+        sendJSON(res, 201, {
+            success: true,
+            message: 'Componente criado com sucesso',
+            data: {
+                id: result.insertId,
+                nome: nome.trim(),
+                sigla: sigla.trim().toUpperCase(),
+                descricao: descricao ? descricao.trim() : null,
+                peso: peso ? parseFloat(peso) : null
+            }
+        });
+
+    } catch (error: any) {
+        console.error('Erro ao criar componente:', error);
+
+        if (error.code === 'ER_DUP_ENTRY') {
+            return sendJSON(res, 409, {
+                success: false,
+                message: 'Já existe um componente com esta sigla nesta disciplina'
+            });
+        }
+
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Leonardo, Xavier
+// o que faz: atualiza os dados de um componente existente
+// o que é: rota que modifica as informações do componente no banco
+export async function handleUpdateComponente(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { nome, sigla, descricao, peso } = body;
+
+        if (!nome || !nome.trim()) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Nome é obrigatório'
+            });
+        }
+
+        if (!sigla || !sigla.trim()) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'Sigla é obrigatória'
+            });
+        }
+
+        const componentes = await query(
+            `SELECT CN.ID_COMPONENTE, CN.SIGLA
+             FROM COMPONENTE_NOTA CN
+             INNER JOIN DISCIPLINA D ON CN.ID_DISCIPLINA = D.ID_DISCIPLINA
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE CN.ID_COMPONENTE = ? AND I.ID_DOCENTE = ?`,
+            [id, user.id]
+        ) as any[];
+
+        if (componentes.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Componente não encontrado ou você não tem permissão para editá-lo'
+            });
+        }
+
+        await query(
+            `UPDATE COMPONENTE_NOTA 
+             SET NOME_COMPONENTE = ?, SIGLA = ?, DESCRICAO = ?, PESO = ?
+             WHERE ID_COMPONENTE = ?`,
+            [
+                nome.trim(),
+                sigla.trim().toUpperCase(),
+                descricao ? descricao.trim() : null,
+                peso ? parseFloat(peso) : null,
+                id
+            ]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Componente atualizado com sucesso',
+            data: {
+                id: id,
+                nome: nome.trim(),
+                sigla: sigla.trim().toUpperCase(),
+                descricao: descricao ? descricao.trim() : null,
+                peso: peso ? parseFloat(peso) : null
+            }
+        });
+
+    } catch (error: any) {
+        console.error('Erro ao atualizar componente:', error);
+
+        if (error.code === 'ER_DUP_ENTRY') {
+            return sendJSON(res, 409, {
+                success: false,
+                message: 'Já existe um componente com esta sigla nesta disciplina'
+            });
+        }
+
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Leonardo, Xavier
+// o que faz: remove um componente do banco de dados
+// o que é: rota que exclui o componente se não tiver notas vinculadas
+export async function handleDeleteComponente(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const componentes = await query(
+            `SELECT CN.ID_COMPONENTE
+             FROM COMPONENTE_NOTA CN
+             INNER JOIN DISCIPLINA D ON CN.ID_DISCIPLINA = D.ID_DISCIPLINA
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE CN.ID_COMPONENTE = ? AND I.ID_DOCENTE = ?`,
+            [id, user.id]
+        ) as any[];
+
+        if (componentes.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Componente não encontrado ou você não tem permissão para excluí-lo'
+            });
+        }
+
+        await query(
+            'DELETE FROM COMPONENTE_NOTA WHERE ID_COMPONENTE = ?',
+            [id]
+        );
+
+        sendJSON(res, 200, {
+            success: true,
+            message: 'Componente excluído com sucesso'
+        });
+
+    } catch (error: any) {
+        
+        const fkError = handleForeignKeyError(error, 'componente');
+        if (fkError) {
+            return sendJSON(res, 400, fkError);
+        }
+        
+        console.error('Erro ao excluir componente:', error);
+        sendJSON(res, 500, {
+            erro: true,
+            mensagem: 'Erro interno do servidor'
+        });
+    }
+}
+
+// autor: Leonardo, Xavier
+// o que faz: busca todas as notas de uma turma
+// o que é: rota que lista as notas dos alunos e componentes
+export async function handleGetNotas(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const url = new URL(req.url || '', `http://localhost:3000`);
+        const turmaId = url.searchParams.get('turmaId');
+
+        if (!turmaId) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'turmaId é obrigatório'
+            });
+        }
+
+        const turmas = await query(
+            `SELECT T.ID_TURMA
+             FROM TURMA T
+             INNER JOIN DISCIPLINA D ON T.ID_DISCIPLINA = D.ID_DISCIPLINA
+             INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+             INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+             WHERE T.ID_TURMA = ? AND I.ID_DOCENTE = ?`,
+            [parseInt(turmaId), user.id]
+        ) as any[];
+
+        if (turmas.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Turma não encontrada ou você não tem permissão para acessá-la'
+            });
+        }
+
+        const alunos = await query(
+            `SELECT ID_ALUNO as id, RA as ra, NOME as nome
+             FROM ALUNO
+             WHERE ID_TURMA = ?
+             ORDER BY NOME`,
+            [parseInt(turmaId)]
+        ) as any[];
+
+        const turmaInfo = await query(
+            `SELECT T.ID_DISCIPLINA
+             FROM TURMA T
+             WHERE T.ID_TURMA = ?`,
+            [parseInt(turmaId)]
+        ) as any[];
+
+        if (turmaInfo.length === 0) {
+            return sendJSON(res, 404, {
+                success: false,
+                message: 'Turma não encontrada'
+            });
+        }
+
+        const disciplinaId = turmaInfo[0].ID_DISCIPLINA;
+
+        const componentes = await query(
+            `SELECT ID_COMPONENTE as id, NOME_COMPONENTE as nome, SIGLA as sigla, PESO as peso
+             FROM COMPONENTE_NOTA
+             WHERE ID_DISCIPLINA = ?
+             ORDER BY NOME_COMPONENTE`,
+            [disciplinaId]
+        ) as any[];
+
+        const notasFinais = await query(
+            `SELECT ID_ALUNO as alunoId, NOTA_FINAL as notaFinal
+             FROM NOTA_FINAL
+             WHERE ID_TURMA = ?`,
+            [parseInt(turmaId)]
+        ) as any[];
+
+        const notasFinaisMap: { [key: number]: number } = {};
+        notasFinais.forEach((nf: any) => {
+            notasFinaisMap[nf.alunoId] = parseFloat(nf.notaFinal) || 0;
+        });
+
+        const notas = await query(
+            `SELECT 
+                N.ID_ALUNO as alunoId,
+                N.ID_COMPONENTE as componenteId,
+                N.VALOR as valor
+             FROM NOTA N
+             INNER JOIN ALUNO A ON N.ID_ALUNO = A.ID_ALUNO
+             WHERE A.ID_TURMA = ?`,
+            [parseInt(turmaId)]
+        ) as any[];
+
+        const notasOrganizadas: any = {};
+        alunos.forEach((aluno: any) => {
+            notasOrganizadas[aluno.id] = {};
+            componentes.forEach((comp: any) => {
+                notasOrganizadas[aluno.id][comp.id] = 0;
+            });
+        });
+
+        notas.forEach((nota: any) => {
+            if (notasOrganizadas[nota.alunoId]) {
+                notasOrganizadas[nota.alunoId][nota.componenteId] = parseFloat(nota.valor);
+            }
+        });
+
+        sendJSON(res, 200, {
+            success: true,
+            data: {
+                alunos: alunos,
+                componentes: componentes,
+                notas: notasOrganizadas,
+                notasFinais: notasFinaisMap
+            }
+        });
+
+    } catch (error: any) {
+        console.error('Erro ao buscar notas:', error);
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+
+async function calcularESalvarNotaFinal(alunoId: number, turmaId: number, tipoMedia: string): Promise<number> {
+    
+    const turmaInfo = await query(
+        `SELECT T.ID_DISCIPLINA
+         FROM TURMA T
+         WHERE T.ID_TURMA = ?`,
+        [turmaId]
+    ) as any[];
+
+    if (turmaInfo.length === 0) {
+        return 0;
+    }
+
+    const disciplinaId = turmaInfo[0].ID_DISCIPLINA;
+
+    const componentes = await query(
+        `SELECT ID_COMPONENTE as id, PESO as peso
+         FROM COMPONENTE_NOTA
+         WHERE ID_DISCIPLINA = ?`,
+        [disciplinaId]
+    ) as any[];
+
+    if (componentes.length === 0) {
+        
+        await query(
+            `INSERT INTO NOTA_FINAL (ID_ALUNO, ID_TURMA, NOTA_FINAL)
+             VALUES (?, ?, 0)
+             ON DUPLICATE KEY UPDATE NOTA_FINAL = 0, DATA_CALCULO = CURRENT_TIMESTAMP`,
+            [alunoId, turmaId]
+        );
+        return 0;
+    }
+
+    const notas = await query(
+        `SELECT ID_COMPONENTE as componenteId, VALOR as valor
+         FROM NOTA
+         WHERE ID_ALUNO = ? AND ID_COMPONENTE IN (${componentes.map(() => '?').join(',')})`,
+        [alunoId, ...componentes.map((c: any) => c.id)]
+    ) as any[];
+
+    const notasMap: { [key: number]: number } = {};
+    notas.forEach((nota: any) => {
+        notasMap[nota.componenteId] = parseFloat(nota.valor) || 0;
+    });
+
+    let notaFinal = 0;
+
+    if (tipoMedia === 'simples') {
+        
+        let soma = 0;
+        componentes.forEach((comp: any) => {
+            soma += notasMap[comp.id] || 0;
+        });
+        notaFinal = componentes.length > 0 ? soma / componentes.length : 0;
+    } else {
+        
+        let somaPonderada = 0;
+        let somaPesos = 0;
+        componentes.forEach((comp: any) => {
+            const peso = parseFloat(comp.peso) || 0;
+            const valor = notasMap[comp.id] || 0;
+            if (peso > 0) {
+                somaPonderada += valor * peso;
+                somaPesos += peso;
+            }
+        });
+        notaFinal = somaPesos > 0 ? somaPonderada / somaPesos : 0;
+    }
+
+    notaFinal = Math.max(0, Math.min(10, notaFinal));
+
+    await query(
+        `INSERT INTO NOTA_FINAL (ID_ALUNO, ID_TURMA, NOTA_FINAL)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE NOTA_FINAL = ?, DATA_CALCULO = CURRENT_TIMESTAMP`,
+        [alunoId, turmaId, notaFinal, notaFinal]
+    );
+
+    return notaFinal;
+}
+
+// autor: Leonardo, Xavier
+// o que faz: salva várias notas de uma vez e calcula as notas finais
+// o que é: rota que recebe um lote de notas e salva tudo no banco
+export async function handleBulkNotas(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+        
+        const user = await authenticateToken(req);
+        if (!user) {
+            return sendJSON(res, 401, {
+                success: false,
+                message: 'Token de autenticação inválido ou ausente'
+            });
+        }
+
+        const body = await readBody(req);
+        const { notas, tipoMedia } = body;
+
+        if (!Array.isArray(notas)) {
+            return sendJSON(res, 400, {
+                success: false,
+                message: 'notas deve ser um array'
+            });
+        }
+
+        const resultados = [];
+        for (const nota of notas) {
+            const { alunoId, componenteId, valor } = nota;
+
+            if (!alunoId || !componenteId || valor === undefined || valor === null) {
+                continue;
+            }
+
+            const valorNum = parseFloat(valor);
+            if (isNaN(valorNum) || valorNum < 0 || valorNum > 10) {
+                continue;
+            }
+
+            try {
+                
+                const alunos = await query(
+                    `SELECT A.ID_ALUNO
+                     FROM ALUNO A
+                     INNER JOIN TURMA T ON A.ID_TURMA = T.ID_TURMA
+                     INNER JOIN DISCIPLINA D ON T.ID_DISCIPLINA = D.ID_DISCIPLINA
+                     INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+                     INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+                     WHERE A.ID_ALUNO = ? AND I.ID_DOCENTE = ?`,
+                    [parseInt(alunoId), user.id]
+                ) as any[];
+
+                if (alunos.length === 0) continue;
+
+                const componentes = await query(
+                    `SELECT CN.ID_COMPONENTE
+                     FROM COMPONENTE_NOTA CN
+                     INNER JOIN DISCIPLINA D ON CN.ID_DISCIPLINA = D.ID_DISCIPLINA
+                     INNER JOIN CURSO C ON D.ID_CURSO = C.ID_CURSO
+                     INNER JOIN INSTITUICAO I ON C.ID_INSTITUICAO = I.ID_INSTITUICAO
+                     WHERE CN.ID_COMPONENTE = ? AND I.ID_DOCENTE = ?`,
+                    [parseInt(componenteId), user.id]
+                ) as any[];
+
+                if (componentes.length === 0) continue;
+
+                const notasExistentes = await query(
+                    'SELECT ID_NOTA FROM NOTA WHERE ID_ALUNO = ? AND ID_COMPONENTE = ?',
+                    [parseInt(alunoId), parseInt(componenteId)]
+                ) as any[];
+
+                if (notasExistentes.length > 0) {
+                    await query(
+                        'UPDATE NOTA SET VALOR = ? WHERE ID_ALUNO = ? AND ID_COMPONENTE = ?',
+                        [valorNum, parseInt(alunoId), parseInt(componenteId)]
+                    );
+                } else {
+                    await query(
+                        'INSERT INTO NOTA (ID_ALUNO, ID_COMPONENTE, VALOR) VALUES (?, ?, ?)',
+                        [parseInt(alunoId), parseInt(componenteId), valorNum]
+                    );
+                }
+
+                resultados.push({ alunoId: parseInt(alunoId), componenteId: parseInt(componenteId), valor: valorNum });
+            } catch (error) {
+                console.error('Erro ao processar nota:', error);
+            }
+        }
+
+        let turmaId: number | null = null;
+        if (resultados.length > 0) {
+            const primeiroAluno = resultados[0].alunoId;
+            const alunoInfo = await query(
+                'SELECT ID_TURMA FROM ALUNO WHERE ID_ALUNO = ?',
+                [primeiroAluno]
+            ) as any[];
+            if (alunoInfo.length > 0) {
+                turmaId = alunoInfo[0].ID_TURMA;
+            }
+        }
+
+        const tipoMediaCalculo = tipoMedia || 'simples';
+
+        const notasFinaisCalculadas: { [key: number]: number } = {};
+        if (turmaId) {
+            
+            const todosAlunos = await query(
+                'SELECT ID_ALUNO FROM ALUNO WHERE ID_TURMA = ?',
+                [turmaId]
+            ) as any[];
+
+            for (const aluno of todosAlunos) {
+                try {
+                    const notaFinal = await calcularESalvarNotaFinal(aluno.ID_ALUNO, turmaId, tipoMediaCalculo);
+                    notasFinaisCalculadas[aluno.ID_ALUNO] = notaFinal;
+                } catch (error) {
+                    console.error(`Erro ao calcular nota final para aluno ${aluno.ID_ALUNO}:`, error);
+                }
+            }
+        }
+
+        sendJSON(res, 200, {
+            success: true,
+            message: `${resultados.length} nota(s) salva(s) com sucesso`,
+            data: {
+                notas: resultados,
+                notasFinais: notasFinaisCalculadas
+            }
+        });
+
+    } catch (error: any) {
+        console.error('Erro ao salvar notas em lote:', error);
+        sendJSON(res, 500, {
+            success: false,
+            message: 'Erro interno do servidor'
+        });
+    }
+}
+

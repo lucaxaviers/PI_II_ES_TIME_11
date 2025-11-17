@@ -1,0 +1,582 @@
+<!-- Autores do arquivo: Leonardo, Xavier -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quadro de Notas - NotaDez</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- cabeçalho da página com título e botões de ação -->
+    <div class="dashboard-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="dashboard-title mb-0">
+                        <i class="bi bi-clipboard-data"></i> Quadro de Notas
+                    </h1>
+                    <p class="text-muted mb-0 mt-2" id="headerTitle">Disciplina X — Turma A</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-secondary" onclick="voltarTurmas()">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </button>
+                    <button class="btn btn-outline-primary" onclick="verComponentes()" style="background-color: #8b5cf6; border-color: #8b5cf6; color: white; font-weight: 500;">
+                        <i class="bi bi-list-check"></i> Ver Componentes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- informação sobre o tipo de média usado -->
+        <div class="d-flex justify-content-end mb-2">
+            <small class="text-muted" style="font-size: 0.85rem;">
+                <i class="bi bi-calculator"></i> Cálculo da média baseado em média simples (ex.: (P1 + P2 + P3) / 3)
+            </small>
+        </div>
+
+        <!-- tabela principal que mostra todas as notas dos alunos -->
+        <div class="table-container">
+            <table id="notasTable">
+                <thead>
+                    <tr id="tableHeader">
+                        
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    
+                </tbody>
+            </table>
+        </div>
+
+        <!-- botões para exportar CSV e salvar todas as notas -->
+        <div class="text-end mt-3 mb-4 d-flex gap-2 justify-content-end">
+            <button class="btn btn-success btn-lg" onclick="exportarCSV()">
+                <i class="bi bi-download"></i> EXPORTAR CSV
+            </button>
+            <button class="btn btn-primary btn-lg btn-save" onclick="salvarTudo()">
+                <i class="bi bi-save"></i> SALVAR TUDO
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+
+        const API_URL = 'http://localhost:3000';
+
+        // pegando o token que foi salvo quando o usuário fez login
+        function getAuthToken() {
+            return localStorage.getItem('token');
+        }
+
+        // verificando se o usuário está logado antes de mostrar a página
+        function checkAuth() {
+            const token = getAuthToken();
+            if (!token) {
+                alert('Você precisa estar logado para acessar esta página.');
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        // função que envia requisições para o servidor com o token de autenticação
+        async function apiRequest(url, options = {}) {
+            const token = getAuthToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                const errorMsg = data.mensagem || data.message || 'Erro na requisição';
+                if (data.debug) {
+                    throw new Error(`${errorMsg} (${data.debug.method} ${data.debug.urlPath})`);
+                }
+                throw new Error(errorMsg);
+            }
+
+            return data;
+        }
+
+        // mostra mensagem de sucesso ou erro na tela
+        function showMessage(message, type = 'success') {
+            // criando um elemento de alerta para mostrar a mensagem
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        let alunos = [];
+
+        let componentes = [];
+
+        let notas = {};
+
+        let notasFinais = {};
+
+        let notasAnteriores = {};
+
+        let currentTurmaId = null;
+        let currentDisciplinaId = null;
+        let currentTurmaNome = null;
+        let currentDisciplinaSigla = null;
+
+        // criando a tabela na tela com todos os alunos e componentes de nota
+        function renderizarTabela() {
+            const thead = document.getElementById('tableHeader');
+            const tbody = document.getElementById('tableBody');
+
+            // se não tiver alunos ou componentes, mostra mensagem de carregamento
+            if (alunos.length === 0 || componentes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="100%" class="text-center py-4">Carregando dados...</td></tr>';
+                return;
+            }
+
+            // criando o cabeçalho da tabela com RA, Nome, e cada componente
+            let headerHTML = '<th>RA</th><th>Nome</th>';
+            componentes.forEach(comp => {
+                headerHTML += `<th>${comp.sigla}</th>`;
+            });
+            headerHTML += '<th>Nota Final</th>';
+            thead.innerHTML = headerHTML;
+
+            // limpando a tabela antes de preencher
+            tbody.innerHTML = '';
+            // criando uma linha na tabela para cada aluno
+            alunos.forEach(aluno => {
+                const tr = document.createElement('tr');
+
+                const tdRA = document.createElement('td');
+                tdRA.className = 'cell-ra';
+                tdRA.textContent = aluno.ra;
+                tr.appendChild(tdRA);
+
+                const tdNome = document.createElement('td');
+                tdNome.className = 'cell-nome';
+                tdNome.textContent = aluno.nome;
+                tr.appendChild(tdNome);
+
+                componentes.forEach(comp => {
+                    const td = document.createElement('td');
+                    td.className = 'cell-nota';
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.min = '0';
+                    input.max = '10';
+                    input.step = '0.01';
+                    const valorNota = notas[aluno.id] && notas[aluno.id][comp.id] ? notas[aluno.id][comp.id] : 0;
+                    input.value = valorNota.toFixed(2);
+                    input.dataset.alunoId = aluno.id;
+                    input.dataset.componenteId = comp.id;
+                    input.addEventListener('input', function() {
+                        atualizarNota(aluno.id, comp.id, parseFloat(this.value) || 0);
+                    });
+                    input.addEventListener('blur', function() {
+                        let valor = parseFloat(this.value) || 0;
+                        if (valor < 0) valor = 0;
+                        if (valor > 10) valor = 10;
+                        this.value = valor.toFixed(2);
+                        atualizarNota(aluno.id, comp.id, valor);
+                    });
+                    td.appendChild(input);
+                    tr.appendChild(td);
+                });
+
+                const tdFinal = document.createElement('td');
+                tdFinal.className = 'cell-nota-final';
+                tdFinal.id = `nota-final-${aluno.id}`;
+                const notaFinalBanco = notasFinais[aluno.id];
+                const notaFinalCalculada = notaFinalBanco !== undefined ? notaFinalBanco : calcularNotaFinal(aluno.id);
+                tdFinal.textContent = notaFinalCalculada.toFixed(2);
+                tr.appendChild(tdFinal);
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        // calculando a nota final do aluno usando média simples
+        function calcularNotaFinal(alunoId) {
+            if (!notas[alunoId] || componentes.length === 0) {
+                return 0;
+            }
+
+            // somando todas as notas dos componentes
+            let soma = 0;
+            let quantidade = 0;
+            componentes.forEach(comp => {
+                const valor = notas[alunoId][comp.id] || 0;
+                soma += valor;
+                quantidade++;
+            });
+            // dividindo a soma pela quantidade de componentes para fazer a média
+            const resultado = quantidade > 0 ? soma / quantidade : 0;
+            return resultado;
+        }
+
+        // atualizando a nota quando o professor digita um valor
+        function atualizarNota(alunoId, componenteId, valor) {
+            // garantindo que a nota fique entre 0 e 10
+            if (valor < 0) valor = 0;
+            if (valor > 10) valor = 10;
+
+            // criando o objeto de notas do aluno se não existir
+            if (!notas[alunoId]) {
+                notas[alunoId] = {};
+            }
+            // salvando a nota que foi digitada
+            notas[alunoId][componenteId] = valor;
+
+            // recalculando e atualizando a nota final na tela
+            const notaFinalElement = document.getElementById(`nota-final-${alunoId}`);
+            if (notaFinalElement) {
+                const notaFinalCalculada = calcularNotaFinal(alunoId);
+                notaFinalElement.textContent = notaFinalCalculada.toFixed(2);
+            }
+        }
+
+        function gerarLog() {
+            const log = [];
+            const agora = new Date();
+            const dataFormatada = agora.toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+            const horaFormatada = agora.toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            const timestamp = `${dataFormatada} ${horaFormatada}`;
+
+            alunos.forEach(aluno => {
+                componentes.forEach(comp => {
+                    const valorAtual = notas[aluno.id] && notas[aluno.id][comp.id] ? notas[aluno.id][comp.id] : 0;
+                    const valorAnterior = notasAnteriores[aluno.id] && notasAnteriores[aluno.id][comp.id] ? notasAnteriores[aluno.id][comp.id] : 0;
+                    if (valorAtual !== valorAnterior) {
+                        const entrada = `${timestamp} — (Aluno ${aluno.nome}) — Nota de ${comp.sigla} alterada de ${valorAnterior.toFixed(2)} para ${valorAtual.toFixed(2)}`;
+                        log.push(entrada);
+                    }
+                });
+            });
+
+            notasAnteriores = JSON.parse(JSON.stringify(notas));
+
+            return log;
+        }
+
+        // salvando todas as notas no banco de dados de uma vez
+        async function salvarTudo() {
+            try {
+                const btn = document.querySelector('.btn-save');
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
+
+                // criando uma lista com todas as notas para enviar ao servidor
+                const notasParaSalvar = [];
+                alunos.forEach(aluno => {
+                    componentes.forEach(comp => {
+                        const valor = notas[aluno.id] && notas[aluno.id][comp.id] !== undefined ? notas[aluno.id][comp.id] : 0;
+                        notasParaSalvar.push({
+                            alunoId: aluno.id,
+                            componenteId: comp.id,
+                            valor: valor
+                        });
+                    });
+                });
+
+                const tipoMedia = 'simples';
+
+                const response = await apiRequest(`${API_URL}/notas/bulk`, {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        notas: notasParaSalvar,
+                        tipoMedia: tipoMedia
+                    })
+                });
+
+                if (response.data && response.data.notasFinais) {
+                    Object.keys(response.data.notasFinais).forEach(alunoId => {
+                        notasFinais[alunoId] = response.data.notasFinais[alunoId];
+                    });
+                    Object.keys(response.data.notasFinais).forEach(alunoId => {
+                        const notaFinal = response.data.notasFinais[alunoId];
+                        const notaFinalElement = document.getElementById(`nota-final-${alunoId}`);
+                        if (notaFinalElement) {
+                            notaFinalElement.textContent = notaFinal.toFixed(2);
+                        }
+                    });
+                } else {
+                    alunos.forEach(aluno => {
+                        const notaFinal = calcularNotaFinal(aluno.id);
+                        notasFinais[aluno.id] = notaFinal;
+                        const notaFinalElement = document.getElementById(`nota-final-${aluno.id}`);
+                        if (notaFinalElement) {
+                            notaFinalElement.textContent = notaFinal.toFixed(2);
+                        }
+                    });
+                }
+
+                const log = gerarLog();
+                console.log('Log gerado:', log);
+
+                btn.innerHTML = '<i class="bi bi-check-circle"></i> SALVO!';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-success');
+                showMessage('Notas salvas e nota final calculada com sucesso!', 'success');
+
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="bi bi-save"></i> SALVAR TUDO';
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-primary');
+                    btn.disabled = false;
+                }, 2000);
+
+            } catch (error) {
+                showMessage(error.message || 'Erro ao salvar notas', 'error');
+                const btn = document.querySelector('.btn-save');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-save"></i> SALVAR TUDO';
+            }
+        }
+
+        function voltarTurmas() {
+            window.location.href = 'turmas.html';
+        }
+
+        function verComponentes() {
+            const disciplinaData = localStorage.getItem('selectedDisciplina');
+            if (!disciplinaData) {
+                showMessage('Disciplina não encontrada. Redirecionando...', 'error');
+                setTimeout(() => {
+                    window.location.href = 'disciplinas.html';
+                }, 2000);
+                return;
+            }
+
+            window.location.href = 'componentes.html';
+        }
+
+        function recalcularNotasFinais() {
+            alunos.forEach(aluno => {
+                const notaFinalElement = document.getElementById(`nota-final-${aluno.id}`);
+                if (notaFinalElement) {
+                    notaFinalElement.textContent = calcularNotaFinal(aluno.id).toFixed(2);
+                }
+            });
+        }
+
+        function loadTurmaData() {
+            try {
+                const turmaData = localStorage.getItem('selectedTurma');
+                if (!turmaData) {
+                    showMessage('Nenhuma turma selecionada. Redirecionando...', 'error');
+                    setTimeout(() => {
+                        window.location.href = 'turmas.html';
+                    }, 2000);
+                    return false;
+                }
+
+                const turma = JSON.parse(turmaData);
+                currentTurmaId = turma.id;
+                currentTurmaNome = turma.nome || 'Turma';
+
+                const disciplinaData = localStorage.getItem('selectedDisciplina');
+                if (disciplinaData) {
+                    const disciplina = JSON.parse(disciplinaData);
+                    currentDisciplinaId = disciplina.id;
+                    currentDisciplinaSigla = disciplina.sigla || disciplina.codigo || 'DISC';
+                    document.getElementById('headerTitle').textContent = `${disciplina.nome} — ${turma.nome}`;
+                } else {
+                    currentDisciplinaSigla = 'DISC';
+                    document.getElementById('headerTitle').textContent = `Turma: ${turma.nome}`;
+                }
+
+                return true;
+            } catch (error) {
+                showMessage('Erro ao carregar dados da turma', 'error');
+                return false;
+            }
+        }
+
+        async function carregarComponentes() {
+            if (!currentDisciplinaId) {
+                return;
+            }
+
+            try {
+                const response = await apiRequest(`${API_URL}/componentes?disciplinaId=${currentDisciplinaId}`);
+                componentes = response.data || [];
+            } catch (error) {
+                console.warn('Erro ao carregar componentes separadamente:', error);
+                componentes = [];
+            }
+        }
+
+        async function carregarNotas() {
+            if (!currentTurmaId) {
+                showMessage('Turma não encontrada', 'error');
+                return;
+            }
+
+            try {
+                const response = await apiRequest(`${API_URL}/notas?turmaId=${currentTurmaId}`);
+                const dados = response.data;
+
+                alunos = dados.alunos || [];
+
+                if (dados.componentes && dados.componentes.length > 0) {
+                    componentes = dados.componentes;
+                }
+                notas = dados.notas || {};
+                notasFinais = dados.notasFinais || {};
+
+                alunos.forEach(aluno => {
+                    if (!notas[aluno.id]) {
+                        notas[aluno.id] = {};
+                    }
+                    componentes.forEach(comp => {
+                        if (!notas[aluno.id][comp.id]) {
+                            notas[aluno.id][comp.id] = 0;
+                        }
+                    });
+                });
+
+                notasAnteriores = JSON.parse(JSON.stringify(notas));
+
+            } catch (error) {
+                showMessage(error.message || 'Erro ao carregar notas', 'error');
+                alunos = [];
+                notas = {};
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (!checkAuth()) {
+                return;
+            }
+
+            if (!loadTurmaData()) {
+                return;
+            }
+
+            await carregarComponentes();
+            await carregarNotas();
+
+            renderizarTabela();
+        });
+
+        // exportando todas as notas para um arquivo CSV
+        function exportarCSV() {
+            // verificando se tem dados para exportar
+            if (alunos.length === 0 || componentes.length === 0) {
+                showMessage('Não há dados para exportar', 'error');
+                return;
+            }
+
+            // verificando se todas as notas foram preenchidas
+            const notasVazias = [];
+            alunos.forEach(aluno => {
+                componentes.forEach(comp => {
+                    if (!notas[aluno.id] || notas[aluno.id][comp.id] === undefined || notas[aluno.id][comp.id] === null) {
+                        notasVazias.push(`${aluno.nome} - ${comp.sigla}`);
+                    }
+                });
+            });
+
+            // se tiver nota vazia, não permite exportar
+            if (notasVazias.length > 0) {
+                showMessage('Não é possível exportar. Existem notas vazias. Por favor, preencha todas as notas antes de exportar.', 'error');
+                return;
+            }
+
+            const linhas = [];
+
+            const cabecalho = ['Matrícula', 'Nome'];
+            componentes.forEach(comp => {
+                cabecalho.push(comp.sigla);
+            });
+            cabecalho.push('Nota Final');
+            linhas.push(cabecalho.join(','));
+
+            alunos.forEach(aluno => {
+                const linha = [];
+                linha.push(`"${aluno.ra}"`);
+                linha.push(`"${aluno.nome.replace(/"/g, '""')}"`);
+
+                componentes.forEach(comp => {
+                    const valor = notas[aluno.id] && notas[aluno.id][comp.id] !== undefined ? notas[aluno.id][comp.id] : 0;
+                    linha.push(valor.toFixed(2).replace('.', ','));
+                });
+
+                const notaFinal = notasFinais[aluno.id] !== undefined ? notasFinais[aluno.id] : calcularNotaFinal(aluno.id);
+                linha.push(notaFinal.toFixed(2).replace('.', ','));
+
+                linhas.push(linha.join(','));
+            });
+
+            const csvContent = linhas.join('\n');
+            const bom = '\uFEFF';
+            const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+            const agora = new Date();
+            const ano = agora.getFullYear();
+            const mes = String(agora.getMonth() + 1).padStart(2, '0');
+            const dia = String(agora.getDate()).padStart(2, '0');
+            const hora = String(agora.getHours()).padStart(2, '0');
+            const minuto = String(agora.getMinutes()).padStart(2, '0');
+            const segundo = String(agora.getSeconds()).padStart(2, '0');
+            const milissegundo = String(agora.getMilliseconds()).padStart(3, '0');
+
+            const nomeTurma = currentTurmaNome.replace(/[^a-zA-Z0-9]/g, '');
+            const sigla = currentDisciplinaSigla.replace(/[^a-zA-Z0-9]/g, '');
+            
+            const nomeArquivo = `${ano}-${mes}-${dia}_${hora}${minuto}${segundo}${milissegundo}-${nomeTurma}_${sigla}.csv`;
+
+            const link = document.createElement('a');
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', nomeArquivo);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                showMessage('CSV exportado com sucesso!', 'success');
+            } else {
+                showMessage('Seu navegador não suporta download de arquivos', 'error');
+            }
+        }
+    </script>
+</body>
+</html>
+

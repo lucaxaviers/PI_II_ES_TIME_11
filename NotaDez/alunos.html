@@ -1,0 +1,700 @@
+<!-- Autores do arquivo: Xavier -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alunos - NotaDez</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- cabeçalho da página com título e botões de ação -->
+    <div class="dashboard-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="dashboard-title mb-0">
+                        <i class="bi bi-person-check"></i> Alunos
+                    </h1>
+                    <p class="text-muted mb-0 mt-2" id="turmaInfo">Carregando...</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-secondary" onclick="voltarTurmas()">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </button>
+                    <button class="btn btn-outline-primary" onclick="verComponentesNota()" style="background-color: #8b5cf6; border-color: #8b5cf6; color: white; font-weight: 500;">
+                        <i class="bi bi-list-check"></i> Ver Componentes de Nota
+                    </button>
+                    <button class="btn btn-outline-primary" onclick="mostrarImportacaoCSV()">
+                        <i class="bi bi-file-earmark-spreadsheet"></i> Importar CSV
+                    </button>
+                    <button class="btn-add-curso" id="btnAddAluno" onclick="mostrarFormularioAluno()">
+                        <i class="bi bi-plus-circle"></i> Adicionar Aluno
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- seção para importar alunos através de um arquivo CSV -->
+        <div class="card shadow-sm mb-4" id="importacaoCSVContainer" style="display: none;">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">
+                        <i class="bi bi-file-earmark-spreadsheet"></i> Importar Alunos via CSV
+                    </h5>
+                    <button type="button" class="btn-close" onclick="ocultarImportacaoCSV()" aria-label="Fechar"></button>
+                </div>
+                <div class="mb-3">
+                    <label for="csvFile" class="form-label">Selecionar arquivo CSV</label>
+                    <input 
+                        type="file" 
+                        class="form-control" 
+                        id="csvFile" 
+                        accept=".csv"
+                    >
+                    <small class="text-muted">Formato: RA,Nome (ex: 11111,Abel Antimônio)</small>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-secondary" onclick="ocultarImportacaoCSV()">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="importarCSV()">
+                        <i class="bi bi-upload"></i> Importar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- formulário para cadastrar um novo aluno -->
+        <div class="curso-form-container" id="alunoFormContainer" style="display: none;">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="curso-form-title mb-4">
+                        <i class="bi bi-person-plus"></i> Cadastrar Novo Aluno
+                    </h3>
+                    <form id="cadastroAlunoForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="alunoMatricula" class="form-label">RA <span class="text-danger">*</span></label>
+                                <input 
+                                    type="text" 
+                                    class="form-control form-control-lg" 
+                                    id="alunoMatricula" 
+                                    name="matricula"
+                                    placeholder="Ex: 11111"
+                                    required
+                                >
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="alunoNome" class="form-label">Nome Completo <span class="text-danger">*</span></label>
+                                <input 
+                                    type="text" 
+                                    class="form-control form-control-lg" 
+                                    id="alunoNome" 
+                                    name="nome"
+                                    placeholder="Ex: João Silva"
+                                    required
+                                >
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-secondary btn-lg" onclick="ocultarFormularioAluno()">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-check-circle"></i> Adicionar Aluno
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- lista de alunos cadastrados na turma -->
+        <div id="alunosContent">
+            <h2 class="mb-4 mt-4" style="color: #1D4ED8; font-weight: 600;">
+                <i class="bi bi-list-ul"></i> <span id="alunosTitle">Alunos Cadastrados</span>
+            </h2>
+            <!-- tabela que mostra todos os alunos -->
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead class="table-primary">
+                        <tr>
+                            <th>RA</th>
+                            <th>Nome Completo</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alunosTableBody">
+                        
+                    </tbody>
+                </table>
+            </div>
+            <!-- mensagem que aparece quando não tem nenhum aluno cadastrado -->
+            <div id="alunosEmpty" class="text-center py-5" style="display: none;">
+                <i class="bi bi-inbox" style="font-size: 3rem; color: #ADB5BD;"></i>
+                <p class="text-muted mt-3">Nenhum aluno cadastrado ainda.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- modal para editar um aluno -->
+    <div class="modal fade" id="editAlunoModal" tabindex="-1" aria-labelledby="editAlunoModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editAlunoModalLabel">
+                        <i class="bi bi-pencil-square"></i> Editar Aluno
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editAlunoForm">
+                        <input type="hidden" id="editAlunoId">
+                        <div class="mb-3">
+                            <label for="editAlunoMatricula" class="form-label">RA</label>
+                            <input 
+                                type="text" 
+                                class="form-control form-control-lg" 
+                                id="editAlunoMatricula" 
+                                disabled
+                                readonly
+                            >
+                            <small class="text-muted">O RA não pode ser alterado.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editAlunoNome" class="form-label">Nome Completo <span class="text-danger">*</span></label>
+                            <input 
+                                type="text" 
+                                class="form-control form-control-lg" 
+                                id="editAlunoNome" 
+                                required
+                            >
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary" id="confirmEditAlunoBtn">
+                        <i class="bi bi-check-circle"></i> Salvar Alterações
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteAlunoModal" tabindex="-1" aria-labelledby="deleteAlunoModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="deleteAlunoModalLabel">
+                        <i class="bi bi-exclamation-triangle"></i> Confirmar Exclusão
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja excluir este aluno?</p>
+                    <p class="mb-0"><strong id="deleteAlunoInfo"></strong></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteAlunoBtn">
+                        <i class="bi bi-trash"></i> Confirmar Exclusão
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+
+        const API_URL = 'http://localhost:3000';
+
+        // pegando o token que foi salvo quando o usuário fez login
+        function getAuthToken() {
+            return localStorage.getItem('token');
+        }
+
+        // verificando se o usuário está logado antes de mostrar a página
+        function checkAuth() {
+            const token = getAuthToken();
+            if (!token) {
+                alert('Você precisa estar logado para acessar esta página.');
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        // função que envia requisições para o servidor com o token de autenticação
+        async function apiRequest(url, options = {}) {
+            const token = getAuthToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                
+                const errorMsg = data.mensagem || data.message || 'Erro na requisição';
+                if (data.debug) {
+                    throw new Error(`${errorMsg} (${data.debug.method} ${data.debug.urlPath})`);
+                }
+                throw new Error(errorMsg);
+            }
+
+            return data;
+        }
+
+        let alunos = [];
+        let currentTurmaId = null;
+        let currentTurmaNome = null;
+        let editAlunoModal = null;
+        let deleteAlunoModal = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            if (!checkAuth()) {
+                return;
+            }
+
+            editAlunoModal = new bootstrap.Modal(document.getElementById('editAlunoModal'));
+            deleteAlunoModal = new bootstrap.Modal(document.getElementById('deleteAlunoModal'));
+
+            const selectedTurma = localStorage.getItem('selectedTurma');
+            if (selectedTurma) {
+                try {
+                    const turma = JSON.parse(selectedTurma);
+                    currentTurmaId = turma.id;
+                    currentTurmaNome = turma.nome || 'Turma';
+                    loadTurmaData();
+                } catch (error) {
+                    showMessage('Erro ao carregar dados da turma', 'error');
+                    setTimeout(() => {
+                        window.location.href = 'turmas.html';
+                    }, 2000);
+                }
+            } else {
+                showMessage('Turma não selecionada', 'error');
+                setTimeout(() => {
+                    window.location.href = 'turmas.html';
+                }, 2000);
+            }
+
+            document.getElementById('cadastroAlunoForm').addEventListener('submit', cadastroAlunoForm);
+            document.getElementById('confirmEditAlunoBtn').addEventListener('click', editAlunoForm);
+            document.getElementById('confirmDeleteAlunoBtn').addEventListener('click', confirmDeleteAlunoBtn);
+        });
+
+        function voltarTurmas() {
+            window.location.href = 'turmas.html';
+        }
+
+        function verNotasAluno(alunoId, alunoNome, alunoRA) {
+            
+            localStorage.setItem('selectedAluno', JSON.stringify({
+                id: alunoId,
+                nome: alunoNome,
+                ra: alunoRA
+            }));
+
+            window.location.href = 'notas.html';
+        }
+
+        function verComponentesNota() {
+
+            const disciplinaData = localStorage.getItem('selectedDisciplina');
+            
+            if (!disciplinaData) {
+                
+                const turmaData = localStorage.getItem('selectedTurma');
+                if (turmaData) {
+                    alert('Por favor, acesse os componentes através da página de disciplinas.');
+                    return;
+                } else {
+                    alert('Nenhuma disciplina selecionada. Redirecionando...');
+                    window.location.href = 'disciplinas.html';
+                    return;
+                }
+            }
+
+            window.location.href = 'componentes.html';
+        }
+
+        function loadTurmaData() {
+            document.getElementById('turmaInfo').textContent = `Alunos da Turma: ${currentTurmaNome}`;
+            document.getElementById('alunosTitle').textContent = `Alunos da Turma: ${currentTurmaNome}`;
+            carregarAlunos();
+        }
+
+        // mostrando o formulário para cadastrar um novo aluno
+        function mostrarFormularioAluno() {
+            document.getElementById('alunoFormContainer').style.display = 'block';
+            document.getElementById('alunoMatricula').focus();
+        }
+
+        // escondendo o formulário de cadastro
+        function ocultarFormularioAluno() {
+            document.getElementById('alunoFormContainer').style.display = 'none';
+            document.getElementById('cadastroAlunoForm').reset();
+        }
+
+        // mostrando a seção de importação de CSV
+        function mostrarImportacaoCSV() {
+            document.getElementById('importacaoCSVContainer').style.display = 'block';
+            document.getElementById('csvFile').focus();
+        }
+
+        // escondendo a seção de importação de CSV
+        function ocultarImportacaoCSV() {
+            document.getElementById('importacaoCSVContainer').style.display = 'none';
+            document.getElementById('csvFile').value = '';
+        }
+
+        // buscando todos os alunos da turma no banco de dados
+        async function carregarAlunos() {
+            if (!currentTurmaId) {
+                return;
+            }
+            
+            try {
+                const response = await apiRequest(`${API_URL}/alunos?turmaId=${currentTurmaId}`);
+                alunos = response.data || [];
+                atualizarTabela();
+            } catch (error) {
+                showMessage(error.message || 'Erro ao carregar alunos', 'error');
+                alunos = [];
+                atualizarTabela();
+            }
+        }
+
+        // atualizando a tabela na tela com os alunos
+        function atualizarTabela() {
+            const tbody = document.getElementById('alunosTableBody');
+            const emptyDiv = document.getElementById('alunosEmpty');
+
+            // se não tiver alunos, mostra mensagem
+            if (alunos.length === 0) {
+                tbody.innerHTML = '';
+                emptyDiv.style.display = 'block';
+                return;
+            }
+
+            // escondendo a mensagem e mostrando os alunos na tabela
+            emptyDiv.style.display = 'none';
+            tbody.innerHTML = alunos.map(aluno => `
+                <tr>
+                    <td><strong>${aluno.matricula || aluno.ra}</strong></td>
+                    <td>${aluno.nome}</td>
+                    <td class="text-center">
+                        <div class="d-flex gap-2 justify-content-center">
+                            <button class="action-btn btn-view-curso" onclick="verNotasAluno(${aluno.id}, '${(aluno.nome || '').replace(/'/g, "\\'").replace(/"/g, '&quot;')}', '${(aluno.matricula || aluno.ra || '').replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" title="Ver Notas">
+                                <i class="bi bi-clipboard-data"></i> Ver Notas
+                            </button>
+                            <button class="action-btn btn-edit-curso" onclick="editarAluno(${aluno.id})" title="Editar">
+                                <i class="bi bi-pencil"></i> Editar
+                            </button>
+                            <button class="action-btn btn-delete-curso" onclick="excluirAluno(${aluno.id})" title="Excluir">
+                                <i class="bi bi-trash"></i> Excluir
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // quando o professor preenche o formulário e cadastra um aluno
+        async function cadastroAlunoForm(e) {
+            e.preventDefault();
+
+            // pegando os dados que o professor digitou
+            const matricula = document.getElementById('alunoMatricula').value.trim();
+            const nome = document.getElementById('alunoNome').value.trim();
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+
+            try {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Adicionando...';
+
+                // enviando os dados do aluno para o servidor salvar no banco
+                await apiRequest(`${API_URL}/alunos`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        matricula,
+                        ra: matricula,
+                        nome,
+                        turmaId: currentTurmaId
+                    })
+                });
+
+                // recarregando a lista de alunos e escondendo o formulário
+                await carregarAlunos();
+                ocultarFormularioAluno();
+                showMessage('Aluno cadastrado com sucesso!', 'success');
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Adicionar Aluno';
+            } catch (error) {
+                showMessage(error.message || 'Erro ao cadastrar aluno', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Adicionar Aluno';
+            }
+        }
+
+        // abrindo o modal para editar um aluno
+        function editarAluno(id) {
+            // procurando o aluno na lista
+            const aluno = alunos.find(a => a.id === id);
+            if (!aluno) {
+                showMessage('Aluno não encontrado', 'error');
+                return;
+            }
+
+            // preenchendo os campos do modal com os dados do aluno
+            document.getElementById('editAlunoId').value = aluno.id;
+            document.getElementById('editAlunoMatricula').value = aluno.matricula || aluno.ra;
+            document.getElementById('editAlunoNome').value = aluno.nome;
+            editAlunoModal.show();
+        }
+
+        // salvando as alterações do aluno editado
+        async function editAlunoForm() {
+            // pegando o ID e o nome novo que o professor digitou
+            const id = parseInt(document.getElementById('editAlunoId').value);
+            const nome = document.getElementById('editAlunoNome').value.trim();
+            const submitBtn = document.getElementById('confirmEditAlunoBtn');
+
+            try {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
+
+                // enviando os dados atualizados para o servidor salvar no banco
+                // o body é onde enviamos os dados em formato JSON
+                await apiRequest(`${API_URL}/alunos/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        nome
+                    })
+                });
+
+                // recarregando a lista de alunos e fechando o modal
+                await carregarAlunos();
+                editAlunoModal.hide();
+                showMessage('Aluno atualizado com sucesso!', 'success');
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Salvar Alterações';
+            } catch (error) {
+                showMessage(error.message || 'Erro ao atualizar aluno', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Salvar Alterações';
+            }
+        }
+
+        // abrindo o modal para confirmar exclusão do aluno
+        function excluirAluno(id) {
+            // procurando o aluno na lista
+            const aluno = alunos.find(a => a.id === id);
+            if (!aluno) {
+                showMessage('Aluno não encontrado', 'error');
+                return;
+            }
+
+            // mostrando o nome do aluno no modal de confirmação
+            document.getElementById('deleteAlunoInfo').textContent = `${aluno.matricula || aluno.ra} - ${aluno.nome}`;
+            document.getElementById('confirmDeleteAlunoBtn').setAttribute('data-aluno-id', id);
+            deleteAlunoModal.show();
+        }
+
+        // confirmando e excluindo o aluno do banco de dados
+        async function confirmDeleteAlunoBtn() {
+            // pegando o ID do aluno que vai ser excluído
+            const id = parseInt(this.getAttribute('data-aluno-id'));
+            const submitBtn = this;
+
+            try {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Excluindo...';
+
+                // pedindo ao servidor para excluir o aluno
+                await apiRequest(`${API_URL}/alunos/${id}`, {
+                    method: 'DELETE'
+                });
+
+                // recarregando a lista de alunos após excluir
+                await carregarAlunos();
+                deleteAlunoModal.hide();
+                showMessage('Aluno excluído com sucesso!', 'success');
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-trash"></i> Confirmar Exclusão';
+            } catch (error) {
+                showMessage(error.message || 'Erro ao excluir aluno', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-trash"></i> Confirmar Exclusão';
+            }
+        }
+
+        // importando vários alunos de uma vez através de um arquivo CSV
+        async function importarCSV() {
+            // pegando o arquivo que o professor selecionou
+            const fileInput = document.getElementById('csvFile');
+            const file = fileInput.files[0];
+
+            // verificando se o professor selecionou um arquivo
+            if (!file) {
+                showMessage('Por favor, selecione um arquivo CSV', 'error');
+                return;
+            }
+
+            // verificando se o arquivo é realmente um CSV
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                showMessage('Por favor, selecione um arquivo CSV válido', 'error');
+                return;
+            }
+
+            // lendo o conteúdo do arquivo
+            const reader = new FileReader();
+
+            // quando terminar de ler o arquivo, processa os alunos
+            reader.onload = async function(e) {
+                try {
+                    // pegando o texto do arquivo e separando em linhas
+                    const text = e.target.result;
+                    const lines = text.split('\n').filter(line => line.trim() !== '');
+
+                    // verificando se o arquivo não está vazio
+                    if (lines.length === 0) {
+                        showMessage('O arquivo CSV está vazio', 'error');
+                        return;
+                    }
+
+                    // contadores para saber quantos alunos foram importados
+                    let importados = 0;
+                    let ignorados = 0;
+                    const erros = [];
+
+                    // processando cada linha do arquivo CSV
+                    for (let index = 0; index < lines.length; index++) {
+                        const line = lines[index];
+                        try {
+                            // separando a linha por vírgulas para pegar matrícula e nome
+                            const parts = line.split(',').map(p => p.trim());
+                            
+                            // se não tiver pelo menos 2 partes, ignora a linha
+                            if (parts.length < 2) {
+                                ignorados++;
+                                continue;
+                            }
+
+                            // pegando a matrícula (primeira parte) e o nome (resto)
+                            const matricula = parts[0];
+                            const nome = parts.slice(1).join(',').trim(); 
+
+                            // se não tiver matrícula ou nome, ignora
+                            if (!matricula || !nome) {
+                                ignorados++;
+                                continue;
+                            }
+
+                            try {
+                                // salvando cada aluno no banco de dados
+                                await apiRequest(`${API_URL}/alunos`, {
+                                    method: 'POST',
+                                    body: JSON.stringify({
+                                        matricula,
+                                        ra: matricula,
+                                        nome,
+                                        turmaId: currentTurmaId
+                                    })
+                                });
+                                importados++;
+                            } catch (error) {
+                                
+                                ignorados++;
+                            }
+                        } catch (error) {
+                            erros.push(`Linha ${index + 1}: ${error.message}`);
+                        }
+                    }
+
+                    await carregarAlunos();
+                    
+                    let mensagem = `Importação concluída! ${importados} aluno(s) importado(s)`;
+                    if (ignorados > 0) {
+                        mensagem += `, ${ignorados} linha(s) ignorada(s)`;
+                    }
+                    if (erros.length > 0) {
+                        mensagem += `. ${erros.length} erro(s) encontrado(s).`;
+                    }
+
+                    showMessage(mensagem, importados > 0 ? 'success' : 'info');
+                    fileInput.value = '';
+
+                    if (importados > 0) {
+                        ocultarImportacaoCSV();
+                    }
+                } catch (error) {
+                    showMessage('Erro ao processar arquivo CSV: ' + error.message, 'error');
+                }
+            };
+
+            reader.onerror = function() {
+                showMessage('Erro ao ler o arquivo', 'error');
+            };
+
+            reader.readAsText(file);
+        }
+
+        function showMessage(message, type = 'info') {
+            
+            const existingAlert = document.querySelector('.alert-floating');
+            if (existingAlert) {
+                existingAlert.remove();
+            }
+
+            const alertClass = type === 'success' ? 'alert-success' : 
+                              type === 'error' ? 'alert-danger' : 
+                              'alert-info';
+
+            const alert = document.createElement('div');
+            alert.className = `alert ${alertClass} alert-dismissible fade show alert-floating`;
+            alert.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+
+            document.body.appendChild(alert);
+
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
+

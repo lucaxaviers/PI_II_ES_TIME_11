@@ -1,0 +1,566 @@
+<!-- Autores do arquivo: Leonardo -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Componentes de Nota - NotaDez</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- cabeçalho da página com título e botões de ação -->
+    <div class="dashboard-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="dashboard-title mb-0">
+                        <i class="bi bi-list-check"></i> Componentes de Nota
+                    </h1>
+                    <p class="text-muted mb-0 mt-2" id="disciplinaInfo">Disciplina: Carregando...</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-secondary" onclick="voltarDisciplinas()">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </button>
+                    <button class="btn-add-curso" id="btnAddComponente" onclick="mostrarFormularioComponente()">
+                        <i class="bi bi-plus-circle"></i> Adicionar Componente
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- mensagem que aparece quando não tem nenhum componente cadastrado -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="bi bi-inbox" style="font-size: 3rem; color: #ADB5BD;"></i>
+            <p class="mt-3">Não há componentes cadastrados ainda.</p>
+        </div>
+
+        <!-- formulário para cadastrar um novo componente de nota -->
+        <div class="curso-form-container" id="componenteFormContainer" style="display: none;">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="curso-form-title mb-4">
+                        <i class="bi bi-list-check"></i> Cadastrar Novo Componente
+                    </h3>
+                    <form id="cadastroComponenteForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="componenteNome" class="form-label">Nome <span class="text-danger">*</span></label>
+                                <input 
+                                    type="text" 
+                                    class="form-control form-control-lg" 
+                                    id="componenteNome" 
+                                    name="nome"
+                                    placeholder="Ex: Prova 1, Trabalho Final"
+                                    required
+                                >
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="componenteSigla" class="form-label">Sigla <span class="text-danger">*</span></label>
+                                <input 
+                                    type="text" 
+                                    class="form-control form-control-lg" 
+                                    id="componenteSigla" 
+                                    name="sigla"
+                                    placeholder="Ex: P1, P2, T1"
+                                    required
+                                    maxlength="10"
+                                >
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="componenteDescricao" class="form-label">Descrição</label>
+                                <input 
+                                    type="text" 
+                                    class="form-control form-control-lg" 
+                                    id="componenteDescricao" 
+                                    name="descricao"
+                                    placeholder="Ex: Avaliação teórica"
+                                >
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                <i class="bi bi-calculator"></i> Tipo de média: Média Simples
+                            </small>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-secondary btn-lg" onclick="ocultarFormularioComponente()">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-check-circle"></i> Adicionar Componente
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- lista de componentes de nota cadastrados -->
+        <div id="componentesContent">
+            <h2 class="mb-4 mt-4" style="color: #1D4ED8; font-weight: 600;">
+                <i class="bi bi-list-ul"></i> Componentes Cadastrados
+            </h2>
+            <!-- tabela que mostra todos os componentes -->
+            <div class="table-container">
+                <table id="componentesTable">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Sigla</th>
+                            <th>Descrição</th>
+                            <th class="text-center">Editar</th>
+                            <th class="text-center">Excluir</th>
+                        </tr>
+                    </thead>
+                    <tbody id="componentesTableBody">
+                        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- modal para editar um componente de nota -->
+    <div class="modal fade" id="editComponenteModal" tabindex="-1" aria-labelledby="editComponenteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editComponenteModalLabel">
+                        <i class="bi bi-pencil-square"></i> Editar Componente
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editComponenteForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="editComponenteId">
+                        <div class="mb-3">
+                            <label for="editComponenteNome" class="form-label">Nome <span class="text-danger">*</span></label>
+                            <input 
+                                type="text" 
+                                class="form-control form-control-lg" 
+                                id="editComponenteNome"
+                                required
+                            >
+                        </div>
+                        <div class="mb-3">
+                            <label for="editComponenteSigla" class="form-label">Sigla <span class="text-danger">*</span></label>
+                            <input 
+                                type="text" 
+                                class="form-control form-control-lg" 
+                                id="editComponenteSigla"
+                                required
+                                maxlength="10"
+                            >
+                        </div>
+                        <div class="mb-3">
+                            <label for="editComponenteDescricao" class="form-label">Descrição</label>
+                            <input 
+                                type="text" 
+                                class="form-control form-control-lg" 
+                                id="editComponenteDescricao"
+                            >
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                <i class="bi bi-calculator"></i> Tipo de média: Média Simples
+                            </small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary-modal" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Salvar Alterações
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteComponenteModal" tabindex="-1" aria-labelledby="deleteComponenteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteComponenteModalLabel">
+                        <i class="bi bi-exclamation-triangle text-danger"></i> Confirmar Exclusão
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja excluir este componente?</p>
+                    <p class="text-muted small">Esta ação não pode ser desfeita.</p>
+                    <input type="hidden" id="deleteComponenteId">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary-modal" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteComponenteBtn">
+                        <i class="bi bi-trash"></i> Confirmar Exclusão
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+
+        const API_URL = 'http://localhost:3000';
+
+        // pegando o token que foi salvo quando o usuário fez login
+        function getAuthToken() {
+            return localStorage.getItem('token');
+        }
+
+        // verificando se o usuário está logado antes de mostrar a página
+        function checkAuth() {
+            const token = getAuthToken();
+            if (!token) {
+                alert('Você precisa estar logado para acessar esta página.');
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        // função que envia requisições para o servidor com o token de autenticação
+        async function apiRequest(url, options = {}) {
+            const token = getAuthToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                const errorMsg = data.mensagem || data.message || 'Erro na requisição';
+                if (data.debug) {
+                    throw new Error(`${errorMsg} (${data.debug.method} ${data.debug.urlPath})`);
+                }
+                throw new Error(errorMsg);
+            }
+
+            return data;
+        }
+
+        // mostra mensagem de sucesso ou erro na tela
+        function showMessage(message, type = 'success') {
+            // criando um elemento de alerta para mostrar a mensagem
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        let componentes = [];
+
+
+        let currentDisciplinaId = null;
+
+        function voltarDisciplinas() {
+            window.location.href = 'disciplinas.html';
+        }
+
+        function loadDisciplinaData() {
+            try {
+                const disciplinaData = localStorage.getItem('selectedDisciplina');
+                if (!disciplinaData) {
+                    showMessage('Nenhuma disciplina selecionada. Redirecionando...', 'error');
+                    setTimeout(() => {
+                        window.location.href = 'disciplinas.html';
+                    }, 2000);
+                    return false;
+                }
+
+                const disciplina = JSON.parse(disciplinaData);
+                currentDisciplinaId = disciplina.id;
+                document.getElementById('disciplinaInfo').textContent = `Disciplina: ${disciplina.nome}`;
+                return true;
+            } catch (error) {
+                showMessage('Erro ao carregar dados da disciplina', 'error');
+                return false;
+            }
+        }
+
+        // buscando todos os componentes de nota da disciplina no banco de dados
+        async function carregarComponentes() {
+            if (!currentDisciplinaId) {
+                return;
+            }
+
+            try {
+                // pedindo ao servidor todos os componentes desta disciplina
+                const response = await apiRequest(`${API_URL}/componentes?disciplinaId=${currentDisciplinaId}`);
+                componentes = response.data || [];
+                // atualizando a tabela na tela
+                atualizarTabela();
+            } catch (error) {
+                showMessage(error.message || 'Erro ao carregar componentes', 'error');
+                componentes = [];
+                atualizarTabela();
+            }
+        }
+
+        // mostrando o formulário para cadastrar um novo componente
+        function mostrarFormularioComponente() {
+            document.getElementById('componenteFormContainer').style.display = 'block';
+            document.getElementById('btnAddComponente').style.display = 'none';
+            document.getElementById('componenteNome').focus();
+        }
+
+        // escondendo o formulário de cadastro
+        function ocultarFormularioComponente() {
+            document.getElementById('componenteFormContainer').style.display = 'none';
+            document.getElementById('btnAddComponente').style.display = 'inline-flex';
+            document.getElementById('cadastroComponenteForm').reset();
+        }
+
+        // atualizando a tabela na tela com os componentes
+        function atualizarTabela() {
+            const tbody = document.getElementById('componentesTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const componentesContent = document.getElementById('componentesContent');
+
+            // se não tiver componentes, mostra mensagem
+            if (componentes.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                componentesContent.style.display = 'none';
+                return;
+            }
+
+            // escondendo a mensagem e mostrando a tabela
+            emptyState.style.display = 'none';
+            componentesContent.style.display = 'block';
+
+            tbody.innerHTML = componentes.map((componente) => `
+                <tr>
+                    <td><strong>${escapeHtml(componente.nome)}</strong></td>
+                    <td>${escapeHtml(componente.sigla)}</td>
+                    <td>${escapeHtml(componente.descricao || '-')}</td>
+                    <td class="text-center">
+                        <button class="action-btn btn-edit-curso" onclick="editarComponente(${componente.id})" title="Editar">
+                            <i class="bi bi-pencil"></i> Editar
+                        </button>
+                    </td>
+                    <td class="text-center">
+                        <button class="action-btn btn-delete-curso" onclick="excluirComponente(${componente.id})" title="Excluir">
+                            <i class="bi bi-trash"></i> Excluir
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // quando o professor preenche o formulário e cadastra um componente
+        document.getElementById('cadastroComponenteForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // pegando os dados que o professor digitou
+            const nome = document.getElementById('componenteNome').value.trim();
+            const sigla = document.getElementById('componenteSigla').value.trim().toUpperCase();
+            const descricao = document.getElementById('componenteDescricao').value.trim();
+            const peso = null;
+
+            // verificando se os campos obrigatórios foram preenchidos
+            if (!nome || !sigla) {
+                showMessage('Nome e Sigla são obrigatórios!', 'error');
+                return;
+            }
+
+            // verificando se a disciplina foi carregada
+            if (!currentDisciplinaId) {
+                showMessage('Disciplina não encontrada', 'error');
+                return;
+            }
+
+            try {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Adicionando...';
+
+                // enviando os dados do componente para o servidor salvar no banco
+                await apiRequest(`${API_URL}/componentes`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        nome: nome,
+                        sigla: sigla,
+                        descricao: descricao,
+                        peso: peso,
+                        disciplinaId: currentDisciplinaId
+                    })
+                });
+
+                // recarregando a lista de componentes e escondendo o formulário
+                await carregarComponentes();
+
+                ocultarFormularioComponente();
+                
+                showMessage('Componente adicionado com sucesso!', 'success');
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Adicionar Componente';
+            } catch (error) {
+                showMessage(error.message || 'Erro ao adicionar componente', 'error');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Adicionar Componente';
+            }
+        });
+
+        // abrindo o modal para editar um componente
+        function editarComponente(id) {
+            // procurando o componente na lista
+            const componente = componentes.find(c => c.id === id);
+            if (!componente) {
+                showMessage('Componente não encontrado', 'error');
+                return;
+            }
+
+            // preenchendo os campos do modal com os dados do componente
+            document.getElementById('editComponenteId').value = id;
+            document.getElementById('editComponenteNome').value = componente.nome;
+            document.getElementById('editComponenteSigla').value = componente.sigla;
+            document.getElementById('editComponenteDescricao').value = componente.descricao || '';
+
+            const editModal = new bootstrap.Modal(document.getElementById('editComponenteModal'));
+            editModal.show();
+        }
+
+        // quando o professor salva as alterações do componente editado
+        document.getElementById('editComponenteForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // pegando o ID e os dados novos que o professor digitou
+            const id = parseInt(document.getElementById('editComponenteId').value);
+            const nome = document.getElementById('editComponenteNome').value.trim();
+            const sigla = document.getElementById('editComponenteSigla').value.trim().toUpperCase();
+            const descricao = document.getElementById('editComponenteDescricao').value.trim();
+            const peso = null;
+
+            // verificando se os campos obrigatórios foram preenchidos
+            if (!nome || !sigla) {
+                showMessage('Nome e Sigla são obrigatórios!', 'error');
+                return;
+            }
+
+            try {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
+
+                // enviando os dados atualizados para o servidor salvar no banco
+                // o body é onde enviamos os dados em formato JSON
+                await apiRequest(`${API_URL}/componentes/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        nome: nome,
+                        sigla: sigla,
+                        descricao: descricao,
+                        peso: peso
+                    })
+                });
+
+                // recarregando a lista de componentes e fechando o modal
+                await carregarComponentes();
+
+                const editModal = bootstrap.Modal.getInstance(document.getElementById('editComponenteModal'));
+                editModal.hide();
+
+                showMessage('Componente atualizado com sucesso!', 'success');
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Salvar Alterações';
+            } catch (error) {
+                showMessage(error.message || 'Erro ao atualizar componente', 'error');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Salvar Alterações';
+            }
+        });
+
+        // abrindo o modal para confirmar exclusão do componente
+        function excluirComponente(id) {
+            // guardando o ID do componente que vai ser excluído
+            document.getElementById('deleteComponenteId').value = id;
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteComponenteModal'));
+            deleteModal.show();
+        }
+
+        // confirmando e excluindo o componente do banco de dados
+        document.getElementById('confirmDeleteComponenteBtn').addEventListener('click', async function() {
+            // pegando o ID do componente que vai ser excluído
+            const id = parseInt(document.getElementById('deleteComponenteId').value);
+
+            try {
+                this.disabled = true;
+                this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Excluindo...';
+
+                // pedindo ao servidor para excluir o componente
+                // não precisa de body porque é só excluir pelo ID
+                await apiRequest(`${API_URL}/componentes/${id}`, {
+                    method: 'DELETE'
+                });
+
+                // recarregando a lista de componentes e fechando o modal
+                await carregarComponentes();
+
+                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteComponenteModal'));
+                deleteModal.hide();
+
+                showMessage('Componente excluído com sucesso!', 'success');
+
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-trash"></i> Confirmar Exclusão';
+            } catch (error) {
+                showMessage(error.message || 'Erro ao excluir componente', 'error');
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-trash"></i> Confirmar Exclusão';
+            }
+        });
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            
+            if (!checkAuth()) {
+                return;
+            }
+
+            if (loadDisciplinaData()) {
+                await carregarComponentes();
+            }
+        });
+    </script>
+</body>
+</html>
+

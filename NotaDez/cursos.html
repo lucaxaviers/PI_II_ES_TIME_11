@@ -1,0 +1,623 @@
+<!-- Autores do arquivo: Mateus -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cursos - NotaDez</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- cabeçalho da página com título e botões de ação -->
+    <div class="dashboard-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="dashboard-title mb-0">
+                        <i class="bi bi-book"></i> Cursos
+                    </h1>
+                    <p class="text-muted mb-0 mt-2" id="instituicaoInfo">Carregando...</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-secondary" onclick="voltarDashboard()">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </button>
+                    <button class="btn-add-curso" id="btnAddCurso" onclick="mostrarFormularioCurso()">
+                        <i class="bi bi-plus-circle"></i> Adicionar Curso
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- formulário para cadastrar um novo curso -->
+        <div class="curso-form-container" id="cursoFormContainer" style="display: none;">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="curso-form-title mb-4">
+                        <i class="bi bi-book"></i> Cadastrar Novo Curso
+                    </h3>
+                    <form id="cadastroCursoForm">
+                        <input type="hidden" id="cursoInstituicaoId">
+                        <input type="hidden" id="cursoInstituicaoNome">
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="cursoNome" class="form-label">Nome do Curso <span class="text-danger">*</span></label>
+                                <input 
+                                    type="text" 
+                                    class="form-control form-control-lg" 
+                                    id="cursoNome" 
+                                    name="nome"
+                                    placeholder="Ex: Engenharia de Software"
+                                    required
+                                >
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="cursoArea" class="form-label">Área do Curso</label>
+                                <input 
+                                    type="text" 
+                                    class="form-control form-control-lg" 
+                                    id="cursoArea" 
+                                    name="area"
+                                    placeholder="Ex: Tecnologia da Informação"
+                                >
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="cursoDuracao" class="form-label">Período Total <span class="text-danger">*</span></label>
+                                <input 
+                                    type="number" 
+                                    class="form-control form-control-lg" 
+                                    id="cursoDuracao" 
+                                    name="periodoTotal"
+                                    placeholder="Ex: 8 (semestres)"
+                                    min="1"
+                                    required
+                                >
+                                <small class="form-text text-muted">Número total de períodos (ex: 8 semestres = 8)</small>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="cursoModalidade" class="form-label">Modalidade <span class="text-danger">*</span></label>
+                                <select 
+                                    class="form-select form-select-lg" 
+                                    id="cursoModalidade" 
+                                    name="modalidade"
+                                    required
+                                >
+                                    <option value="">Selecione a modalidade</option>
+                                    <option value="Presencial">Presencial</option>
+                                    <option value="EAD">EAD (Ensino a Distância)</option>
+                                    <option value="Híbrido">Híbrido</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-secondary btn-lg" onclick="ocultarFormularioCurso()">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-check-circle"></i> Adicionar Curso
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- lista de cursos cadastrados na instituição -->
+        <div id="cursosContent">
+            <!-- grid que mostra todos os cards dos cursos -->
+            <div class="cursos-grid" id="cursosGrid">
+                
+            </div>
+        </div>
+    </div>
+
+    <!-- modal para editar um curso -->
+    <div class="modal fade" id="editCursoModal" tabindex="-1" aria-labelledby="editCursoModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editCursoModalLabel">
+                        <i class="bi bi-pencil-square"></i> Editar Curso
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editCursoForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="editCursoId">
+                        <div class="mb-3">
+                            <label for="editCursoNome" class="form-label">Nome do Curso <span class="text-danger">*</span></label>
+                            <input 
+                                type="text" 
+                                class="form-control form-control-lg" 
+                                id="editCursoNome"
+                                required
+                            >
+                        </div>
+                        <div class="mb-3">
+                            <label for="editCursoArea" class="form-label">Área do Curso</label>
+                            <input 
+                                type="text" 
+                                class="form-control form-control-lg" 
+                                id="editCursoArea"
+                            >
+                        </div>
+                        <div class="mb-3">
+                            <label for="editCursoDuracao" class="form-label">Período Total <span class="text-danger">*</span></label>
+                            <input 
+                                type="number" 
+                                class="form-control form-control-lg" 
+                                id="editCursoDuracao"
+                                min="1"
+                                required
+                            >
+                            <small class="form-text text-muted">Número total de períodos (ex: 8 semestres = 8)</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editCursoModalidade" class="form-label">Modalidade <span class="text-danger">*</span></label>
+                            <select 
+                                class="form-select form-select-lg" 
+                                id="editCursoModalidade"
+                                required
+                            >
+                                <option value="">Selecione a modalidade</option>
+                                <option value="Presencial">Presencial</option>
+                                <option value="EAD">EAD (Ensino a Distância)</option>
+                                <option value="Híbrido">Híbrido</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary-modal" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Salvar Alterações
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteCursoModal" tabindex="-1" aria-labelledby="deleteCursoModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteCursoModalLabel">
+                        <i class="bi bi-exclamation-triangle text-danger"></i> Confirmar Exclusão
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja excluir este curso?</p>
+                    <p class="text-muted small">Esta ação não pode ser desfeita.</p>
+                    <input type="hidden" id="deleteCursoId">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary-modal" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteCursoBtn">
+                        <i class="bi bi-trash"></i> Confirmar Exclusão
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+
+        const API_URL = 'http://localhost:3000';
+
+        // pegando o token que foi salvo quando o usuário fez login
+        function getAuthToken() {
+            return localStorage.getItem('token');
+        }
+
+        // verificando se o usuário está logado antes de mostrar a página
+        function checkAuth() {
+            const token = getAuthToken();
+            if (!token) {
+                alert('Você precisa estar logado para acessar esta página.');
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        // função que envia requisições para o servidor com o token de autenticação
+        async function apiRequest(url, options = {}) {
+            const token = getAuthToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                
+                const errorMsg = data.mensagem || data.message || 'Erro na requisição';
+                if (data.debug) {
+                    throw new Error(`${errorMsg} (${data.debug.method} ${data.debug.urlPath})`);
+                }
+                throw new Error(errorMsg);
+            }
+
+            return data;
+        }
+
+        function showMessage(message, type = 'success') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        function voltarDashboard() {
+            window.location.href = 'dashboard.html';
+        }
+
+        let currentInstituicaoId = null;
+        let currentInstituicaoNome = null;
+
+        // carregando os dados da instituição que foi selecionada na página anterior
+        function loadInstituicaoData() {
+            try {
+                // pegando a instituição que foi salva quando clicou em "ver cursos"
+                const instituicaoData = localStorage.getItem('selectedInstituicao');
+                if (!instituicaoData) {
+                    showMessage('Nenhuma instituição selecionada. Redirecionando...', 'error');
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 2000);
+                    return false;
+                }
+
+                // convertendo os dados da instituição de texto para objeto
+                const instituicao = JSON.parse(instituicaoData);
+                currentInstituicaoId = instituicao.id;
+                currentInstituicaoNome = instituicao.nome;
+
+                // mostrando o nome da instituição na tela
+                document.getElementById('instituicaoInfo').textContent = `Instituição: ${instituicao.nome}`;
+                
+                return true;
+            } catch (error) {
+                showMessage('Erro ao carregar dados da instituição', 'error');
+                return false;
+            }
+        }
+
+        // buscando todos os cursos da instituição no banco de dados
+        async function loadCursos(instituicaoId) {
+            if (!instituicaoId) {
+                showMessage('ID da instituição não fornecido', 'error');
+                return;
+            }
+            
+            try {
+                // pedindo ao servidor todos os cursos desta instituição
+                const url = `${API_URL}/cursos?instituicaoId=${instituicaoId}`;
+                const response = await apiRequest(url);
+                const cursos = response.data || [];
+                // mostrando os cursos na tela
+                renderCursos(cursos);
+            } catch (error) {
+                showMessage(error.message || 'Erro ao carregar cursos', 'error');
+            }
+        }
+
+        // criando os cards na tela para mostrar cada curso
+        function renderCursos(cursos) {
+            const grid = document.getElementById('cursosGrid');
+            
+            // se não tiver cursos, mostra mensagem
+            if (cursos.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state w-100">
+                        <i class="bi bi-book empty-state-icon"></i>
+                        <p>Nenhum curso cadastrado ainda.</p>
+                        <p class="text-muted small">Clique em "Adicionar Curso" para começar.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // limpando a tela antes de mostrar os cursos
+            grid.innerHTML = '';
+            
+            // criando um card para cada curso
+            cursos.forEach(curso => {
+                const card = document.createElement('div');
+                card.className = 'curso-card';
+                card.innerHTML = `
+                    <div class="curso-card-header">
+                        <h4 class="curso-nome">
+                            <i class="bi bi-mortarboard"></i> ${escapeHtml(curso.nome)}
+                        </h4>
+                    </div>
+                    <div class="curso-card-body">
+                        <div class="curso-info">
+                            <div class="curso-info-item">
+                                <i class="bi bi-tag"></i>
+                                <span class="curso-label">Área:</span>
+                                <span class="curso-value">${curso.area ? escapeHtml(curso.area) : 'Não informado'}</span>
+                            </div>
+                            <div class="curso-info-item">
+                                <i class="bi bi-clock"></i>
+                                <span class="curso-label">Período Total:</span>
+                                <span class="curso-value">${curso.periodoTotal ? curso.periodoTotal + ' períodos' : 'Não informado'}</span>
+                            </div>
+                            <div class="curso-info-item">
+                                <i class="bi bi-laptop"></i>
+                                <span class="curso-label">Modalidade:</span>
+                                <span class="curso-value">${curso.modalidade ? escapeHtml(curso.modalidade) : 'Não informado'}</span>
+                            </div>
+                            <div class="curso-info-item">
+                                <i class="bi bi-building"></i>
+                                <span class="curso-label">Instituição:</span>
+                                <span class="curso-value">${escapeHtml(curso.instituicaoNome)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="curso-card-actions">
+                        <button class="action-btn btn-view-curso" onclick="verDisciplinas(${curso.id}, '${curso.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">
+                            <i class="bi bi-eye"></i> Ver Disciplinas
+                        </button>
+                        <button class="action-btn btn-edit-curso" onclick="editarCurso(${curso.id})">
+                            <i class="bi bi-pencil"></i> Editar
+                        </button>
+                        <button class="action-btn btn-delete-curso" onclick="excluirCurso(${curso.id})">
+                            <i class="bi bi-trash"></i> Excluir
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // mostrando o formulário para cadastrar um novo curso
+        function mostrarFormularioCurso() {
+            if (!currentInstituicaoId) {
+                showMessage('Erro ao carregar dados da instituição', 'error');
+                return;
+            }
+            
+            // preenchendo o ID da instituição no formulário
+            document.getElementById('cursoInstituicaoId').value = currentInstituicaoId;
+            document.getElementById('cursoInstituicaoNome').value = currentInstituicaoNome;
+            
+            // mostrando o formulário na tela
+            const formContainer = document.getElementById('cursoFormContainer');
+            formContainer.style.display = 'block';
+            formContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function ocultarFormularioCurso() {
+            document.getElementById('cursoFormContainer').style.display = 'none';
+            document.getElementById('cadastroCursoForm').reset();
+        }
+
+        // quando o professor preenche o formulário e cadastra um curso
+        document.getElementById('cadastroCursoForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // pegando todos os dados que o professor digitou
+            const nome = document.getElementById('cursoNome').value.trim();
+            const area = document.getElementById('cursoArea').value.trim();
+            const periodoTotal = document.getElementById('cursoDuracao').value;
+            const modalidade = document.getElementById('cursoModalidade').value;
+            const instituicaoId = document.getElementById('cursoInstituicaoId').value;
+            
+            // verificando se os campos obrigatórios foram preenchidos
+            if (!nome || !periodoTotal || !modalidade) {
+                showMessage('Nome, Período Total e Modalidade são obrigatórios', 'error');
+                return;
+            }
+            
+            try {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Cadastrando...';
+                
+                // enviando os dados do curso para o servidor salvar no banco
+                // o body é onde enviamos os dados em formato JSON
+                await apiRequest(`${API_URL}/cursos`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        nome,
+                        area: area || null,
+                        modalidade,
+                        periodoTotal: parseInt(periodoTotal),
+                        instituicaoId: parseInt(instituicaoId)
+                    })
+                });
+                
+                // mostrando mensagem de sucesso e recarregando a lista
+                showMessage('Curso cadastrado com sucesso!', 'success');
+                this.reset();
+                ocultarFormularioCurso();
+                await loadCursos(parseInt(instituicaoId));
+                
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Adicionar Curso';
+            } catch (error) {
+                showMessage(error.message || 'Erro ao cadastrar curso', 'error');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Adicionar Curso';
+            }
+        });
+
+        // abrindo o modal para editar um curso
+        async function editarCurso(cursoId) {
+            try {
+                // buscando o curso no servidor
+                const response = await apiRequest(`${API_URL}/cursos?instituicaoId=${currentInstituicaoId}`);
+                const cursos = response.data || [];
+                // procurando o curso que vai ser editado
+                const curso = cursos.find(c => c.id === cursoId);
+                
+                if (!curso) {
+                    showMessage('Curso não encontrado', 'error');
+                    return;
+                }
+                
+                // preenchendo os campos do modal com os dados do curso
+                document.getElementById('editCursoId').value = curso.id;
+                document.getElementById('editCursoNome').value = curso.nome;
+                document.getElementById('editCursoArea').value = curso.area || '';
+                document.getElementById('editCursoDuracao').value = curso.periodoTotal || '';
+                document.getElementById('editCursoModalidade').value = curso.modalidade || '';
+                
+                // mostrando o modal na tela
+                const editModal = new bootstrap.Modal(document.getElementById('editCursoModal'));
+                editModal.show();
+            } catch (error) {
+                showMessage('Erro ao carregar dados do curso', 'error');
+            }
+        }
+
+        // quando o professor salva as alterações do curso editado
+        document.getElementById('editCursoForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // pegando o ID e os dados novos que o professor digitou
+            const cursoId = parseInt(document.getElementById('editCursoId').value);
+            const nome = document.getElementById('editCursoNome').value.trim();
+            const area = document.getElementById('editCursoArea').value.trim();
+            const periodoTotal = document.getElementById('editCursoDuracao').value;
+            const modalidade = document.getElementById('editCursoModalidade').value;
+            
+            // verificando se os campos obrigatórios foram preenchidos
+            if (!nome || !periodoTotal || !modalidade) {
+                showMessage('Nome, Período Total e Modalidade são obrigatórios', 'error');
+                return;
+            }
+            
+            try {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Salvando...';
+                
+                // enviando os dados atualizados para o servidor salvar no banco
+                // o body é onde enviamos os dados em formato JSON
+                await apiRequest(`${API_URL}/cursos/${cursoId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        nome,
+                        area: area || null,
+                        modalidade,
+                        periodoTotal: parseInt(periodoTotal)
+                    })
+                });
+                
+                // mostrando mensagem de sucesso e fechando o modal
+                showMessage('Curso atualizado com sucesso!', 'success');
+                
+                const editModal = bootstrap.Modal.getInstance(document.getElementById('editCursoModal'));
+                editModal.hide();
+                
+                // recarregando a lista de cursos
+                await loadCursos(currentInstituicaoId);
+                
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Salvar Alterações';
+            } catch (error) {
+                showMessage(error.message || 'Erro ao atualizar curso', 'error');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Salvar Alterações';
+            }
+        });
+
+        function excluirCurso(cursoId) {
+            document.getElementById('deleteCursoId').value = cursoId;
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteCursoModal'));
+            deleteModal.show();
+        }
+
+        document.getElementById('confirmDeleteCursoBtn').addEventListener('click', async function() {
+            const cursoId = parseInt(document.getElementById('deleteCursoId').value);
+            
+            try {
+                this.disabled = true;
+                this.innerHTML = '<i class="bi bi-hourglass-split"></i> Excluindo...';
+                
+                await apiRequest(`${API_URL}/cursos/${cursoId}`, {
+                    method: 'DELETE'
+                });
+                
+                showMessage('Curso excluído com sucesso!', 'success');
+                
+                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteCursoModal'));
+                deleteModal.hide();
+                
+                await loadCursos(currentInstituicaoId);
+                
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-trash"></i> Confirmar Exclusão';
+            } catch (error) {
+                showMessage(error.message || 'Erro ao excluir curso', 'error');
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-trash"></i> Confirmar Exclusão';
+            }
+        });
+
+        function verDisciplinas(cursoId, cursoNome) {
+            
+            localStorage.setItem('selectedCurso', JSON.stringify({
+                id: cursoId,
+                nome: cursoNome
+            }));
+
+            window.location.href = 'disciplinas.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            
+            if (!checkAuth()) {
+                return;
+            }
+
+            if (loadInstituicaoData()) {
+                
+                await loadCursos(currentInstituicaoId);
+            }
+        });
+    </script>
+</body>
+</html>
+

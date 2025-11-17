@@ -1,0 +1,815 @@
+/* Autores do arquivo: Todos os integrantes */
+
+/* aqui eu defino as cores principais que vou usar em todo o site */
+   :root {
+    --primary-blue: #1D4ED8;
+    --white: #FFFFFF;
+    --light-gray: #F8F9FA;
+    --text-gray: #6C757D;
+    --border-gray: #DEE2E6;
+}
+
+/* removendo margens e espaçamentos padrão de todos os elementos */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* definindo a fonte e cor de fundo padrão do site */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--white);
+    min-height: 100vh;
+}
+
+/* estilo dos containers de login e cadastro */
+.login-container,
+.cadastro-container {
+    width: 100%;
+    max-width: 450px;
+    padding: 20px;
+}
+
+/* deixando os cards com bordas arredondadas */
+.card {
+    border-radius: 15px;
+    overflow: hidden;
+    background: var(--white);
+}
+
+/* cor de fundo do corpo do card */
+.card-body {
+    background: var(--white);
+}
+
+/* estilo dos títulos principais */
+h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-blue);
+    letter-spacing: -0.5px;
+}
+
+/* classe para deixar texto na cor azul principal */
+.text-primary {
+    color: var(--primary-blue) !important;
+}
+
+/* classe para deixar texto na cor cinza */
+.text-muted {
+    color: var(--text-gray);
+}
+
+/* estilo dos rótulos dos campos de formulário */
+.form-label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+/* estilo dos campos de entrada de texto */
+.form-control {
+    border: 2px solid var(--border-gray);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background-color: var(--white);
+}
+
+/* quando o usuário clica no campo, muda a cor da borda para azul */
+.form-control:focus {
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 0.2rem rgba(29, 78, 216, 0.15);
+    outline: none;
+}
+
+.form-control::placeholder {
+    color: #ADB5BD;
+    font-size: 0.95rem;
+}
+
+.form-control-lg {
+    padding: 14px 18px;
+    font-size: 1.05rem;
+}
+
+/* estilo do botão principal azul */
+.btn-primary {
+    background-color: var(--primary-blue);
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 14px;
+    font-size: 1.05rem;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* quando o mouse passa por cima do botão, ele fica mais escuro e sobe um pouco */
+.btn-primary:hover {
+    background-color: #1e40af;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.4);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(29, 78, 216, 0.3);
+}
+
+.btn-primary:focus {
+    box-shadow: 0 0 0 0.2rem rgba(29, 78, 216, 0.25);
+}
+
+.btn-lg {
+    padding: 16px;
+    font-size: 1.1rem;
+}
+
+.btn-secondary {
+    background-color: var(--text-gray);
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 14px;
+    font-size: 1.05rem;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--white);
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+    color: var(--white);
+}
+
+.btn-secondary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(108, 117, 125, 0.3);
+}
+
+a {
+    transition: all 0.2s ease;
+}
+
+.forgot-link:hover {
+    color: #1e40af !important;
+    text-decoration: underline !important;
+}
+
+a.text-primary:hover {
+    color: #1e40af !important;
+    text-decoration: underline !important;
+}
+
+/* animação de entrada suave quando a página carrega */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* aplicando a animação de entrada nos cards */
+.card {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* animação de pulso quando clica no campo */
+.form-control:focus {
+    animation: pulse 0.3s ease;
+}
+
+/* definindo como a animação de pulso funciona */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.01);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* ajustes para quando o usuário está no celular */
+@media (max-width: 576px) {
+    .login-container,
+    .cadastro-container {
+        max-width: 100%;
+        padding: 15px;
+    }
+
+    .card-body {
+        padding: 2rem !important;
+    }
+
+    /* título fica menor no celular */
+    h1 {
+        font-size: 2rem;
+    }
+
+    .form-control-lg {
+        padding: 12px 16px;
+        font-size: 1rem;
+    }
+
+    .btn-lg {
+        padding: 14px;
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .card-body {
+        padding: 1.5rem !important;
+    }
+
+    h1 {
+        font-size: 1.75rem;
+    }
+}
+
+.form-control:focus-visible {
+    outline: 2px solid var(--primary-blue);
+    outline-offset: 2px;
+}
+
+.btn-primary:focus-visible {
+    outline: 2px solid var(--white);
+    outline-offset: 2px;
+}
+
+.shadow-lg {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+}
+
+.bg-light {
+    background: var(--white) !important;
+}
+
+body {
+    background: var(--light-gray);
+    min-height: 100vh;
+}
+
+/* cabeçalho das páginas principais do sistema */
+.dashboard-header {
+    background: var(--white);
+    border-bottom: 2px solid var(--border-gray);
+    padding: 1.5rem 0;
+    margin-bottom: 2rem;
+}
+
+/* estilo do título nas páginas principais */
+.dashboard-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-blue);
+    margin: 0;
+}
+
+.btn-add-instituicao {
+    background-color: var(--primary-blue);
+    color: var(--white);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.btn-add-instituicao:hover {
+    background-color: #1e40af;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.3);
+}
+
+.btn-add-instituicao:active {
+    transform: translateY(0);
+}
+
+/* estilo dos cards de instituições */
+.institution-card {
+    background: var(--white);
+    border: 2px solid var(--border-gray);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+/* quando passa o mouse no card, ele sobe um pouco e fica azul */
+.institution-card:hover {
+    border-color: var(--primary-blue);
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.15);
+    transform: translateY(-2px);
+}
+
+.institution-name {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary-blue);
+    margin-bottom: 0.5rem;
+}
+
+.institution-city {
+    font-size: 1rem;
+    color: var(--text-gray);
+    margin-bottom: 1rem;
+}
+
+.institution-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.btn-view {
+    background-color: var(--primary-blue);
+    color: var(--white);
+}
+
+.btn-view:hover {
+    background-color: #1e40af;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(29, 78, 216, 0.3);
+}
+
+.btn-edit {
+    background-color: #10b981;
+    color: var(--white);
+}
+
+.btn-edit:hover {
+    background-color: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.btn-delete {
+    background-color: #ef4444;
+    color: var(--white);
+}
+
+.btn-delete:hover {
+    background-color: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.cadastro-instituicao-section {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 600px;
+    margin: 0 auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.cadastro-instituicao-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--primary-blue);
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.cursos-section {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-top: 2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    display: none;
+}
+
+.cursos-section.show {
+    display: block;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.cursos-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary-blue);
+    margin-bottom: 1.5rem;
+}
+
+.btn-add-curso {
+    background-color: var(--primary-blue);
+    color: var(--white);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-add-curso:hover {
+    background-color: #1e40af;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.3);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-gray);
+    background: #F8F9FA;
+    border: 2px solid #1D4ED8;
+    border-radius: 8px;
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    color: var(--border-gray);
+    margin-bottom: 1rem;
+}
+
+/* organizando os cards em uma grade responsiva */
+.institutions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .institutions-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-header .d-flex {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start !important;
+    }
+
+    .dashboard-title {
+        font-size: 1.5rem;
+    }
+
+    .btn-add-instituicao {
+        width: 100%;
+        justify-content: center;
+        padding: 0.75rem 1rem;
+    }
+}
+
+.modal-content {
+    border-radius: 12px;
+    border: none;
+}
+
+.modal-header {
+    border-bottom: 2px solid var(--border-gray);
+    padding: 1.5rem;
+}
+
+.modal-title {
+    font-weight: 600;
+    color: var(--primary-blue);
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 2px solid var(--border-gray);
+    padding: 1rem 1.5rem;
+}
+
+.btn-secondary-modal {
+    background-color: var(--text-gray);
+    color: var(--white);
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary-modal:hover {
+    background-color: #5a6268;
+}
+
+.curso-form-container {
+    margin-bottom: 2rem;
+}
+
+.curso-form-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary-blue);
+    margin-bottom: 1.5rem;
+}
+
+.cursos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .cursos-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.curso-card {
+    background: var(--white);
+    border: 2px solid var(--border-gray);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.curso-card:hover {
+    border-color: var(--primary-blue);
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.15);
+    transform: translateY(-2px);
+}
+
+.curso-card-header {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-gray);
+}
+
+.curso-nome {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--primary-blue);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.curso-card-body {
+    flex: 1;
+    margin-bottom: 1rem;
+}
+
+.curso-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.curso-info-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    color: var(--text-gray);
+}
+
+.curso-info-item i {
+    color: var(--primary-blue);
+    width: 20px;
+    text-align: center;
+}
+
+.curso-label {
+    font-weight: 600;
+    color: #333;
+    min-width: 80px;
+}
+
+.curso-value {
+    color: var(--text-gray);
+}
+
+.curso-card-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding-top: 1rem;
+    border-top: 2px solid var(--border-gray);
+}
+
+.btn-view-curso {
+    background-color: var(--primary-blue);
+    color: var(--white);
+}
+
+.btn-view-curso:hover {
+    background-color: #1e40af;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(29, 78, 216, 0.3);
+}
+
+.btn-edit-curso {
+    background-color: #10b981;
+    color: var(--white);
+}
+
+.btn-edit-curso:hover {
+    background-color: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.btn-delete-curso {
+    background-color: #ef4444;
+    color: var(--white);
+}
+
+.btn-delete-curso:hover {
+    background-color: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+@media (max-width: 576px) {
+    .cursos-section {
+        padding: 1.5rem;
+    }
+
+    .cursos-title {
+        font-size: 1.25rem;
+    }
+
+    .curso-card {
+        padding: 1rem;
+    }
+
+    .curso-nome {
+        font-size: 1.1rem;
+    }
+
+    .curso-card-actions {
+        flex-direction: column;
+    }
+
+    .curso-card-actions .action-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .curso-form-title {
+        font-size: 1.25rem;
+    }
+}
+
+/* container da tabela de notas com borda azul */
+.table-container {
+    background: #FFFFFF;
+    border: 2px solid #1D4ED8;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin-bottom: 20px;
+}
+
+/* estilo da tabela de notas */
+#notasTable {
+    width: 100%;
+    border-collapse: collapse;
+    background: #FFFFFF;
+}
+
+/* cabeçalho da tabela com fundo azul e texto branco */
+#notasTable thead {
+    background: #1D4ED8;
+    color: #FFFFFF;
+}
+
+#notasTable th {
+    padding: 12px 8px;
+    text-align: left;
+    font-weight: 600;
+    border: 1px solid #1D4ED8;
+    white-space: nowrap;
+}
+
+#notasTable td {
+    padding: 8px;
+    border: 1px solid #1D4ED8;
+    background: #FFFFFF;
+}
+
+/* linhas pares da tabela ficam com fundo cinza claro */
+#notasTable tr:nth-child(even) td {
+    background: #F8F9FA;
+}
+
+/* quando passa o mouse na linha, ela fica com fundo azul claro */
+#notasTable tr:hover td {
+    background: #E3F2FD;
+}
+
+/* células de RA e Nome com fundo cinza */
+.cell-ra, .cell-nome {
+    font-weight: 500;
+    background: #F8F9FA !important;
+}
+
+/* estilo dos campos de input dentro da tabela de notas */
+.cell-nota input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 4px;
+    font-size: 0.95rem;
+    color: #1D4ED8;
+    text-align: center;
+}
+
+.cell-nota input:focus {
+    outline: 2px solid #1D4ED8;
+    background: #FFFFFF;
+}
+
+/* célula da nota final destacada em azul claro */
+.cell-nota-final {
+    font-weight: 600;
+    text-align: center;
+    background: #E3F2FD !important;
+    color: #1D4ED8;
+}
+
+/* estilo da tabela de componentes */
+#componentesTable {
+    width: 100%;
+    border-collapse: collapse;
+    background: #FFFFFF;
+}
+
+/* cabeçalho da tabela de componentes com fundo azul */
+#componentesTable thead {
+    background: #1D4ED8;
+    color: #FFFFFF;
+}
+
+#componentesTable th {
+    padding: 12px 8px;
+    text-align: left;
+    font-weight: 600;
+    border: 1px solid #1D4ED8;
+    white-space: nowrap;
+}
+
+#componentesTable td {
+    padding: 8px;
+    border: 1px solid #1D4ED8;
+    background: #FFFFFF;
+}
+
+/* linhas pares da tabela de componentes com fundo cinza */
+#componentesTable tr:nth-child(even) td {
+    background: #F8F9FA;
+}
+
+/* quando passa o mouse na linha, ela fica azul claro */
+#componentesTable tr:hover td {
+    background: #E3F2FD;
+}
+
+/* classe utilitária para limpar floats */
+.clearfix::after {
+    content: "";
+    display: table;
+    clear: both;
+}
