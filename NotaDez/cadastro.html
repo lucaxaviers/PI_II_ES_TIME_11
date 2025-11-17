@@ -1,3 +1,5 @@
+/* Autores do arquivo: Leonardo */
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -87,6 +89,7 @@
         
         const API_URL = 'http://localhost:3000';
 
+        // mostra mensagem de sucesso ou erro na tela
         function showMessage(message, type = 'success') {
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
@@ -103,9 +106,12 @@
             }, 5000);
         }
 
+        // formatando o telefone automaticamente enquanto o usuário digita
         document.getElementById('telefone').addEventListener('input', function(e) {
+            // removendo tudo que não é número
             let value = e.target.value.replace(/\D/g, '');
             if (value.length <= 11) {
+                // formatando como telefone fixo ou celular
                 if (value.length <= 10) {
                     value = value.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
                 } else {
@@ -115,9 +121,11 @@
             }
         });
 
+        // quando o usuário preenche o formulário e clica em cadastrar
         document.getElementById('cadastroForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
+            // pegando todos os dados que o usuário digitou
             const nome = document.getElementById('nome').value;
             const email = document.getElementById('email').value;
             const telefone = document.getElementById('telefone').value;
@@ -138,9 +146,11 @@
                 
                 const data = await response.json();
                 
+                // se o cadastro deu certo, mostro mensagem e redireciono para login
                 if (data.success) {
                     showMessage('Cadastro realizado com sucesso! Redirecionando para login...', 'success');
 
+                    // esperando 2 segundos antes de ir para a tela de login
                     setTimeout(() => {
                         window.location.href = 'login.html';
                     }, 2000);

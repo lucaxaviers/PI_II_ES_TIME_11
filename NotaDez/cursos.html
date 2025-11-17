@@ -1,3 +1,5 @@
+/* Autores do arquivo: Mateus */
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -9,7 +11,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    
+    <!-- cabeçalho da página com título e botões de ação -->
     <div class="dashboard-header">
         <div class="container">
             <div class="d-flex justify-content-between align-items-center">
@@ -32,7 +34,7 @@
     </div>
 
     <div class="container">
-        
+        <!-- formulário para cadastrar um novo curso -->
         <div class="curso-form-container" id="cursoFormContainer" style="display: none;">
             <div class="card shadow-sm mb-4">
                 <div class="card-body p-4">
@@ -112,13 +114,16 @@
             </div>
         </div>
 
+        <!-- lista de cursos cadastrados na instituição -->
         <div id="cursosContent">
+            <!-- grid que mostra todos os cards dos cursos -->
             <div class="cursos-grid" id="cursosGrid">
                 
             </div>
         </div>
     </div>
 
+    <!-- modal para editar um curso -->
     <div class="modal fade" id="editCursoModal" tabindex="-1" aria-labelledby="editCursoModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -213,10 +218,12 @@
 
         const API_URL = 'http://localhost:3000';
 
+        // pegando o token que foi salvo quando o usuário fez login
         function getAuthToken() {
             return localStorage.getItem('token');
         }
 
+        // verificando se o usuário está logado antes de mostrar a página
         function checkAuth() {
             const token = getAuthToken();
             if (!token) {
@@ -227,6 +234,7 @@
             return true;
         }
 
+        // função que envia requisições para o servidor com o token de autenticação
         async function apiRequest(url, options = {}) {
             const token = getAuthToken();
             const headers = {
@@ -279,8 +287,10 @@
         let currentInstituicaoId = null;
         let currentInstituicaoNome = null;
 
+        // carregando os dados da instituição que foi selecionada na página anterior
         function loadInstituicaoData() {
             try {
+                // pegando a instituição que foi salva quando clicou em "ver cursos"
                 const instituicaoData = localStorage.getItem('selectedInstituicao');
                 if (!instituicaoData) {
                     showMessage('Nenhuma instituição selecionada. Redirecionando...', 'error');
@@ -290,10 +300,12 @@
                     return false;
                 }
 
+                // convertendo os dados da instituição de texto para objeto
                 const instituicao = JSON.parse(instituicaoData);
                 currentInstituicaoId = instituicao.id;
                 currentInstituicaoNome = instituicao.nome;
 
+                // mostrando o nome da instituição na tela
                 document.getElementById('instituicaoInfo').textContent = `Instituição: ${instituicao.nome}`;
                 
                 return true;
@@ -303,6 +315,7 @@
             }
         }
 
+        // buscando todos os cursos da instituição no banco de dados
         async function loadCursos(instituicaoId) {
             if (!instituicaoId) {
                 showMessage('ID da instituição não fornecido', 'error');
@@ -310,18 +323,22 @@
             }
             
             try {
+                // pedindo ao servidor todos os cursos desta instituição
                 const url = `${API_URL}/cursos?instituicaoId=${instituicaoId}`;
                 const response = await apiRequest(url);
                 const cursos = response.data || [];
+                // mostrando os cursos na tela
                 renderCursos(cursos);
             } catch (error) {
                 showMessage(error.message || 'Erro ao carregar cursos', 'error');
             }
         }
 
+        // criando os cards na tela para mostrar cada curso
         function renderCursos(cursos) {
             const grid = document.getElementById('cursosGrid');
             
+            // se não tiver cursos, mostra mensagem
             if (cursos.length === 0) {
                 grid.innerHTML = `
                     <div class="empty-state w-100">
@@ -333,8 +350,10 @@
                 return;
             }
 
+            // limpando a tela antes de mostrar os cursos
             grid.innerHTML = '';
             
+            // criando um card para cada curso
             cursos.forEach(curso => {
                 const card = document.createElement('div');
                 card.className = 'curso-card';
@@ -390,15 +409,18 @@
             return div.innerHTML;
         }
 
+        // mostrando o formulário para cadastrar um novo curso
         function mostrarFormularioCurso() {
             if (!currentInstituicaoId) {
                 showMessage('Erro ao carregar dados da instituição', 'error');
                 return;
             }
             
+            // preenchendo o ID da instituição no formulário
             document.getElementById('cursoInstituicaoId').value = currentInstituicaoId;
             document.getElementById('cursoInstituicaoNome').value = currentInstituicaoNome;
             
+            // mostrando o formulário na tela
             const formContainer = document.getElementById('cursoFormContainer');
             formContainer.style.display = 'block';
             formContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -409,15 +431,18 @@
             document.getElementById('cadastroCursoForm').reset();
         }
 
+        // quando o professor preenche o formulário e cadastra um curso
         document.getElementById('cadastroCursoForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
+            // pegando todos os dados que o professor digitou
             const nome = document.getElementById('cursoNome').value.trim();
             const area = document.getElementById('cursoArea').value.trim();
             const periodoTotal = document.getElementById('cursoDuracao').value;
             const modalidade = document.getElementById('cursoModalidade').value;
             const instituicaoId = document.getElementById('cursoInstituicaoId').value;
             
+            // verificando se os campos obrigatórios foram preenchidos
             if (!nome || !periodoTotal || !modalidade) {
                 showMessage('Nome, Período Total e Modalidade são obrigatórios', 'error');
                 return;
@@ -428,6 +453,8 @@
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Cadastrando...';
                 
+                // enviando os dados do curso para o servidor salvar no banco
+                // o body é onde enviamos os dados em formato JSON
                 await apiRequest(`${API_URL}/cursos`, {
                     method: 'POST',
                     body: JSON.stringify({
@@ -439,6 +466,7 @@
                     })
                 });
                 
+                // mostrando mensagem de sucesso e recarregando a lista
                 showMessage('Curso cadastrado com sucesso!', 'success');
                 this.reset();
                 ocultarFormularioCurso();
@@ -454,11 +482,13 @@
             }
         });
 
+        // abrindo o modal para editar um curso
         async function editarCurso(cursoId) {
             try {
-                
+                // buscando o curso no servidor
                 const response = await apiRequest(`${API_URL}/cursos?instituicaoId=${currentInstituicaoId}`);
                 const cursos = response.data || [];
+                // procurando o curso que vai ser editado
                 const curso = cursos.find(c => c.id === cursoId);
                 
                 if (!curso) {
@@ -466,12 +496,14 @@
                     return;
                 }
                 
+                // preenchendo os campos do modal com os dados do curso
                 document.getElementById('editCursoId').value = curso.id;
                 document.getElementById('editCursoNome').value = curso.nome;
                 document.getElementById('editCursoArea').value = curso.area || '';
                 document.getElementById('editCursoDuracao').value = curso.periodoTotal || '';
                 document.getElementById('editCursoModalidade').value = curso.modalidade || '';
                 
+                // mostrando o modal na tela
                 const editModal = new bootstrap.Modal(document.getElementById('editCursoModal'));
                 editModal.show();
             } catch (error) {
@@ -479,15 +511,18 @@
             }
         }
 
+        // quando o professor salva as alterações do curso editado
         document.getElementById('editCursoForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
+            // pegando o ID e os dados novos que o professor digitou
             const cursoId = parseInt(document.getElementById('editCursoId').value);
             const nome = document.getElementById('editCursoNome').value.trim();
             const area = document.getElementById('editCursoArea').value.trim();
             const periodoTotal = document.getElementById('editCursoDuracao').value;
             const modalidade = document.getElementById('editCursoModalidade').value;
             
+            // verificando se os campos obrigatórios foram preenchidos
             if (!nome || !periodoTotal || !modalidade) {
                 showMessage('Nome, Período Total e Modalidade são obrigatórios', 'error');
                 return;
@@ -498,6 +533,8 @@
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Salvando...';
                 
+                // enviando os dados atualizados para o servidor salvar no banco
+                // o body é onde enviamos os dados em formato JSON
                 await apiRequest(`${API_URL}/cursos/${cursoId}`, {
                     method: 'PUT',
                     body: JSON.stringify({
@@ -508,11 +545,13 @@
                     })
                 });
                 
+                // mostrando mensagem de sucesso e fechando o modal
                 showMessage('Curso atualizado com sucesso!', 'success');
                 
                 const editModal = bootstrap.Modal.getInstance(document.getElementById('editCursoModal'));
                 editModal.hide();
                 
+                // recarregando a lista de cursos
                 await loadCursos(currentInstituicaoId);
                 
                 submitBtn.disabled = false;

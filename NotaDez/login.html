@@ -1,3 +1,5 @@
+/* Autores do arquivo: Leonardo */
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -67,6 +69,7 @@
         
         const API_URL = 'http://localhost:3000';
 
+        // mostra mensagem de sucesso ou erro na tela
         function showMessage(message, type = 'success') {
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
@@ -83,9 +86,11 @@
             }, 5000);
         }
 
+        // quando o usuário clica em entrar, aqui pego os dados e envio para o servidor
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
+            // pegando o email e senha que o usuário digitou
             const email = document.getElementById('email').value;
             const senha = document.getElementById('senha').value;
             const submitButton = document.querySelector('button[type="submit"]');
@@ -104,8 +109,9 @@
                 
                 const data = await response.json();
                 
+                // se o login deu certo, guardo o token e vou para a tela principal
                 if (data.success) {
-                    
+                    // salvando o token para usar nas próximas requisições
                     localStorage.setItem('token', data.data.token);
                     localStorage.setItem('user', JSON.stringify(data.data.user));
                     
@@ -126,16 +132,19 @@
             }
         });
 
+        // quando clica em "esqueci minha senha", envia o email para recuperação
         document.querySelector('.forgot-link').addEventListener('click', async function(e) {
             e.preventDefault();
             const email = document.getElementById('email').value;
             
+            // verificando se o usuário preencheu o email
             if (!email) {
                 showMessage('Por favor, informe seu e-mail primeiro', 'error');
                 return;
             }
             
             try {
+                // enviando o email para o servidor recuperar a senha
                 const response = await fetch(`${API_URL}/forgot-password`, {
                     method: 'POST',
                     headers: {

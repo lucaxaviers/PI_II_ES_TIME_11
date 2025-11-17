@@ -1,3 +1,5 @@
+/* Autores do arquivo: Todos os integrantes */
+
 import { IncomingMessage, ServerResponse } from 'http';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -5,6 +7,9 @@ import { query } from './db';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret_default_change_in_production';
 
+// autor: Leonardo
+// o que faz: verifica se o token de autenticação é válido
+// o que é: função que valida o token JWT do usuário logado
 export async function authenticateToken(req: IncomingMessage): Promise<any> {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1]; 
@@ -138,6 +143,9 @@ function handleForeignKeyError(error: any, entityType: string): { erro: boolean;
     }
 }
 
+// autor: Leonardo
+// o que faz: cadastra um novo usuário no sistema
+// o que é: rota que recebe os dados do cadastro e salva no banco
 export async function handleRegister(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
         const body = await readBody(req);
@@ -202,6 +210,9 @@ export async function handleRegister(req: IncomingMessage, res: ServerResponse):
     }
 }
 
+// autor: Leonardo
+// o que faz: verifica email e senha para fazer login
+// o que é: rota que valida as credenciais e retorna um token de acesso
 export async function handleLogin(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
         const body = await readBody(req);
@@ -268,6 +279,9 @@ export async function handleLogin(req: IncomingMessage, res: ServerResponse): Pr
     }
 }
 
+// autor: Leonardo
+// o que faz: envia email para recuperação de senha
+// o que é: rota que processa a solicitação de recuperação de senha
 export async function handleForgotPassword(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
         const body = await readBody(req);
@@ -293,6 +307,9 @@ export async function handleForgotPassword(req: IncomingMessage, res: ServerResp
     }
 }
 
+// autor: Xavier
+// o que faz: busca todas as instituições do usuário logado
+// o que é: rota que lista as instituições cadastradas
 export async function handleGetInstituicoes(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
         
@@ -327,6 +344,9 @@ export async function handleGetInstituicoes(req: IncomingMessage, res: ServerRes
     }
 }
 
+// autor: Xavier
+// o que faz: cria uma nova instituição no banco de dados
+// o que é: rota que salva os dados da instituição no banco
 export async function handleCreateInstituicao(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
         
@@ -372,6 +392,9 @@ export async function handleCreateInstituicao(req: IncomingMessage, res: ServerR
     }
 }
 
+// autor: Xavier
+// o que faz: atualiza os dados de uma instituição existente
+// o que é: rota que modifica as informações da instituição no banco
 export async function handleUpdateInstituicao(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
         
@@ -429,6 +452,9 @@ export async function handleUpdateInstituicao(req: IncomingMessage, res: ServerR
     }
 }
 
+// autor: Xavier
+// o que faz: remove uma instituição do banco de dados
+// o que é: rota que exclui a instituição se não tiver dados vinculados
 export async function handleDeleteInstituicao(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
         
@@ -477,6 +503,9 @@ export async function handleDeleteInstituicao(req: IncomingMessage, res: ServerR
     }
 }
 
+// autor: Mateus
+// o que faz: busca todos os cursos de uma instituição
+// o que é: rota que lista os cursos cadastrados
 export async function handleGetCursos(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
         
@@ -543,6 +572,9 @@ export async function handleGetCursos(req: IncomingMessage, res: ServerResponse)
     }
 }
 
+// autor: Mateus
+// o que faz: cria um novo curso no banco de dados
+// o que é: rota que salva os dados do curso no banco
 export async function handleCreateCurso(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
         
@@ -603,6 +635,9 @@ export async function handleCreateCurso(req: IncomingMessage, res: ServerRespons
     }
 }
 
+// autor: Mateus
+// o que faz: atualiza os dados de um curso existente
+// o que é: rota que modifica as informações do curso no banco
 export async function handleUpdateCurso(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
         
@@ -664,6 +699,9 @@ export async function handleUpdateCurso(req: IncomingMessage, res: ServerRespons
     }
 }
 
+// autor: Mateus
+// o que faz: remove um curso do banco de dados
+// o que é: rota que exclui o curso se não tiver disciplinas vinculadas
 export async function handleDeleteCurso(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
         
@@ -715,6 +753,9 @@ export async function handleDeleteCurso(req: IncomingMessage, res: ServerRespons
     }
 }
 
+// autor: Gustavo
+// o que faz: busca todas as disciplinas de um curso
+// o que é: rota que lista as disciplinas cadastradas
 export async function handleGetDisciplinas(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
         
@@ -783,6 +824,9 @@ export async function handleGetDisciplinas(req: IncomingMessage, res: ServerResp
     }
 }
 
+// autor: Gustavo
+// o que faz: cria uma nova disciplina no banco de dados
+// o que é: rota que salva os dados da disciplina no banco
 export async function handleCreateDisciplina(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
         
@@ -846,6 +890,9 @@ export async function handleCreateDisciplina(req: IncomingMessage, res: ServerRe
     }
 }
 
+// autor: Gustavo
+// o que faz: atualiza os dados de uma disciplina existente
+// o que é: rota que modifica as informações da disciplina no banco
 export async function handleUpdateDisciplina(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
         
@@ -908,6 +955,9 @@ export async function handleUpdateDisciplina(req: IncomingMessage, res: ServerRe
     }
 }
 
+// autor: Gustavo
+// o que faz: remove uma disciplina do banco de dados
+// o que é: rota que exclui a disciplina se não tiver turmas ou componentes vinculados
 export async function handleDeleteDisciplina(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
         
@@ -960,6 +1010,9 @@ export async function handleDeleteDisciplina(req: IncomingMessage, res: ServerRe
     }
 }
 
+// autor: Wanderley
+// o que faz: busca todas as turmas de uma disciplina
+// o que é: rota que lista as turmas cadastradas
 export async function handleGetTurmas(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
         
@@ -1033,6 +1086,9 @@ export async function handleGetTurmas(req: IncomingMessage, res: ServerResponse)
     }
 }
 
+// autor: Wanderley
+// o que faz: cria uma nova turma no banco de dados
+// o que é: rota que salva os dados da turma no banco
 export async function handleCreateTurma(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
         
@@ -1108,6 +1164,9 @@ export async function handleCreateTurma(req: IncomingMessage, res: ServerRespons
     }
 }
 
+// autor: Wanderley
+// o que faz: atualiza os dados de uma turma existente
+// o que é: rota que modifica as informações da turma no banco
 export async function handleUpdateTurma(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
         
@@ -1181,6 +1240,9 @@ export async function handleUpdateTurma(req: IncomingMessage, res: ServerRespons
     }
 }
 
+// autor: Wanderley
+// o que faz: remove uma turma do banco de dados
+// o que é: rota que exclui a turma se não tiver alunos ou notas vinculadas
 export async function handleDeleteTurma(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
         
@@ -1234,6 +1296,9 @@ export async function handleDeleteTurma(req: IncomingMessage, res: ServerRespons
     }
 }
 
+// autor: Xavier
+// o que faz: busca todos os alunos de uma turma
+// o que é: rota que lista os alunos cadastrados
 export async function handleGetAlunos(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
         
@@ -1301,6 +1366,9 @@ export async function handleGetAlunos(req: IncomingMessage, res: ServerResponse)
     }
 }
 
+// autor: Xavier
+// o que faz: cria um novo aluno no banco de dados
+// o que é: rota que salva os dados do aluno no banco
 export async function handleCreateAluno(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
         
@@ -1390,6 +1458,9 @@ export async function handleCreateAluno(req: IncomingMessage, res: ServerRespons
     }
 }
 
+// autor: Xavier
+// o que faz: atualiza os dados de um aluno existente
+// o que é: rota que modifica as informações do aluno no banco
 export async function handleUpdateAluno(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
         
@@ -1452,6 +1523,9 @@ export async function handleUpdateAluno(req: IncomingMessage, res: ServerRespons
     }
 }
 
+// autor: Xavier
+// o que faz: remove um aluno do banco de dados
+// o que é: rota que exclui o aluno se não tiver notas registradas
 export async function handleDeleteAluno(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
         
@@ -1506,6 +1580,9 @@ export async function handleDeleteAluno(req: IncomingMessage, res: ServerRespons
     }
 }
 
+// autor: Leonardo, Xavier
+// o que faz: busca todos os componentes de nota de uma disciplina
+// o que é: rota que lista os componentes cadastrados
 export async function handleGetComponentes(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
         
@@ -1570,6 +1647,9 @@ export async function handleGetComponentes(req: IncomingMessage, res: ServerResp
     }
 }
 
+// autor: Leonardo, Xavier
+// o que faz: cria um novo componente de nota no banco de dados
+// o que é: rota que salva os dados do componente no banco
 export async function handleCreateComponente(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
         
@@ -1662,6 +1742,9 @@ export async function handleCreateComponente(req: IncomingMessage, res: ServerRe
     }
 }
 
+// autor: Leonardo, Xavier
+// o que faz: atualiza os dados de um componente existente
+// o que é: rota que modifica as informações do componente no banco
 export async function handleUpdateComponente(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
         
@@ -1749,6 +1832,9 @@ export async function handleUpdateComponente(req: IncomingMessage, res: ServerRe
     }
 }
 
+// autor: Leonardo, Xavier
+// o que faz: remove um componente do banco de dados
+// o que é: rota que exclui o componente se não tiver notas vinculadas
 export async function handleDeleteComponente(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
     try {
         
@@ -1802,6 +1888,9 @@ export async function handleDeleteComponente(req: IncomingMessage, res: ServerRe
     }
 }
 
+// autor: Leonardo, Xavier
+// o que faz: busca todas as notas de uma turma
+// o que é: rota que lista as notas dos alunos e componentes
 export async function handleGetNotas(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
         
@@ -2009,6 +2098,9 @@ async function calcularESalvarNotaFinal(alunoId: number, turmaId: number, tipoMe
     return notaFinal;
 }
 
+// autor: Leonardo, Xavier
+// o que faz: salva várias notas de uma vez e calcula as notas finais
+// o que é: rota que recebe um lote de notas e salva tudo no banco
 export async function handleBulkNotas(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
         

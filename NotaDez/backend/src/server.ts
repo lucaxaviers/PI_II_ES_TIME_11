@@ -1,3 +1,5 @@
+/* Autores do arquivo: Todos os integrantes */
+
 import http from 'http';
 import { 
     handleRegister, 

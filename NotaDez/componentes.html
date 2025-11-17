@@ -1,3 +1,5 @@
+/* Autores do arquivo: Leonardo */
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -9,7 +11,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    
+    <!-- cabeçalho da página com título e botões de ação -->
     <div class="dashboard-header">
         <div class="container">
             <div class="d-flex justify-content-between align-items-center">
@@ -32,12 +34,13 @@
     </div>
 
     <div class="container">
-        
+        <!-- mensagem que aparece quando não tem nenhum componente cadastrado -->
         <div id="emptyState" class="empty-state" style="display: none;">
             <i class="bi bi-inbox" style="font-size: 3rem; color: #ADB5BD;"></i>
             <p class="mt-3">Não há componentes cadastrados ainda.</p>
         </div>
 
+        <!-- formulário para cadastrar um novo componente de nota -->
         <div class="curso-form-container" id="componenteFormContainer" style="display: none;">
             <div class="card shadow-sm mb-4">
                 <div class="card-body p-4">
@@ -100,10 +103,12 @@
             </div>
         </div>
 
+        <!-- lista de componentes de nota cadastrados -->
         <div id="componentesContent">
             <h2 class="mb-4 mt-4" style="color: #1D4ED8; font-weight: 600;">
                 <i class="bi bi-list-ul"></i> Componentes Cadastrados
             </h2>
+            <!-- tabela que mostra todos os componentes -->
             <div class="table-container">
                 <table id="componentesTable">
                     <thead>
@@ -123,6 +128,7 @@
         </div>
     </div>
 
+    <!-- modal para editar um componente de nota -->
     <div class="modal fade" id="editComponenteModal" tabindex="-1" aria-labelledby="editComponenteModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -208,10 +214,12 @@
 
         const API_URL = 'http://localhost:3000';
 
+        // pegando o token que foi salvo quando o usuário fez login
         function getAuthToken() {
             return localStorage.getItem('token');
         }
 
+        // verificando se o usuário está logado antes de mostrar a página
         function checkAuth() {
             const token = getAuthToken();
             if (!token) {
@@ -222,6 +230,7 @@
             return true;
         }
 
+        // função que envia requisições para o servidor com o token de autenticação
         async function apiRequest(url, options = {}) {
             const token = getAuthToken();
             const headers = {
@@ -251,7 +260,9 @@
             return data;
         }
 
+        // mostra mensagem de sucesso ou erro na tela
         function showMessage(message, type = 'success') {
+            // criando um elemento de alerta para mostrar a mensagem
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
             alertDiv.style.zIndex = '9999';
@@ -296,14 +307,17 @@
             }
         }
 
+        // buscando todos os componentes de nota da disciplina no banco de dados
         async function carregarComponentes() {
             if (!currentDisciplinaId) {
                 return;
             }
 
             try {
+                // pedindo ao servidor todos os componentes desta disciplina
                 const response = await apiRequest(`${API_URL}/componentes?disciplinaId=${currentDisciplinaId}`);
                 componentes = response.data || [];
+                // atualizando a tabela na tela
                 atualizarTabela();
             } catch (error) {
                 showMessage(error.message || 'Erro ao carregar componentes', 'error');
@@ -312,23 +326,27 @@
             }
         }
 
+        // mostrando o formulário para cadastrar um novo componente
         function mostrarFormularioComponente() {
             document.getElementById('componenteFormContainer').style.display = 'block';
             document.getElementById('btnAddComponente').style.display = 'none';
             document.getElementById('componenteNome').focus();
         }
 
+        // escondendo o formulário de cadastro
         function ocultarFormularioComponente() {
             document.getElementById('componenteFormContainer').style.display = 'none';
             document.getElementById('btnAddComponente').style.display = 'inline-flex';
             document.getElementById('cadastroComponenteForm').reset();
         }
 
+        // atualizando a tabela na tela com os componentes
         function atualizarTabela() {
             const tbody = document.getElementById('componentesTableBody');
             const emptyState = document.getElementById('emptyState');
             const componentesContent = document.getElementById('componentesContent');
 
+            // se não tiver componentes, mostra mensagem
             if (componentes.length === 0) {
                 tbody.innerHTML = '';
                 emptyState.style.display = 'block';
@@ -336,6 +354,7 @@
                 return;
             }
 
+            // escondendo a mensagem e mostrando a tabela
             emptyState.style.display = 'none';
             componentesContent.style.display = 'block';
 
@@ -358,19 +377,23 @@
             `).join('');
         }
 
+        // quando o professor preenche o formulário e cadastra um componente
         document.getElementById('cadastroComponenteForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            // pegando os dados que o professor digitou
             const nome = document.getElementById('componenteNome').value.trim();
             const sigla = document.getElementById('componenteSigla').value.trim().toUpperCase();
             const descricao = document.getElementById('componenteDescricao').value.trim();
             const peso = null;
 
+            // verificando se os campos obrigatórios foram preenchidos
             if (!nome || !sigla) {
                 showMessage('Nome e Sigla são obrigatórios!', 'error');
                 return;
             }
 
+            // verificando se a disciplina foi carregada
             if (!currentDisciplinaId) {
                 showMessage('Disciplina não encontrada', 'error');
                 return;
@@ -381,6 +404,7 @@
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Adicionando...';
 
+                // enviando os dados do componente para o servidor salvar no banco
                 await apiRequest(`${API_URL}/componentes`, {
                     method: 'POST',
                     body: JSON.stringify({
@@ -392,6 +416,7 @@
                     })
                 });
 
+                // recarregando a lista de componentes e escondendo o formulário
                 await carregarComponentes();
 
                 ocultarFormularioComponente();
@@ -408,13 +433,16 @@
             }
         });
 
+        // abrindo o modal para editar um componente
         function editarComponente(id) {
+            // procurando o componente na lista
             const componente = componentes.find(c => c.id === id);
             if (!componente) {
                 showMessage('Componente não encontrado', 'error');
                 return;
             }
 
+            // preenchendo os campos do modal com os dados do componente
             document.getElementById('editComponenteId').value = id;
             document.getElementById('editComponenteNome').value = componente.nome;
             document.getElementById('editComponenteSigla').value = componente.sigla;
@@ -424,15 +452,18 @@
             editModal.show();
         }
 
+        // quando o professor salva as alterações do componente editado
         document.getElementById('editComponenteForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            // pegando o ID e os dados novos que o professor digitou
             const id = parseInt(document.getElementById('editComponenteId').value);
             const nome = document.getElementById('editComponenteNome').value.trim();
             const sigla = document.getElementById('editComponenteSigla').value.trim().toUpperCase();
             const descricao = document.getElementById('editComponenteDescricao').value.trim();
             const peso = null;
 
+            // verificando se os campos obrigatórios foram preenchidos
             if (!nome || !sigla) {
                 showMessage('Nome e Sigla são obrigatórios!', 'error');
                 return;
@@ -443,6 +474,8 @@
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
 
+                // enviando os dados atualizados para o servidor salvar no banco
+                // o body é onde enviamos os dados em formato JSON
                 await apiRequest(`${API_URL}/componentes/${id}`, {
                     method: 'PUT',
                     body: JSON.stringify({
@@ -453,6 +486,7 @@
                     })
                 });
 
+                // recarregando a lista de componentes e fechando o modal
                 await carregarComponentes();
 
                 const editModal = bootstrap.Modal.getInstance(document.getElementById('editComponenteModal'));
@@ -470,23 +504,30 @@
             }
         });
 
+        // abrindo o modal para confirmar exclusão do componente
         function excluirComponente(id) {
+            // guardando o ID do componente que vai ser excluído
             document.getElementById('deleteComponenteId').value = id;
             const deleteModal = new bootstrap.Modal(document.getElementById('deleteComponenteModal'));
             deleteModal.show();
         }
 
+        // confirmando e excluindo o componente do banco de dados
         document.getElementById('confirmDeleteComponenteBtn').addEventListener('click', async function() {
+            // pegando o ID do componente que vai ser excluído
             const id = parseInt(document.getElementById('deleteComponenteId').value);
 
             try {
                 this.disabled = true;
                 this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Excluindo...';
 
+                // pedindo ao servidor para excluir o componente
+                // não precisa de body porque é só excluir pelo ID
                 await apiRequest(`${API_URL}/componentes/${id}`, {
                     method: 'DELETE'
                 });
 
+                // recarregando a lista de componentes e fechando o modal
                 await carregarComponentes();
 
                 const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteComponenteModal'));

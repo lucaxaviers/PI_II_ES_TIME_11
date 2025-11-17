@@ -1,3 +1,5 @@
+/* Autores do arquivo: Xavier */
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -9,7 +11,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    
+    <!-- cabeçalho da página com título e botão de sair -->
     <div class="dashboard-header">
         <div class="container">
             <div class="d-flex justify-content-between align-items-center">
@@ -29,11 +31,12 @@
     </div>
 
     <div class="container">
-        
+        <!-- seção que mostra a lista de instituições -->
         <div id="dashboardSection">
             <h2 class="mb-4 mt-4" style="color: #0066cc; font-weight: 600;">
                 <i class="bi bi-building"></i> Suas instituições
             </h2>
+            <!-- grid que mostra todos os cards das instituições -->
             <div id="institutionsContainer">
                 <div class="institutions-grid" id="institutionsGrid">
                     
@@ -42,6 +45,7 @@
 
         </div>
 
+        <!-- seção para cadastrar uma nova instituição -->
         <div id="cadastroSection" style="display: none;">
             <div class="cadastro-instituicao-section">
                 <h2 class="cadastro-instituicao-title">
@@ -123,6 +127,7 @@
         </div>
     </div>
 
+    <!-- modal para editar uma instituição -->
     <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -229,10 +234,12 @@
 
         const API_URL = 'http://localhost:3000';
 
+        // pegando o token que foi salvo quando o usuário fez login
         function getAuthToken() {
             return localStorage.getItem('token');
         }
 
+        // verificando se o usuário está logado antes de mostrar a página
         function checkAuth() {
             const token = getAuthToken();
             if (!token) {
@@ -243,6 +250,7 @@
             return true;
         }
 
+        // função que envia requisições para o servidor com o token de autenticação
         async function apiRequest(url, options = {}) {
             const token = getAuthToken();
             const headers = {
@@ -270,8 +278,9 @@
             return data;
         }
 
+        // mostra mensagem de sucesso ou erro na tela
         function showMessage(message, type = 'success') {
-            
+            // criando um elemento de alerta para mostrar a mensagem
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
             alertDiv.style.zIndex = '9999';
@@ -286,23 +295,28 @@
             }, 5000);
         }
 
+        // buscando todas as instituições do usuário no banco de dados
         async function loadInstituicoes() {
             try {
+                // pedindo ao servidor todas as instituições do usuário logado
                 const response = await apiRequest(`${API_URL}/instituicoes`);
                 const instituicoes = response.data || [];
 
+                // mostrando as instituições na tela
                 renderInstituicoes(instituicoes);
             } catch (error) {
                 showMessage(error.message || 'Erro ao carregar instituições', 'error');
             }
         }
 
+        // criando os cards na tela para mostrar cada instituição
         function renderInstituicoes(instituicoes) {
             const grid = document.getElementById('institutionsGrid');
             const btnAddInstituicao = document.getElementById('btnAddInstituicao');
 
+            // se não tiver instituições, mostra o formulário de cadastro
             if (instituicoes.length === 0) {
-                
+                // escondendo a lista e mostrando o formulário
                 document.getElementById('dashboardSection').style.display = 'none';
                 document.getElementById('cadastroSection').style.display = 'block';
                 btnAddInstituicao.style.display = 'none';
@@ -343,15 +357,20 @@
             });
         }
 
+        // quando o professor clica para sair do sistema
         function sair() {
             if (confirm('Tem certeza que deseja sair?')) {
+                // removendo o token e os dados do usuário do navegador
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
+                // voltando para a tela de login
                 window.location.href = 'login.html';
             }
         }
 
+        // mostrando o formulário para cadastrar uma nova instituição
         function mostrarCadastroInstituicao() {
+            // escondendo o dashboard e mostrando o formulário
             document.getElementById('dashboardSection').style.display = 'none';
             document.getElementById('cadastroSection').style.display = 'block';
             document.getElementById('btnAddInstituicao').style.display = 'none';
@@ -361,29 +380,36 @@
             document.getElementById('cadastroSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
+        // voltando para o dashboard sem cadastrar nada
         function voltarDashboard() {
+            // escondendo o formulário e mostrando o dashboard novamente
             document.getElementById('cadastroSection').style.display = 'none';
             document.getElementById('dashboardSection').style.display = 'block';
             document.getElementById('btnAddInstituicao').style.display = 'inline-flex';
         }
 
+        // salvando a instituição selecionada e indo para a tela de cursos
         function verCursos(instituicaoId, instituicaoNome) {
-            
+            // salvando no navegador qual instituição o professor selecionou
             localStorage.setItem('selectedInstituicao', JSON.stringify({
                 id: instituicaoId,
                 nome: instituicaoNome
             }));
 
+            // mudando para a página de cursos
             window.location.href = 'cursos.html';
         }
 
+        // quando o professor preenche o formulário e cadastra uma instituição
         document.getElementById('cadastroInstituicaoForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            // pegando os dados que o professor digitou
             const nome = document.getElementById('instituicaoNome').value.trim();
             const cidade = document.getElementById('instituicaoCidade').value.trim();
             const uf = document.getElementById('instituicaoEstado').value.trim();
 
+            // verificando se o nome foi preenchido
             if (!nome) {
                 showMessage('Nome da instituição é obrigatório', 'error');
                 return;
@@ -394,11 +420,14 @@
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Cadastrando...';
 
+                // enviando os dados da instituição para o servidor salvar no banco
+                // o body é onde enviamos os dados em formato JSON
                 await apiRequest(`${API_URL}/instituicoes`, {
                     method: 'POST',
                     body: JSON.stringify({ nome, cidade, uf })
                 });
 
+                // mostrando mensagem de sucesso e recarregando a lista
                 showMessage('Instituição cadastrada com sucesso!', 'success');
                 this.reset();
                 await loadInstituicoes();
@@ -413,12 +442,15 @@
             }
         });
 
+        // abrindo o modal para editar uma instituição
         function editarInstituicao(id, nome, cidade, uf) {
+            // preenchendo os campos do modal com os dados da instituição
             document.getElementById('editInstituicaoId').value = id;
             document.getElementById('editInstituicaoNome').value = nome;
             document.getElementById('editInstituicaoCidade').value = cidade || '';
             document.getElementById('editInstituicaoEstado').value = uf || '';
 
+            // mostrando o modal na tela
             const editModal = new bootstrap.Modal(document.getElementById('editModal'));
             editModal.show();
         }
@@ -441,11 +473,14 @@
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Salvando...';
 
+                // enviando os dados atualizados para o servidor salvar no banco
+                // o body é onde enviamos os dados em formato JSON
                 await apiRequest(`${API_URL}/instituicoes/${id}`, {
                     method: 'PUT',
                     body: JSON.stringify({ nome, cidade, uf })
                 });
 
+                // mostrando mensagem de sucesso e fechando o modal
                 showMessage('Instituição atualizada com sucesso!', 'success');
                 
                 const editModal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
@@ -463,28 +498,36 @@
             }
         });
 
+        // abrindo o modal para confirmar exclusão da instituição
         function excluirInstituicao(id) {
+            // guardando o ID da instituição que vai ser excluída
             document.getElementById('deleteInstituicaoId').value = id;
             const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
             deleteModal.show();
         }
 
+        // confirmando e excluindo a instituição do banco de dados
         document.getElementById('confirmDeleteBtn').addEventListener('click', async function() {
+            // pegando o ID da instituição que vai ser excluída
             const id = document.getElementById('deleteInstituicaoId').value;
 
             try {
                 this.disabled = true;
                 this.innerHTML = '<i class="bi bi-hourglass-split"></i> Excluindo...';
 
+                // pedindo ao servidor para excluir a instituição
+                // não precisa de body porque é só excluir pelo ID
                 await apiRequest(`${API_URL}/instituicoes/${id}`, {
                     method: 'DELETE'
                 });
 
+                // mostrando mensagem de sucesso e fechando o modal
                 showMessage('Instituição excluída com sucesso!', 'success');
 
                 const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
                 deleteModal.hide();
 
+                // recarregando a lista de instituições
                 await loadInstituicoes();
 
                 this.disabled = false;

@@ -1,3 +1,5 @@
+/* Autores do arquivo: Leonardo, Xavier */
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -9,7 +11,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    
+    <!-- cabeçalho da página com título e botões de ação -->
     <div class="dashboard-header">
         <div class="container">
             <div class="d-flex justify-content-between align-items-center">
@@ -32,13 +34,14 @@
     </div>
 
     <div class="container">
-        
+        <!-- informação sobre o tipo de média usado -->
         <div class="d-flex justify-content-end mb-2">
             <small class="text-muted" style="font-size: 0.85rem;">
                 <i class="bi bi-calculator"></i> Cálculo da média baseado em média simples (ex.: (P1 + P2 + P3) / 3)
             </small>
         </div>
 
+        <!-- tabela principal que mostra todas as notas dos alunos -->
         <div class="table-container">
             <table id="notasTable">
                 <thead>
@@ -52,6 +55,7 @@
             </table>
         </div>
 
+        <!-- botões para exportar CSV e salvar todas as notas -->
         <div class="text-end mt-3 mb-4 d-flex gap-2 justify-content-end">
             <button class="btn btn-success btn-lg" onclick="exportarCSV()">
                 <i class="bi bi-download"></i> EXPORTAR CSV
@@ -67,10 +71,12 @@
 
         const API_URL = 'http://localhost:3000';
 
+        // pegando o token que foi salvo quando o usuário fez login
         function getAuthToken() {
             return localStorage.getItem('token');
         }
 
+        // verificando se o usuário está logado antes de mostrar a página
         function checkAuth() {
             const token = getAuthToken();
             if (!token) {
@@ -81,6 +87,7 @@
             return true;
         }
 
+        // função que envia requisições para o servidor com o token de autenticação
         async function apiRequest(url, options = {}) {
             const token = getAuthToken();
             const headers = {
@@ -110,7 +117,9 @@
             return data;
         }
 
+        // mostra mensagem de sucesso ou erro na tela
         function showMessage(message, type = 'success') {
+            // criando um elemento de alerta para mostrar a mensagem
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
             alertDiv.style.zIndex = '9999';
@@ -140,15 +149,18 @@
         let currentTurmaNome = null;
         let currentDisciplinaSigla = null;
 
+        // criando a tabela na tela com todos os alunos e componentes de nota
         function renderizarTabela() {
             const thead = document.getElementById('tableHeader');
             const tbody = document.getElementById('tableBody');
 
+            // se não tiver alunos ou componentes, mostra mensagem de carregamento
             if (alunos.length === 0 || componentes.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="100%" class="text-center py-4">Carregando dados...</td></tr>';
                 return;
             }
 
+            // criando o cabeçalho da tabela com RA, Nome, e cada componente
             let headerHTML = '<th>RA</th><th>Nome</th>';
             componentes.forEach(comp => {
                 headerHTML += `<th>${comp.sigla}</th>`;
@@ -156,7 +168,9 @@
             headerHTML += '<th>Nota Final</th>';
             thead.innerHTML = headerHTML;
 
+            // limpando a tabela antes de preencher
             tbody.innerHTML = '';
+            // criando uma linha na tabela para cada aluno
             alunos.forEach(aluno => {
                 const tr = document.createElement('tr');
 
@@ -208,11 +222,13 @@
             });
         }
 
+        // calculando a nota final do aluno usando média simples
         function calcularNotaFinal(alunoId) {
             if (!notas[alunoId] || componentes.length === 0) {
                 return 0;
             }
 
+            // somando todas as notas dos componentes
             let soma = 0;
             let quantidade = 0;
             componentes.forEach(comp => {
@@ -220,19 +236,25 @@
                 soma += valor;
                 quantidade++;
             });
+            // dividindo a soma pela quantidade de componentes para fazer a média
             const resultado = quantidade > 0 ? soma / quantidade : 0;
             return resultado;
         }
 
+        // atualizando a nota quando o professor digita um valor
         function atualizarNota(alunoId, componenteId, valor) {
+            // garantindo que a nota fique entre 0 e 10
             if (valor < 0) valor = 0;
             if (valor > 10) valor = 10;
 
+            // criando o objeto de notas do aluno se não existir
             if (!notas[alunoId]) {
                 notas[alunoId] = {};
             }
+            // salvando a nota que foi digitada
             notas[alunoId][componenteId] = valor;
 
+            // recalculando e atualizando a nota final na tela
             const notaFinalElement = document.getElementById(`nota-final-${alunoId}`);
             if (notaFinalElement) {
                 const notaFinalCalculada = calcularNotaFinal(alunoId);
@@ -271,12 +293,14 @@
             return log;
         }
 
+        // salvando todas as notas no banco de dados de uma vez
         async function salvarTudo() {
             try {
                 const btn = document.querySelector('.btn-save');
                 btn.disabled = true;
                 btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
 
+                // criando uma lista com todas as notas para enviar ao servidor
                 const notasParaSalvar = [];
                 alunos.forEach(aluno => {
                     componentes.forEach(comp => {
@@ -470,12 +494,15 @@
             renderizarTabela();
         });
 
+        // exportando todas as notas para um arquivo CSV
         function exportarCSV() {
+            // verificando se tem dados para exportar
             if (alunos.length === 0 || componentes.length === 0) {
                 showMessage('Não há dados para exportar', 'error');
                 return;
             }
 
+            // verificando se todas as notas foram preenchidas
             const notasVazias = [];
             alunos.forEach(aluno => {
                 componentes.forEach(comp => {
@@ -485,6 +512,7 @@
                 });
             });
 
+            // se tiver nota vazia, não permite exportar
             if (notasVazias.length > 0) {
                 showMessage('Não é possível exportar. Existem notas vazias. Por favor, preencha todas as notas antes de exportar.', 'error');
                 return;

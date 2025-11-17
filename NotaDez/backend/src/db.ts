@@ -1,3 +1,5 @@
+/* Autores do arquivo: Todos os integrantes */
+
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 

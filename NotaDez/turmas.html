@@ -1,3 +1,5 @@
+/* Autores do arquivo: Wanderley */
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -32,7 +34,7 @@
     </div>
 
     <div class="container">
-        
+        <!-- formulário para cadastrar uma nova turma -->
         <div class="curso-form-container" id="turmaFormContainer" style="display: none;">
             <div class="card shadow-sm mb-4">
                 <div class="card-body p-4">
@@ -89,16 +91,19 @@
             </div>
         </div>
 
+        <!-- lista de turmas cadastradas na disciplina -->
         <div id="turmasContent">
             <h2 class="mb-4 mt-4" style="color: #1D4ED8; font-weight: 600;">
                 <i class="bi bi-list-ul"></i> <span id="turmasTitle">Turmas Cadastradas</span>
             </h2>
+            <!-- grid que mostra todos os cards das turmas -->
             <div class="cursos-grid" id="turmasGrid">
                 
             </div>
         </div>
     </div>
 
+    <!-- modal para editar uma turma -->
     <div class="modal fade" id="editTurmaModal" tabindex="-1" aria-labelledby="editTurmaModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -180,10 +185,12 @@
 
         const API_URL = 'http://localhost:3000';
 
+        // pegando o token que foi salvo quando o usuário fez login
         function getAuthToken() {
             return localStorage.getItem('token');
         }
 
+        // verificando se o usuário está logado antes de mostrar a página
         function checkAuth() {
             const token = getAuthToken();
             if (!token) {
@@ -194,6 +201,7 @@
             return true;
         }
 
+        // função que envia requisições para o servidor com o token de autenticação
         async function apiRequest(url, options = {}) {
             const token = getAuthToken();
             const headers = {
@@ -284,8 +292,10 @@
             document.getElementById('cadastroTurmaForm').reset();
         }
 
+        // carregando os dados da disciplina que foi selecionada na página anterior
         function loadDisciplinaData() {
             try {
+                // pegando a disciplina que foi salva quando clicou em "ver turmas"
                 const disciplinaData = localStorage.getItem('selectedDisciplina');
                 if (!disciplinaData) {
                     showMessage('Nenhuma disciplina selecionada. Redirecionando...', 'error');
@@ -295,6 +305,7 @@
                     return false;
                 }
 
+                // convertendo os dados da disciplina de texto para objeto
                 const disciplina = JSON.parse(disciplinaData);
                 currentDisciplinaId = disciplina.id;
                 currentDisciplinaNome = disciplina.nome;
@@ -317,14 +328,17 @@
             }
         }
 
+        // buscando todas as turmas da disciplina no banco de dados
         async function loadTurmas() {
             if (!currentDisciplinaId) {
                 return;
             }
             
             try {
+                // pedindo ao servidor todas as turmas desta disciplina
                 const response = await apiRequest(`${API_URL}/turmas?disciplinaId=${currentDisciplinaId}`);
                 const turmas = response.data || [];
+                // mostrando as turmas na tela
                 renderTurmas(turmas);
             } catch (error) {
                 showMessage(error.message || 'Erro ao carregar turmas', 'error');
@@ -332,9 +346,11 @@
             }
         }
 
+        // criando os cards na tela para mostrar cada turma
         function renderTurmas(turmas) {
             const grid = document.getElementById('turmasGrid');
             
+            // se não tiver turmas, mostra mensagem
             if (!turmas || turmas.length === 0) {
                 grid.innerHTML = `
                     <div class="empty-state w-100">
@@ -346,10 +362,12 @@
                 return;
             }
 
+            // limpando a tela antes de mostrar as turmas
             grid.innerHTML = '';
             
+            // criando um card para cada turma
             turmas.forEach(turma => {
-                
+                // separando o nome da turma para pegar sigla e código
                 const parsed = parseTurmaNome(turma.nome);
                 
                 const card = document.createElement('div');
@@ -398,13 +416,16 @@
             });
         }
 
+        // quando o professor preenche o formulário e cadastra uma turma
         document.getElementById('cadastroTurmaForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            // pegando todos os dados que o professor digitou
             const nome = document.getElementById('turmaNome').value.trim();
             const sigla = document.getElementById('turmaSigla').value.trim().toUpperCase();
             const codigo = document.getElementById('turmaCodigo').value.trim();
 
+            // verificando se todos os campos foram preenchidos
             if (!nome || !sigla || !codigo) {
                 showMessage('Todos os campos são obrigatórios', 'error');
                 return;
@@ -415,6 +436,8 @@
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Cadastrando...';
 
+                // enviando os dados da turma para o servidor salvar no banco
+                // o body é onde enviamos os dados em formato JSON
                 await apiRequest(`${API_URL}/turmas`, {
                     method: 'POST',
                     body: JSON.stringify({
@@ -425,6 +448,7 @@
                     })
                 });
 
+                // mostrando mensagem de sucesso e recarregando a lista
                 showMessage('Turma cadastrada com sucesso!', 'success');
                 this.reset();
                 ocultarFormularioTurma();
@@ -440,16 +464,19 @@
             }
         });
 
+        // abrindo o modal para editar uma turma
         async function editarTurma(id, nomeCompleto) {
             try {
-                
+                // separando o nome da turma para pegar sigla e código
                 const parsed = parseTurmaNome(nomeCompleto);
 
+                // preenchendo os campos do modal com os dados da turma
                 document.getElementById('editTurmaId').value = id;
                 document.getElementById('editTurmaNome').value = parsed.nome;
                 document.getElementById('editTurmaSigla').value = parsed.sigla;
                 document.getElementById('editTurmaCodigo').value = parsed.codigo;
 
+                // mostrando o modal na tela
                 const editModal = new bootstrap.Modal(document.getElementById('editTurmaModal'));
                 editModal.show();
             } catch (error) {
@@ -457,14 +484,17 @@
             }
         }
 
+        // quando o professor salva as alterações da turma editada
         document.getElementById('editTurmaForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            // pegando o ID e os dados novos que o professor digitou
             const id = parseInt(document.getElementById('editTurmaId').value);
             const nome = document.getElementById('editTurmaNome').value.trim();
             const sigla = document.getElementById('editTurmaSigla').value.trim().toUpperCase();
             const codigo = document.getElementById('editTurmaCodigo').value.trim();
 
+            // verificando se todos os campos foram preenchidos
             if (!nome || !sigla || !codigo) {
                 showMessage('Todos os campos são obrigatórios', 'error');
                 return;
@@ -475,6 +505,8 @@
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Salvando...';
 
+                // enviando os dados atualizados para o servidor salvar no banco
+                // o body é onde enviamos os dados em formato JSON
                 await apiRequest(`${API_URL}/turmas/${id}`, {
                     method: 'PUT',
                     body: JSON.stringify({
@@ -484,11 +516,13 @@
                     })
                 });
 
+                // mostrando mensagem de sucesso e fechando o modal
                 showMessage('Turma atualizada com sucesso!', 'success');
                 
                 const editModal = bootstrap.Modal.getInstance(document.getElementById('editTurmaModal'));
                 editModal.hide();
 
+                // recarregando a lista de turmas
                 await loadTurmas();
 
                 submitBtn.disabled = false;
@@ -501,13 +535,17 @@
             }
         });
 
+        // abrindo o modal para confirmar exclusão da turma
         function excluirTurma(id) {
+            // guardando o ID da turma que vai ser excluída
             document.getElementById('deleteTurmaId').value = id;
             const deleteModal = new bootstrap.Modal(document.getElementById('deleteTurmaModal'));
             deleteModal.show();
         }
 
+        // confirmando e excluindo a turma do banco de dados
         document.getElementById('confirmDeleteTurmaBtn').addEventListener('click', async function() {
+            // pegando o ID da turma que vai ser excluída
             const id = parseInt(document.getElementById('deleteTurmaId').value);
 
             try {

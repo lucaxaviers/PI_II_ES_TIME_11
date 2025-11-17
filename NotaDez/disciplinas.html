@@ -1,3 +1,5 @@
+/* Autores do arquivo: Gustavo */
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -9,6 +11,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- cabeçalho da página com título e botões de ação -->
     <div class="dashboard-header">
         <div class="container">
             <div class="d-flex justify-content-between align-items-center">
@@ -31,6 +34,7 @@
     </div>
 
     <div class="container">
+        <!-- formulário para cadastrar uma nova disciplina -->
         <div class="curso-form-container" id="disciplinaFormContainer" style="display: none;">
             <div class="card shadow-sm mb-4">
                 <div class="card-body p-4">
@@ -110,15 +114,18 @@
             </div>
         </div>
 
+        <!-- lista de disciplinas cadastradas no curso -->
         <div id="disciplinasContent">
             <h2 class="mb-4 mt-4" style="color: #1D4ED8; font-weight: 600;">
                 <i class="bi bi-list-ul"></i> <span id="disciplinasTitle">Disciplinas Cadastradas</span>
             </h2>
+            <!-- grid que mostra todos os cards das disciplinas -->
             <div class="cursos-grid" id="disciplinasGrid">
             </div>
         </div>
     </div>
 
+    <!-- modal para editar uma disciplina -->
     <div class="modal fade" id="editDisciplinaModal" tabindex="-1" aria-labelledby="editDisciplinaModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -220,10 +227,12 @@
         
         const API_URL = 'http://localhost:3000';
 
+        // pegando o token que foi salvo quando o usuário fez login
         function getAuthToken() {
             return localStorage.getItem('token');
         }
 
+        // verificando se o usuário está logado antes de mostrar a página
         function checkAuth() {
             const token = getAuthToken();
             if (!token) {
@@ -234,6 +243,7 @@
             return true;
         }
 
+        // função que envia requisições para o servidor com o token de autenticação
         async function apiRequest(url, options = {}) {
             const token = getAuthToken();
             const headers = {
@@ -273,7 +283,9 @@
             return div.innerHTML;
         }
 
+        // mostra mensagem de sucesso ou erro na tela
         function showMessage(message, type = 'success') {
+            // criando um elemento de alerta para mostrar a mensagem
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
             alertDiv.style.zIndex = '9999';
@@ -304,8 +316,10 @@
             document.getElementById('cadastroDisciplinaForm').reset();
         }
 
+        // carregando os dados do curso que foi selecionado na página anterior
         function loadCursoData() {
             try {
+                // pegando o curso que foi salvo quando clicou em "ver disciplinas"
                 const cursoData = localStorage.getItem('selectedCurso');
                 if (!cursoData) {
                     showMessage('Nenhum curso selecionado. Redirecionando...', 'error');
@@ -315,6 +329,7 @@
                     return false;
                 }
 
+                // convertendo os dados do curso de texto para objeto
                 const curso = JSON.parse(cursoData);
                 currentCursoId = curso.id;
                 currentCursoNome = curso.nome;
@@ -339,14 +354,17 @@
             }
         }
 
+        // buscando todas as disciplinas do curso no banco de dados
         async function loadDisciplinas() {
             if (!currentCursoId) {
                 return;
             }
             
             try {
+                // pedindo ao servidor todas as disciplinas deste curso
                 const response = await apiRequest(`${API_URL}/disciplinas?cursoId=${currentCursoId}`);
                 const disciplinas = response.data || [];
+                // mostrando as disciplinas na tela
                 renderDisciplinas(disciplinas);
             } catch (error) {
                 showMessage(error.message || 'Erro ao carregar disciplinas', 'error');
@@ -354,9 +372,11 @@
             }
         }
 
+        // criando os cards na tela para mostrar cada disciplina
         function renderDisciplinas(disciplinas) {
             const grid = document.getElementById('disciplinasGrid');
             
+            // se não tiver disciplinas, mostra mensagem
             if (!disciplinas || disciplinas.length === 0) {
                 grid.innerHTML = `
                     <div class="empty-state w-100">
@@ -368,8 +388,10 @@
                 return;
             }
 
+            // limpando a tela antes de mostrar as disciplinas
             grid.innerHTML = '';
             
+            // criando um card para cada disciplina
             disciplinas.forEach(disciplina => {
                 const card = document.createElement('div');
                 card.className = 'curso-card';
@@ -417,14 +439,17 @@
             });
         }
 
+        // quando o professor preenche o formulário e cadastra uma disciplina
         document.getElementById('cadastroDisciplinaForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            // pegando todos os dados que o professor digitou
             const nome = document.getElementById('disciplinaNome').value.trim();
             const sigla = document.getElementById('disciplinaSigla').value.trim().toUpperCase();
             const codigo = document.getElementById('disciplinaCodigo').value.trim();
             const periodo = document.getElementById('disciplinaPeriodo').value;
 
+            // verificando se todos os campos foram preenchidos
             if (!nome || !sigla || !codigo || !periodo) {
                 showMessage('Todos os campos são obrigatórios', 'error');
                 return;
@@ -435,6 +460,7 @@
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Cadastrando...';
 
+                // enviando os dados da disciplina para o servidor salvar no banco
                 await apiRequest(`${API_URL}/disciplinas`, {
                     method: 'POST',
                     body: JSON.stringify({
@@ -446,6 +472,7 @@
                     })
                 });
 
+                // mostrando mensagem de sucesso e recarregando a lista
                 showMessage('Disciplina cadastrada com sucesso!', 'success');
                 this.reset();
                 ocultarFormularioDisciplina();
@@ -461,10 +488,13 @@
             }
         });
 
+        // abrindo o modal para editar uma disciplina
         async function editarDisciplina(id) {
             try {
+                // buscando a disciplina no servidor
                 const response = await apiRequest(`${API_URL}/disciplinas?cursoId=${currentCursoId}`);
                 const disciplinas = response.data || [];
+                // procurando a disciplina que vai ser editada
                 const disciplina = disciplinas.find(d => d.id === id);
 
                 if (!disciplina) {
@@ -472,6 +502,7 @@
                     return;
                 }
 
+                // preenchendo os campos do modal com os dados da disciplina
                 document.getElementById('editDisciplinaId').value = id;
                 document.getElementById('editDisciplinaNome').value = disciplina.nome;
                 document.getElementById('editDisciplinaSigla').value = disciplina.sigla;
@@ -485,15 +516,18 @@
             }
         }
 
+        // quando o professor salva as alterações da disciplina editada
         document.getElementById('editDisciplinaForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            // pegando o ID e os dados novos que o professor digitou
             const id = parseInt(document.getElementById('editDisciplinaId').value);
             const nome = document.getElementById('editDisciplinaNome').value.trim();
             const sigla = document.getElementById('editDisciplinaSigla').value.trim().toUpperCase();
             const codigo = document.getElementById('editDisciplinaCodigo').value.trim();
             const periodo = document.getElementById('editDisciplinaPeriodo').value;
 
+            // verificando se todos os campos foram preenchidos
             if (!nome || !sigla || !codigo || !periodo) {
                 showMessage('Todos os campos são obrigatórios', 'error');
                 return;
@@ -504,6 +538,7 @@
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Salvando...';
 
+                // enviando os dados atualizados para o servidor salvar no banco
                 await apiRequest(`${API_URL}/disciplinas/${id}`, {
                     method: 'PUT',
                     body: JSON.stringify({
@@ -514,11 +549,13 @@
                     })
                 });
 
+                // mostrando mensagem de sucesso e fechando o modal
                 showMessage('Disciplina atualizada com sucesso!', 'success');
                 
                 const editModal = bootstrap.Modal.getInstance(document.getElementById('editDisciplinaModal'));
                 editModal.hide();
 
+                // recarregando a lista de disciplinas
                 await loadDisciplinas();
 
                 submitBtn.disabled = false;
@@ -531,23 +568,30 @@
             }
         });
 
+        // abrindo o modal para confirmar exclusão da disciplina
         function excluirDisciplina(id) {
+            // guardando o ID da disciplina que vai ser excluída
             document.getElementById('deleteDisciplinaId').value = id;
             const deleteModal = new bootstrap.Modal(document.getElementById('deleteDisciplinaModal'));
             deleteModal.show();
         }
 
+        // confirmando e excluindo a disciplina do banco de dados
         document.getElementById('confirmDeleteDisciplinaBtn').addEventListener('click', async function() {
+            // pegando o ID da disciplina que vai ser excluída
             const id = parseInt(document.getElementById('deleteDisciplinaId').value);
 
             try {
                 this.disabled = true;
                 this.innerHTML = '<i class="bi bi-hourglass-split"></i> Excluindo...';
 
+                // pedindo ao servidor para excluir a disciplina
+                // não precisa de body porque é só excluir pelo ID
                 await apiRequest(`${API_URL}/disciplinas/${id}`, {
                     method: 'DELETE'
                 });
 
+                // mostrando mensagem de sucesso
                 showMessage('Disciplina excluída com sucesso!', 'success');
 
                 const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteDisciplinaModal'));
