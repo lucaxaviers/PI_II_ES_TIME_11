@@ -17,11 +17,7 @@ O NotaDez é um sistema web que deixa o professor:
 
 Resumindo: tudo que você precisa pra gerenciar notas de forma simples e sem complicação. A interface é bem fácil de usar, então qualquer professor consegue navegar de boa.
 
-## 👥 Quem fez?
-
-**TIME_11** - Projeto Integrador II
-
-Fizemos esse projeto pro PI II do curso de Engenharia de Software
+## 👥 Quem fez? - **TIME_11** - Projeto Integrador II
 
 **Alunos:**
 
